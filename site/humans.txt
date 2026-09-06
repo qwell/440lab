@@ -1,1 +1,3 @@
-.well-known/humans.txt
+Hello there.
+
+Security: https://440lab.com/.well-known/security.txt

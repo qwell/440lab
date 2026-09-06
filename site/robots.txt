@@ -1,1 +1,4 @@
-.well-known/robots.txt
+Sitemap: https://440lab.com/sitemap.xml
+
+User-agent: *
+Allow: /

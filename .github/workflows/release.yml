@@ -35,7 +35,10 @@ jobs:
                   fi
 
             - name: Copy documentation
-              run: cp ./*.md LICENSE site/
+              run: |
+                  cp ./*.md LICENSE site/
+                  mkdir -p site/.well-known
+                  cp site/security.txt site/.well-known/
 
             - name: Create ZIP
               run: |
