@@ -141,6 +141,12 @@ function centsBetween(frequencyHz, referenceHz) {
     return 1200 * Math.log2(frequencyHz / referenceHz);
 }
 
+function nearestOctaveFrequency(frequencyHz, referenceHz) {
+    const octaveOffset = Math.round(Math.log2(referenceHz / frequencyHz));
+
+    return frequencyHz * 2 ** octaveOffset;
+}
+
 function getA4() {
     return readNumber(getControl('a4'), DEFAULT_A4);
 }
@@ -648,7 +654,6 @@ function stopGeneratedAudio() {
 function stopAllAudio() {
     stopGeneratedAudio();
     stopMicTuner();
-    stopPitchMemoryMic();
 }
 
 // Notes
@@ -727,6 +732,16 @@ function activateTab(button, focus = false, updateUrl = true) {
     sectionPicker.value = tabName;
 
     stopAllAudio();
+
+    if (
+        tabName === 'pitch-memory' &&
+        getControl('pitch-memory-response').value === 'microphone'
+    ) {
+        void startPitchMemoryMic();
+    } else if (tabName !== 'pitch-memory') {
+        stopPitchMemoryMic();
+    }
+
     cancelPlacementAdvance();
     cancelPickAdvance();
     cancelIntervalAdvance();
@@ -1769,6 +1784,14 @@ function getPitchMemoryFrequencyFromSlider() {
     return PITCH_MEMORY_MIN_HZ * 2 ** (cents / 1200);
 }
 
+function pitchMemoryFrequencyToSliderValue(frequencyHz) {
+    return clamp(
+        1200 * Math.log2(frequencyHz / PITCH_MEMORY_MIN_HZ),
+        0,
+        PITCH_MEMORY_RANGE_CENTS
+    );
+}
+
 function renderPitchMemoryResponseFrequency() {
     getOutput('pitch-memory-response-frequency').textContent =
         `${getPitchMemoryFrequencyFromSlider().toFixed(3)} Hz`;
@@ -1791,6 +1814,10 @@ function clearPitchMemoryFrequencyMarkers() {
 function showPitchMemoryFrequencyMarkers(result) {
     const targetMarker = getOutput('pitch-memory-target-marker');
     const responseMarker = getOutput('pitch-memory-response-marker');
+    const responseHz =
+        result.method === 'microphone'
+            ? result.scoredResponseHz
+            : result.responseHz;
     const position = (frequency) =>
         clamp(
             Math.log2(frequency / PITCH_MEMORY_MIN_HZ) /
@@ -1800,7 +1827,7 @@ function showPitchMemoryFrequencyMarkers(result) {
         );
 
     targetMarker.style.left = `${position(result.targetHz) * 100}%`;
-    responseMarker.style.left = `${position(result.responseHz) * 100}%`;
+    responseMarker.style.left = `${position(responseHz) * 100}%`;
     responseMarker.classList.toggle(
         'is-correct',
         result.absoluteErrorCents < PITCH_MEMORY_CORRECT_CENTS
@@ -1833,18 +1860,6 @@ function stopPitchMemoryResponseTone() {
     }
 }
 
-function setPitchMemoryMicActive(active) {
-    const button = getAction('toggle-pitch-memory-mic');
-
-    if (!button) {
-        return;
-    }
-
-    button.setAttribute('aria-pressed', String(active));
-    button.classList.toggle('is-active', active);
-    button.textContent = active ? 'Stop microphone' : 'Start microphone';
-}
-
 function stopPitchMemoryMic() {
     if (!pitchMemory?.mic) {
         return;
@@ -1859,8 +1874,15 @@ function stopPitchMemoryMic() {
 
     stopMicrophoneInput(mic);
     mic.frequencies = [];
+}
 
-    setPitchMemoryMicActive(false);
+function updatePitchMemoryResponseMethod() {
+    if (getControl('pitch-memory-response').value === 'microphone') {
+        void startPitchMemoryMic();
+    } else {
+        stopPitchMemoryMic();
+        getAction('new-pitch-memory').disabled = false;
+    }
 }
 
 function analyzePitchMemoryMic(time) {
@@ -1870,7 +1892,11 @@ function analyzePitchMemoryMic(time) {
         return;
     }
 
-    if (time - mic.lastAnalysis >= TUNER_ANALYSIS_INTERVAL_MS) {
+    if (
+        pitchMemory.trial?.state === 'responding' &&
+        pitchMemory.trial.method === 'microphone' &&
+        time - mic.lastAnalysis >= TUNER_ANALYSIS_INTERVAL_MS
+    ) {
         mic.lastAnalysis = time;
         mic.analyser.getFloatTimeDomainData(mic.buffer);
 
@@ -1890,8 +1916,11 @@ function analyzePitchMemoryMic(time) {
 
             mic.detectedHz = median(mic.frequencies);
 
-            getOutput('pitch-memory-detected-frequency').textContent =
-                `${mic.detectedHz.toFixed(3)} Hz detected`;
+            getOutput('pitch-memory-response-frequency').textContent =
+                `${mic.detectedHz.toFixed(3)} Hz`;
+            getControl('pitch-memory-frequency').value = String(
+                pitchMemoryFrequencyToSliderValue(mic.detectedHz)
+            );
             const response = document.querySelector(
                 '.pitch-memory-microphone-response'
             );
@@ -1905,7 +1934,10 @@ function analyzePitchMemoryMic(time) {
 }
 
 async function startPitchMemoryMic() {
+    const refreshButton = getAction('new-pitch-memory');
+
     if (!navigator.mediaDevices?.getUserMedia) {
+        refreshButton.disabled = true;
         setPitchMemoryStatus('Microphone access unavailable.');
         return;
     }
@@ -1915,6 +1947,12 @@ async function startPitchMemoryMic() {
 
     const mic = pitchMemory.mic;
 
+    if (mic.stream) {
+        refreshButton.disabled = false;
+        return;
+    }
+
+    refreshButton.disabled = true;
     setPitchMemoryStatus('Requesting microphone access...');
 
     try {
@@ -1925,29 +1963,24 @@ async function startPitchMemoryMic() {
         mic.lastAnalysis = 0;
         mic.frequencies = [];
         mic.detectedHz = null;
+        refreshButton.disabled = false;
 
-        getOutput('pitch-memory-detected-frequency').textContent =
-            'Sing or hum a steady pitch';
-        setPitchMemoryStatus('Listening for a stable pitch.');
-        setPitchMemoryMicActive(true);
+        getOutput('pitch-memory-response-frequency').textContent =
+            'No stable pitch';
+        setPitchMemoryStatus('Microphone enabled.');
         mic.frame = requestAnimationFrame(analyzePitchMemoryMic);
     } catch (error) {
+        if (getControl('pitch-memory-response').value !== 'microphone') {
+            return;
+        }
+
+        refreshButton.disabled = true;
         setPitchMemoryStatus(
             error?.name === 'NotAllowedError'
                 ? 'Microphone permission denied.'
                 : 'Could not start microphone.'
         );
     }
-}
-
-function togglePitchMemoryMic() {
-    if (pitchMemory.mic.stream) {
-        stopPitchMemoryMic();
-        setPitchMemoryStatus('Microphone stopped.');
-        return;
-    }
-
-    void startPitchMemoryMic();
 }
 
 function defaultPitchMemoryStats() {
@@ -2013,12 +2046,14 @@ function showPitchMemoryResponse() {
 
     document.querySelector('.pitch-memory-oscillator-response').hidden = true;
     document.querySelector('.pitch-memory-microphone-response').hidden = true;
+    document.querySelector('.pitch-memory-frequency-response').hidden = false;
     oscillator.hidden = false;
 
     if (pitchMemory.trial.method === 'oscillator') {
         const random = seededRandom(pitchMemory.trial.seed ^ 0xa55a5aa5);
-        const targetCents =
-            1200 * Math.log2(pitchMemory.trial.targetHz / PITCH_MEMORY_MIN_HZ);
+        const targetCents = pitchMemoryFrequencyToSliderValue(
+            pitchMemory.trial.targetHz
+        );
         const direction = random() < 0.5 ? -1 : 1;
         const offset = direction * (300 + random() * 900);
 
@@ -2027,6 +2062,7 @@ function showPitchMemoryResponse() {
         );
         renderPitchMemoryResponseFrequency();
         clearPitchMemoryFrequencyMarkers();
+        getControl('pitch-memory-frequency').disabled = false;
         getAction('play-pitch-memory-response').disabled = false;
         getAction('stop-pitch-memory-response').disabled = false;
         getAction('submit-pitch-memory', oscillator).disabled = false;
@@ -2035,8 +2071,13 @@ function showPitchMemoryResponse() {
         );
     } else {
         pitchMemory.mic.detectedHz = null;
-        getOutput('pitch-memory-detected-frequency').textContent =
+        getOutput('pitch-memory-response-frequency').textContent =
             'No stable pitch';
+        getControl('pitch-memory-frequency').value = String(
+            PITCH_MEMORY_RANGE_CENTS / 2
+        );
+        clearPitchMemoryFrequencyMarkers();
+        getControl('pitch-memory-frequency').disabled = true;
         getAction(
             'submit-pitch-memory',
             document.querySelector('.pitch-memory-microphone-response')
@@ -2202,7 +2243,6 @@ function playPitchMemoryStimulus() {
 
 function startPitchMemoryTrial() {
     cancelPitchMemoryTrial(false);
-    getControl('pitch-memory-frequency').disabled = false;
 
     const test = getControl('pitch-memory-test').value;
     const method = getControl('pitch-memory-response').value;
@@ -2232,6 +2272,7 @@ function startPitchMemoryTrial() {
 
     document.querySelector('.pitch-memory-oscillator-response').hidden = true;
     document.querySelector('.pitch-memory-microphone-response').hidden = true;
+    document.querySelector('.pitch-memory-frequency-response').hidden = true;
     clearPitchMemoryFrequencyMarkers();
     getOutput('pitch-memory-result').textContent = '';
     setPitchMemoryReplayEnabled(true);
@@ -2249,7 +2290,6 @@ function cancelPitchMemoryTrial(showStatus = true) {
     }
 
     stopPitchMemoryResponseTone();
-    stopPitchMemoryMic();
     audio.stopTransient();
 
     pitchMemory.trial = null;
@@ -2264,6 +2304,7 @@ function cancelPitchMemoryTrial(showStatus = true) {
     getAction('stop-pitch-memory').disabled = true;
     document.querySelector('.pitch-memory-oscillator-response').hidden = true;
     document.querySelector('.pitch-memory-microphone-response').hidden = true;
+    document.querySelector('.pitch-memory-frequency-response').hidden = true;
 
     if (showStatus) {
         setPitchMemoryStatus('Trial cancelled.');
@@ -2276,7 +2317,6 @@ function stopPitchMemoryAudio() {
     clearPitchMemoryTimers();
     audio.stopTransient();
     stopPitchMemoryResponseTone();
-    stopPitchMemoryMic();
 
     if (pitchMemory.replayTimer !== null) {
         clearTimeout(pitchMemory.replayTimer);
@@ -2289,6 +2329,8 @@ function stopPitchMemoryAudio() {
         document.querySelector('.pitch-memory-oscillator-response').hidden =
             true;
         document.querySelector('.pitch-memory-microphone-response').hidden =
+            true;
+        document.querySelector('.pitch-memory-frequency-response').hidden =
             true;
         setPitchMemoryStatus('Trial paused.');
         savePitchMemoryState();
@@ -2333,7 +2375,14 @@ function submitPitchMemoryResponse() {
         return;
     }
 
-    const errorCents = centsBetween(responseHz, pitchMemory.trial.targetHz);
+    const scoredResponseHz =
+        pitchMemory.trial.method === 'microphone'
+            ? nearestOctaveFrequency(responseHz, pitchMemory.trial.targetHz)
+            : responseHz;
+    const errorCents = centsBetween(
+        scoredResponseHz,
+        pitchMemory.trial.targetHz
+    );
     const result = {
         timestamp: new Date().toISOString(),
         test: pitchMemory.trial.test,
@@ -2341,6 +2390,7 @@ function submitPitchMemoryResponse() {
         condition: pitchMemory.trial.condition,
         targetHz: pitchMemory.trial.targetHz,
         responseHz,
+        scoredResponseHz,
         errorCents,
         absoluteErrorCents: Math.abs(errorCents),
         responseTimeMs: Date.now() - pitchMemory.trial.responseStartedAt,
@@ -2364,13 +2414,15 @@ function submitPitchMemoryResponse() {
 
     savePitchMemoryStats();
     stopPitchMemoryResponseTone();
-    stopPitchMemoryMic();
 
     getOutput('pitch-memory-result').textContent =
-        `Target ${result.targetHz.toFixed(3)} Hz; response ${result.responseHz.toFixed(3)} Hz; error ${signed(result.errorCents, 1)} cents.`;
+        result.method === 'microphone'
+            ? `Target ${result.targetHz.toFixed(3)} Hz; detected ${result.responseHz.toFixed(3)} Hz; octave-adjusted ${result.scoredResponseHz.toFixed(3)} Hz; error ${signed(result.errorCents, 1)} cents.`
+            : `Target ${result.targetHz.toFixed(3)} Hz; response ${result.responseHz.toFixed(3)} Hz; error ${signed(result.errorCents, 1)} cents.`;
+
+    showPitchMemoryFrequencyMarkers(result);
 
     if (pitchMemory.trial.method === 'oscillator') {
-        showPitchMemoryFrequencyMarkers(result);
         getControl('pitch-memory-frequency').disabled = true;
         getAction('play-pitch-memory-response').disabled = true;
         getAction('stop-pitch-memory-response').disabled = true;
@@ -2414,6 +2466,7 @@ function restorePitchMemoryTrial() {
 
     getControl('pitch-memory-test').value = trial.test;
     getControl('pitch-memory-response').value = trial.method;
+    updatePitchMemoryResponseMethod();
 
     const conditionValue = String(Number.parseInt(trial.condition, 10));
 
@@ -3400,7 +3453,6 @@ function initializeEvents() {
 
     for (const control of getControls(
         'pitch-memory-test',
-        'pitch-memory-response',
         'pitch-memory-delay',
         'pitch-memory-distractors'
     )) {
@@ -3412,6 +3464,15 @@ function initializeEvents() {
             updatePitchMemoryControls();
         });
     }
+
+    getControl('pitch-memory-response').addEventListener('change', () => {
+        if (pitchMemory.trial) {
+            cancelPitchMemoryTrial();
+        }
+
+        updatePitchMemoryControls();
+        updatePitchMemoryResponseMethod();
+    });
 
     getAction('start-pitch-memory').addEventListener(
         'click',
@@ -3441,11 +3502,6 @@ function initializeEvents() {
     getControl('pitch-memory-frequency').addEventListener(
         'input',
         updatePitchMemoryResponseTone
-    );
-
-    getAction('toggle-pitch-memory-mic').addEventListener(
-        'click',
-        togglePitchMemoryMic
     );
 
     for (const button of getActions('submit-pitch-memory')) {
@@ -3549,6 +3605,7 @@ initialize();
 
 window.addEventListener('beforeunload', () => {
     stopAllAudio();
+    stopPitchMemoryMic();
     cancelPlacementAdvance();
     cancelPickAdvance();
     cancelIntervalAdvance();

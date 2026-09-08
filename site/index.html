@@ -1415,8 +1415,8 @@
                             <span
                                 class="info-tip"
                                 tabindex="0"
-                                aria-label="Oscillator lets you adjust a generated tone to match your memory. Microphone measures a pitch you sing, hum, or play."
-                                data-tooltip="Oscillator lets you adjust a generated tone to match your memory. Microphone measures a pitch you sing, hum, or play."
+                                aria-label="Oscillator scores the exact frequency of an adjusted tone. Microphone measures a pitch you sing, hum, or play and scores its nearest octave equivalent, so the same note in another octave is accepted."
+                                data-tooltip="Oscillator scores the exact frequency of an adjusted tone. Microphone measures a pitch you sing, hum, or play and scores its nearest octave equivalent, so the same note in another octave is accepted."
                             >
                                 ⓘ
                             </span>
@@ -1526,9 +1526,9 @@
                             Ready for a new trial.
                         </p>
 
-                        <div class="pitch-memory-oscillator-response" hidden>
+                        <div class="pitch-memory-frequency-response" hidden>
                             <label for="pitch-memory-frequency">
-                                Recalled frequency (<span
+                                Response frequency (<span
                                     class="frequency-value"
                                     data-output="pitch-memory-response-frequency"
                                 ></span
@@ -1536,8 +1536,8 @@
                                 <span
                                     class="info-tip"
                                     tabindex="0"
-                                    aria-label="Adjusts continuously from 200 to 900 Hz without snapping to musical notes. Drag for coarse adjustment or use the arrow keys for 0.1-cent steps."
-                                    data-tooltip="Adjusts continuously from 200 to 900 Hz without snapping to musical notes. Drag for coarse adjustment or use the arrow keys for 0.1-cent steps."
+                                    aria-label="With an oscillator, adjust continuously from 200 to 900 Hz without snapping to musical notes. With a microphone, this disabled control shows the detected pitch."
+                                    data-tooltip="With an oscillator, adjust continuously from 200 to 900 Hz without snapping to musical notes. With a microphone, this disabled control shows the detected pitch."
                                 >
                                     ⓘ
                                 </span>
@@ -1567,6 +1567,9 @@
                                     ></span>
                                 </span>
                             </div>
+                        </div>
+
+                        <div class="pitch-memory-oscillator-response" hidden>
                             <div class="response-actions">
                                 <button
                                     data-action="play-pitch-memory-response"
@@ -1595,21 +1598,7 @@
                         </div>
 
                         <div class="pitch-memory-microphone-response" hidden>
-                            <div
-                                class="frequency-value pitch-memory-detected-frequency"
-                                data-output="pitch-memory-detected-frequency"
-                            >
-                                No stable pitch
-                            </div>
                             <div class="response-actions">
-                                <button
-                                    data-action="toggle-pitch-memory-mic"
-                                    type="button"
-                                    aria-pressed="false"
-                                    title="Start or stop microphone pitch detection"
-                                >
-                                    Start microphone
-                                </button>
                                 <button
                                     data-action="submit-pitch-memory"
                                     type="button"
@@ -2040,7 +2029,18 @@
                     </div>
 
                     <div class="field">
-                        <label for="interval-waveform">Wave type</label>
+                        <label for="interval-waveform">
+                            Wave type
+
+                            <span
+                                class="info-tip"
+                                tabindex="0"
+                                aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
+                                data-tooltip="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
+                            >
+                                ⓘ
+                            </span>
+                        </label>
                         <div class="control-row">
                             <select
                                 id="interval-waveform"
