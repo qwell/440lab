@@ -96,9 +96,11 @@ const INTERVALS = [
 ];
 
 const INTERVAL_LEVELS = {
-    starter: [0, 4, 7, 12],
-    common: [0, 2, 3, 4, 5, 7, 9, 12],
-    all: INTERVALS.map(({ semitones }) => semitones),
+    starter: [3, 4, 7, 12],
+    common: [2, 3, 4, 5, 7, 8, 9, 12],
+    all: INTERVALS.filter(({ semitones }) => semitones > 0).map(
+        ({ semitones }) => semitones
+    ),
 };
 
 function clamp(value, minimum, maximum) {
@@ -2953,6 +2955,7 @@ function defaultIntervalTypeStats() {
 function defaultIntervalStats() {
     return {
         recognition: defaultIntervalTypeStats(),
+        construction: defaultIntervalTypeStats(),
     };
 }
 
@@ -2978,6 +2981,7 @@ function loadIntervalStats() {
 
     return {
         recognition: loadIntervalTypeStats(stored.recognition),
+        construction: loadIntervalTypeStats(stored.construction),
     };
 }
 
@@ -3005,11 +3009,24 @@ function scheduleIntervalAdvance() {
 
 function enabledIntervals() {
     const level = getControl('interval-level').value;
+    const mode = getControl('interval-mode').value;
     const enabledSemitones = INTERVAL_LEVELS[level] || INTERVAL_LEVELS.starter;
 
-    return INTERVALS.filter(({ semitones }) =>
-        enabledSemitones.includes(semitones)
+    return INTERVALS.filter(
+        ({ semitones }) =>
+            enabledSemitones.includes(semitones) ||
+            (mode === 'recognition' && level === 'all' && semitones === 0)
     );
+}
+
+function renderIntervalLevelOptions() {
+    const mode = getControl('interval-mode').value;
+
+    for (const option of getControl('interval-level').options) {
+        const unison = mode === 'recognition' && option.value === 'all' ? 1 : 0;
+
+        option.textContent = `${option.value} - ${INTERVAL_LEVELS[option.value].length + unison}`;
+    }
 }
 
 function renderIntervalAnswers(selected = null, enabled = false) {
@@ -3023,8 +3040,19 @@ function renderIntervalAnswers(selected = null, enabled = false) {
         button.type = 'button';
         button.className = 'answer-option';
         button.dataset.intervalAnswer = String(answer.semitones);
-        button.textContent = answer.shortName || answer.name;
-        button.setAttribute('aria-label', answer.name);
+        button.textContent =
+            interval.trial.mode === 'construction'
+                ? midiToNoteName(
+                      interval.trial.rootMidi +
+                          interval.trial.direction * answer.semitones
+                  )
+                : answer.shortName || answer.name;
+        button.setAttribute(
+            'aria-label',
+            interval.trial.mode === 'construction'
+                ? `Choose ${button.textContent}`
+                : answer.name
+        );
         button.disabled = interval.trial?.committed || !enabled;
 
         if (selected !== null) {
@@ -3040,9 +3068,33 @@ function renderIntervalAnswers(selected = null, enabled = false) {
         return button;
     });
 
+    const children = [];
+
+    if (interval.trial?.mode === 'construction') {
+        const prompt = document.createElement('div');
+        const intervalName = INTERVALS.find(
+            ({ semitones }) => semitones === interval.trial.semitones
+        ).name;
+        const direction =
+            interval.trial.semitones === 0
+                ? ''
+                : ` ${interval.trial.direction > 0 ? 'ascending' : 'descending'}`;
+
+        prompt.className = 'interval-prompt';
+        prompt.replaceChildren(
+            document.createTextNode(
+                `Start: ${midiToNoteName(interval.trial.rootMidi)}.`
+            ),
+            document.createElement('br'),
+            document.createTextNode(`Build: ${intervalName}${direction}.`)
+        );
+        children.push(prompt);
+    }
+
+    children.push(...buttons);
     document
         .querySelector('[data-interval-answers]')
-        .replaceChildren(...buttons);
+        .replaceChildren(...children);
 }
 
 function clearIntervalResult() {
@@ -3053,27 +3105,35 @@ function newIntervalTrial(playImmediately = false) {
     cancelIntervalAdvance();
     stopAllAudio();
 
+    const mode = getControl('interval-mode').value;
     const choices = enabledIntervals();
     const target = choices[Math.floor(Math.random() * choices.length)];
-    const distractors = shuffle(
-        choices.filter((candidate) => candidate !== target)
-    ).slice(0, 3);
-    const answerSemitones = shuffle([...distractors, target]).map(
-        ({ semitones }) => semitones
-    );
     const directionControl = getControl('interval-direction').value;
     const ascending =
         directionControl === 'random'
             ? Math.random() < 0.5
             : directionControl === 'ascending';
+    const answerSemitones =
+        mode === 'construction'
+            ? shuffle(INTERVALS.filter(({ semitones }) => semitones > 0)).map(
+                  ({ semitones }) => semitones
+              )
+            : shuffle([
+                  ...shuffle(
+                      choices.filter((candidate) => candidate !== target)
+                  ).slice(0, 3),
+                  target,
+              ]).map(({ semitones }) => semitones);
     const rootMidi = ascending
         ? 48 + Math.floor(Math.random() * 24)
         : 60 + Math.floor(Math.random() * 24);
 
     interval.trial = {
+        mode,
         semitones: target.semitones,
         answerSemitones,
         rootMidi,
+        direction: ascending ? 1 : -1,
         targetMidi: rootMidi + (ascending ? 1 : -1) * target.semitones,
         committed: false,
         played: false,
@@ -3116,7 +3176,8 @@ function playIntervalTrial() {
 }
 
 function renderIntervalStats() {
-    const { streak, trials, correct, best } = stats.interval.recognition;
+    const mode = getControl('interval-mode').value;
+    const { streak, trials, correct, best } = stats.interval[mode];
 
     const accuracy = trials > 0 ? (correct / trials) * 100 : 0;
     getOutput('interval-streak').textContent = String(streak);
@@ -3128,8 +3189,10 @@ function renderIntervalStats() {
 }
 
 function clearIntervalStats() {
-    stats.interval.recognition = defaultIntervalTypeStats();
-    clearStats('interval');
+    const mode = getControl('interval-mode').value;
+
+    stats.interval[mode] = defaultIntervalTypeStats();
+    saveIntervalStats();
     renderIntervalStats();
 }
 
@@ -3148,18 +3211,18 @@ function commitInterval(semitones) {
         (candidate) => candidate.semitones === trial.semitones
     );
 
-    stats.interval.recognition.trials += 1;
-    stats.interval.recognition.correct += correct ? 1 : 0;
-    stats.interval.recognition.streak = correct
-        ? stats.interval.recognition.streak + 1
+    stats.interval[trial.mode].trials += 1;
+    stats.interval[trial.mode].correct += correct ? 1 : 0;
+    stats.interval[trial.mode].streak = correct
+        ? stats.interval[trial.mode].streak + 1
         : 0;
 
     if (
         correct &&
-        (stats.interval.recognition.best === null ||
-            stats.interval.recognition.streak > stats.interval.recognition.best)
+        (stats.interval[trial.mode].best === null ||
+            stats.interval[trial.mode].streak > stats.interval[trial.mode].best)
     ) {
-        stats.interval.recognition.best = stats.interval.recognition.streak;
+        stats.interval[trial.mode].best = stats.interval[trial.mode].streak;
     }
 
     saveIntervalStats();
@@ -3447,6 +3510,12 @@ function initializeEvents() {
         newChordTrial();
     });
 
+    getControl('interval-mode').addEventListener('change', () => {
+        renderIntervalLevelOptions();
+        newIntervalTrial();
+        renderIntervalStats();
+    });
+
     for (const control of getControls('interval-level', 'interval-direction')) {
         control.addEventListener('change', () => {
             newIntervalTrial();
@@ -3691,6 +3760,7 @@ function initialize() {
     clearPlacementResult();
     renderPlacementStats();
 
+    renderIntervalLevelOptions();
     newPlacementTrial();
     newPickSet();
     newIntervalTrial();

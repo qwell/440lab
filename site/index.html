@@ -1905,7 +1905,8 @@
             >
                 <h2 class="sr-only">Intervals</h2>
                 <h3 class="blurb">
-                    Hear two notes and identify the size of the pitch jump.
+                    Identify intervals by ear or construct them from a starting
+                    note.
                 </h3>
 
                 <details class="interval-guide">
@@ -1999,17 +2000,45 @@
 
                 <div class="form-grid">
                     <div class="field">
-                        <label for="interval-level">Interval set</label>
+                        <label for="interval-mode">Mode</label>
+                        <div class="control-row">
+                            <select
+                                id="interval-mode"
+                                data-control="interval-mode"
+                            >
+                                <option value="recognition" selected>
+                                    recognition
+                                </option>
+                                <option value="construction">
+                                    construction
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label for="interval-level">
+                            Interval set
+
+                            <span
+                                class="info-tip"
+                                tabindex="0"
+                                aria-label="Controls which intervals can be requested. Recognition choices also come from this set; construction excludes unison and always shows 12 destination notes."
+                                data-tooltip="Controls which intervals can be requested. Recognition choices also come from this set; construction excludes unison and always shows 12 destination notes."
+                            >
+                                ⓘ
+                            </span>
+                        </label>
                         <div class="control-row">
                             <select
                                 id="interval-level"
                                 data-control="interval-level"
                             >
                                 <option value="starter" selected>
-                                    starter — 4
+                                    starter - 4
                                 </option>
-                                <option value="common">common — 8</option>
-                                <option value="all">all — 13</option>
+                                <option value="common">common - 8</option>
+                                <option value="all">all - 13</option>
                             </select>
                         </div>
                     </div>
