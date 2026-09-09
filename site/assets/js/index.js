@@ -37,11 +37,10 @@ const METRONOME_METERS = {
 };
 
 const STATS_KEYS = {
-    placement: '440Lab.placementStats.v1',
+    pitch: '440Lab.pitchStats.v1',
     pick: '440Lab.pickStats.v7',
     interval: '440Lab.intervalStats.v1',
     chord: '440Lab.chordStats.v1',
-    pitchMemory: '440Lab.pitchMemoryStats.v1',
 };
 
 const PITCH_MEMORY_TRIAL_KEY = '440Lab.pitchMemoryTrial.v1';
@@ -187,6 +186,34 @@ function getAction(name, root = document) {
 
 function getActions(name, root = document) {
     return root.querySelectorAll(`[data-action="${name}"]`);
+}
+
+function getModePanels(name) {
+    return document.querySelectorAll(
+        `[data-panel="${name}"] [data-mode-panel]`
+    );
+}
+
+function initializeModePanels(name) {
+    const panel = document.querySelector(`[data-panel="${name}"]`);
+    const controls = panel.querySelector(':scope > .form-grid');
+
+    for (const modePanel of panel.querySelectorAll(
+        ':scope > [data-mode-panel]'
+    )) {
+        const modeControls = modePanel.querySelector(':scope > .form-grid');
+
+        if (!modeControls) {
+            continue;
+        }
+
+        for (const field of [...modeControls.children]) {
+            field.dataset.modePanel = modePanel.dataset.modePanel;
+            controls.append(field);
+        }
+
+        modeControls.remove();
+    }
 }
 
 function getNote(name) {
@@ -704,16 +731,21 @@ function updateNoteReadouts() {
 
 // Tabs
 
+function isPitchMemoryActive(tabName) {
+    return tabName === 'pitch' && getControl('pitch-mode').value === 'memory';
+}
+
 function activateTab(button, focus = false, updateUrl = true) {
     const tabName = button.dataset.tab;
+    const pitchMemoryActive = isPitchMemoryActive(tabName);
     const sectionPicker = document.querySelector(
         '[data-control="section-picker"]'
     );
 
     if (
-        tabName !== 'pitch-memory' &&
+        !pitchMemoryActive &&
         pitchMemory.trial?.state === 'waiting' &&
-        (pitchMemory.trial.mode === 'interference' ||
+        (pitchMemory.trial.type === 'interference' ||
             Date.now() < pitchMemory.trial.encodingEndsAt)
     ) {
         cancelPitchMemoryTrial();
@@ -738,15 +770,15 @@ function activateTab(button, focus = false, updateUrl = true) {
     stopAllAudio();
 
     if (
-        tabName === 'pitch-memory' &&
+        pitchMemoryActive &&
         getControl('pitch-memory-response').value === 'microphone'
     ) {
         void startPitchMemoryMic();
-    } else if (tabName !== 'pitch-memory') {
+    } else if (!pitchMemoryActive) {
         stopPitchMemoryMic();
     }
 
-    cancelPlacementAdvance();
+    cancelPitchAdvance();
     cancelPickAdvance();
     cancelIntervalAdvance();
     cancelChordAdvance();
@@ -784,9 +816,18 @@ function initializeTabs() {
 
     function activateHashTab() {
         const hash = window.location.hash.slice(1);
+        const pitchHash = ['pitch-placement', 'pitch-memory'].includes(hash);
+
+        if (pitchHash) {
+            getControl('pitch-mode').value =
+                hash === 'pitch-memory' ? 'memory' : 'placement';
+        }
+
         const tab =
-            tabs.find((candidate) => candidate.dataset.tab === hash) ||
-            (hash === '' ? tabs[0] : null);
+            tabs.find(
+                (candidate) =>
+                    candidate.dataset.tab === (pitchHash ? 'pitch' : hash)
+            ) || (hash === '' ? tabs[0] : null);
 
         if (tab && !tab.classList.contains('is-active')) {
             activateTab(tab, false, false);
@@ -1379,9 +1420,9 @@ function tapTempo() {
     bpmInput.value = String(bpm);
 }
 
-// Pitch Placement
+// Pitch placement
 
-function defaultPlacementTypeStats() {
+function defaultPitchTypeStats() {
     return {
         streak: 0,
         trials: 0,
@@ -1391,15 +1432,17 @@ function defaultPlacementTypeStats() {
     };
 }
 
-function defaultPlacementStats() {
+function defaultPitchStats() {
     return {
-        recognition: defaultPlacementTypeStats(),
+        placement: defaultPitchTypeStats(),
+        'memory|novel': defaultPitchTypeStats(),
+        'memory|interference': defaultPitchTypeStats(),
     };
 }
 
-function loadPlacementTypeStats(stored) {
+function loadPitchTypeStats(stored) {
     if (!stored || typeof stored !== 'object') {
-        return defaultPlacementTypeStats();
+        return defaultPitchTypeStats();
     }
 
     return {
@@ -1411,66 +1454,68 @@ function loadPlacementTypeStats(stored) {
     };
 }
 
-function loadPlacementStats() {
-    const stored = loadStats('placement');
+function loadPitchStats() {
+    const stored = loadStats('pitch');
 
     if (!stored || typeof stored !== 'object') {
-        return defaultPlacementStats();
+        return defaultPitchStats();
     }
 
     return {
-        recognition: loadPlacementTypeStats(stored.recognition),
+        placement: loadPitchTypeStats(stored.placement),
+        'memory|novel': loadPitchTypeStats(stored['memory|novel']),
+        'memory|interference': loadPitchTypeStats(
+            stored['memory|interference']
+        ),
     };
 }
 
-function savePlacementStats() {
-    saveStats('placement');
+function savePitchStats() {
+    saveStats('pitch');
 }
 
-stats.placement = loadPlacementStats();
+stats.pitch = loadPitchStats();
 
-const placement = {
+const pitch = {
     trial: null,
     adaptiveResults: [],
 };
 
-const placementAdvance = createAutoAdvance('.placement-refresh', () => {
-    newPlacementTrial(true);
+const pitchAdvance = createAutoAdvance('.pitch-refresh', () => {
+    newPitchPlacementTrial(true);
 });
 
-function cancelPlacementAdvance() {
-    placementAdvance.cancel();
+function cancelPitchAdvance() {
+    pitchAdvance.cancel();
 }
 
-function schedulePlacementAdvance() {
-    placementAdvance.schedule();
+function schedulePitchAdvance() {
+    pitchAdvance.schedule();
 }
 
-function renderPlacementStats() {
-    const { streak, trials, errorTotal, best } = stats.placement.recognition;
+function renderPitchPlacementStats() {
+    const { streak, trials, errorTotal, best } = stats.pitch.placement;
 
     const meanError = trials > 0 ? errorTotal / trials : 0;
 
-    getOutput('placement-streak').textContent = String(streak);
+    getOutput('pitch-streak').textContent = String(streak);
 
-    getOutput('placement-mean-error').textContent =
-        `${meanError.toFixed(1)} cents`;
+    getOutput('pitch-mean-error').textContent = `${meanError.toFixed(1)} cents`;
 
-    getOutput('placement-best').textContent =
+    getOutput('pitch-best').textContent =
         best === null ? '--' : `${best.toFixed(2)} cents`;
 }
 
-function clearPlacementStats() {
-    stats.placement.recognition = defaultPlacementTypeStats();
+function clearPitchStats() {
+    stats.pitch.placement = defaultPitchTypeStats();
+    savePitchStats();
 
-    clearStats('placement');
-
-    renderPlacementStats();
+    renderPitchPlacementStats();
 }
 
 function setJudgmentState({ disabled, selected = null, correct = null }) {
     for (const button of document.querySelectorAll(
-        '.placement-judgment .answer-option'
+        '.pitch-judgment .answer-option'
     )) {
         button.disabled = disabled;
 
@@ -1534,7 +1579,7 @@ function readRange(minimumInput, maximumInput, defaultMinimum, defaultMaximum) {
 
 function updateAdaptiveDifficulty(exercise, correct) {
     const enabled = getControl(`${exercise}-adaptive`).value === 'on';
-    const state = exercise === 'placement' ? placement : pick;
+    const state = exercise === 'pitch' ? pitch : pick;
     const status = getOutput(`${exercise}-adaptive-status`);
 
     if (!enabled) {
@@ -1590,7 +1635,7 @@ function updateAdaptiveDifficulty(exercise, correct) {
 }
 
 function resetAdaptiveProgress(exercise) {
-    const state = exercise === 'placement' ? placement : pick;
+    const state = exercise === 'pitch' ? pitch : pick;
     const enabled = getControl(`${exercise}-adaptive`).value === 'on';
 
     state.adaptiveResults.length = 0;
@@ -1599,18 +1644,18 @@ function resetAdaptiveProgress(exercise) {
         : '';
 }
 
-function clearPlacementResult() {
-    clearPracticeResult('placement-result');
+function clearPitchPlacementResult() {
+    clearPracticeResult('pitch-result');
 }
 
-function createPlacementTrial() {
-    const rootHz = selectedNoteFrequency(getNote('placement'));
+function createPitchPlacementTrial() {
+    const rootHz = selectedNoteFrequency(getNote('pitch'));
 
-    const semitones = Number(getControl('placement-interval').value);
+    const semitones = Number(getControl('pitch-interval').value);
 
     const { minimum: minimumCents, maximum: maximumCents } = readRange(
-        getControl('placement-range-min'),
-        getControl('placement-range-max'),
+        getControl('pitch-range-min'),
+        getControl('pitch-range-max'),
         10,
         50
     );
@@ -1630,43 +1675,43 @@ function createPlacementTrial() {
     };
 }
 
-function newPlacementTrial(playImmediately = false) {
-    cancelPlacementAdvance();
+function newPitchPlacementTrial(playImmediately = false) {
+    cancelPitchAdvance();
     stopAllAudio();
 
-    placement.trial = createPlacementTrial();
+    pitch.trial = createPitchPlacementTrial();
 
     setJudgmentState({
         disabled: true,
     });
 
-    clearPlacementResult();
+    clearPitchPlacementResult();
 
     if (playImmediately) {
-        playPlacementTrial();
+        playPitchPlacementTrial();
     }
 }
 
-function playPlacementTrial() {
-    cancelPlacementAdvance();
+function playPitchPlacementTrial() {
+    cancelPitchAdvance();
 
-    if (!placement.trial) {
-        newPlacementTrial();
+    if (!pitch.trial) {
+        newPitchPlacementTrial();
     }
 
     stopAllAudio();
 
-    if (!placement.trial.committed) {
+    if (!pitch.trial.committed) {
         setJudgmentState({
             disabled: false,
         });
     }
 
-    const { rootHz, correctTargetHz, mistuneCents } = placement.trial;
+    const { rootHz, correctTargetHz, mistuneCents } = pitch.trial;
 
-    const waveform = getWaveform('placement').value;
+    const waveform = getWaveform('pitch').value;
 
-    const duration = readNumber(getControl('placement-duration'), 1);
+    const duration = readNumber(getControl('pitch-duration'), 1);
 
     const targetHz = frequencyFromCents(correctTargetHz, mistuneCents);
 
@@ -1675,8 +1720,8 @@ function playPlacementTrial() {
     audio.playTransient(targetHz, waveform, duration, 1, duration + 0.1);
 }
 
-function commitPlacement(judgment) {
-    const trial = placement.trial;
+function commitPitchPlacement(judgment) {
+    const trial = pitch.trial;
 
     if (!trial || trial.committed) {
         return;
@@ -1705,36 +1750,36 @@ function commitPlacement(judgment) {
         correct: direction,
     });
 
-    stats.placement.recognition.trials += 1;
-    stats.placement.recognition.correct += correct ? 1 : 0;
+    stats.pitch.placement.trials += 1;
+    stats.pitch.placement.correct += correct ? 1 : 0;
 
-    stats.placement.recognition.errorTotal += correct ? 0 : distance;
+    stats.pitch.placement.errorTotal += correct ? 0 : distance;
 
-    stats.placement.recognition.streak = correct
-        ? stats.placement.recognition.streak + 1
+    stats.pitch.placement.streak = correct
+        ? stats.pitch.placement.streak + 1
         : 0;
 
     if (
         correct &&
-        (stats.placement.recognition.best === null ||
-            distance < stats.placement.recognition.best)
+        (stats.pitch.placement.best === null ||
+            distance < stats.pitch.placement.best)
     ) {
-        stats.placement.recognition.best = distance;
+        stats.pitch.placement.best = distance;
     }
 
-    savePlacementStats();
-    renderPlacementStats();
-    updateAdaptiveDifficulty('placement', correct);
+    savePitchStats();
+    renderPitchPlacementStats();
+    updateAdaptiveDifficulty('pitch', correct);
 
     renderPracticeResult(
-        'placement-result',
+        'pitch-result',
         correct,
         `${direction} · ` +
             `${signed(trial.mistuneCents, 2)} cents ` +
             `(${signed(errorHz, 3)} Hz)`
     );
 
-    schedulePlacementAdvance();
+    schedulePitchAdvance();
 }
 
 // Pitch memory
@@ -1900,7 +1945,12 @@ function stopPitchMemoryMic() {
 }
 
 function updatePitchMemoryResponseMethod() {
-    if (getControl('pitch-memory-response').value === 'microphone') {
+    const tabName = document.querySelector('.tab.is-active')?.dataset.tab;
+
+    if (
+        isPitchMemoryActive(tabName) &&
+        getControl('pitch-memory-response').value === 'microphone'
+    ) {
         void startPitchMemoryMic();
     } else {
         stopPitchMemoryMic();
@@ -2006,59 +2056,14 @@ async function startPitchMemoryMic() {
     }
 }
 
-function defaultPitchMemoryTypeStats() {
-    return {
-        streak: 0,
-        trials: 0,
-        correct: 0,
-        errorTotal: 0,
-        best: null,
-    };
+function pitchMemoryStatsType(type) {
+    return `memory|${type}`;
 }
-
-function defaultPitchMemoryStats() {
-    return {
-        novel: defaultPitchMemoryTypeStats(),
-        interference: defaultPitchMemoryTypeStats(),
-    };
-}
-
-function loadPitchMemoryTypeStats(stored) {
-    if (!stored || typeof stored !== 'object') {
-        return defaultPitchMemoryTypeStats();
-    }
-
-    return {
-        streak: Number.isFinite(stored.streak) ? stored.streak : 0,
-        trials: Number.isFinite(stored.trials) ? stored.trials : 0,
-        correct: Number.isFinite(stored.correct) ? stored.correct : 0,
-        errorTotal: Number.isFinite(stored.errorTotal) ? stored.errorTotal : 0,
-        best: Number.isFinite(stored.best) ? stored.best : null,
-    };
-}
-
-function loadPitchMemoryStats() {
-    const stored = loadStats('pitchMemory');
-
-    if (!stored || typeof stored !== 'object' || Array.isArray(stored)) {
-        return defaultPitchMemoryStats();
-    }
-
-    return {
-        novel: loadPitchMemoryTypeStats(stored.novel),
-        interference: loadPitchMemoryTypeStats(stored.interference),
-    };
-}
-
-function savePitchMemoryStats() {
-    saveStats('pitchMemory');
-}
-
-stats.pitchMemory = loadPitchMemoryStats();
 
 function renderPitchMemoryReport() {
-    const mode = getControl('pitch-memory-mode').value;
-    const { streak, trials, errorTotal, best } = stats.pitchMemory[mode];
+    const type = getControl('pitch-memory-type').value;
+    const { streak, trials, errorTotal, best } =
+        stats.pitch[pitchMemoryStatsType(type)];
     const meanError = trials > 0 ? errorTotal / trials : null;
 
     getOutput('pitch-memory-streak').textContent = String(streak);
@@ -2237,10 +2242,10 @@ function playPitchMemoryStimulus() {
     pitchMemory.trial.state = 'waiting';
     pitchMemory.trial.encodedAt = startedAt;
     pitchMemory.trial.encodingEndsAt =
-        startedAt + (pitchMemory.trial.mode === 'novel' ? 3000 : 1200);
+        startedAt + (pitchMemory.trial.type === 'novel' ? 3000 : 1200);
     pitchMemory.trial.availableAt =
         startedAt +
-        (pitchMemory.trial.mode === 'novel'
+        (pitchMemory.trial.type === 'novel'
             ? conditionValue + 3
             : sequenceSeconds) *
             1000;
@@ -2249,7 +2254,7 @@ function playPitchMemoryStimulus() {
     // Consume the value originally used to select targetHz.
     randomPitchMemoryFrequency(random);
 
-    if (pitchMemory.trial.mode === 'novel') {
+    if (pitchMemory.trial.type === 'novel') {
         playNovelPitchMemoryMelody(random, pitchMemory.trial.targetHz);
     } else {
         audio.playTransient(pitchMemory.trial.targetHz, 'sine', 1.2, 0.8);
@@ -2258,7 +2263,7 @@ function playPitchMemoryStimulus() {
 
     const trialSeed = pitchMemory.trial.seed;
     const playbackSeconds =
-        pitchMemory.trial.mode === 'novel'
+        pitchMemory.trial.type === 'novel'
             ? 3
             : Math.max(1.2, 1.45 + conditionValue * 0.18);
 
@@ -2286,7 +2291,7 @@ function playPitchMemoryStimulus() {
 function startPitchMemoryTrial() {
     cancelPitchMemoryTrial(false);
 
-    const mode = getControl('pitch-memory-mode').value;
+    const type = getControl('pitch-memory-type').value;
     const method = getControl('pitch-memory-response').value;
     const seed = randomSeed();
     const random = seededRandom(seed);
@@ -2295,19 +2300,19 @@ function startPitchMemoryTrial() {
     const sequenceSeconds = 1.45 + distractors * 0.18;
 
     pitchMemory.trial = {
-        mode,
+        type,
         method,
         condition:
-            mode === 'novel'
+            type === 'novel'
                 ? `${delaySeconds}s delay`
                 : `${distractors} distractors`,
         targetHz: randomPitchMemoryFrequency(random),
         seed,
         encodedAt: Date.now(),
-        encodingEndsAt: Date.now() + (mode === 'novel' ? 3000 : 1200),
+        encodingEndsAt: Date.now() + (type === 'novel' ? 3000 : 1200),
         availableAt:
             Date.now() +
-            (mode === 'novel' ? delaySeconds + 3 : sequenceSeconds) * 1000,
+            (type === 'novel' ? delaySeconds + 3 : sequenceSeconds) * 1000,
         state: 'waiting',
         stimulusPlayed: false,
     };
@@ -2427,7 +2432,7 @@ function submitPitchMemoryResponse() {
     );
     const result = {
         timestamp: new Date().toISOString(),
-        mode: pitchMemory.trial.mode,
+        type: pitchMemory.trial.type,
         method: pitchMemory.trial.method,
         condition: pitchMemory.trial.condition,
         targetHz: pitchMemory.trial.targetHz,
@@ -2442,21 +2447,18 @@ function submitPitchMemoryResponse() {
 
     const correct = result.absoluteErrorCents < PITCH_MEMORY_CORRECT_CENTS;
 
-    stats.pitchMemory[result.mode].trials += 1;
-    stats.pitchMemory[result.mode].correct += correct ? 1 : 0;
-    stats.pitchMemory[result.mode].errorTotal += result.absoluteErrorCents;
-    stats.pitchMemory[result.mode].streak = correct
-        ? stats.pitchMemory[result.mode].streak + 1
-        : 0;
+    const typeStats = stats.pitch[pitchMemoryStatsType(result.type)];
 
-    if (
-        stats.pitchMemory[result.mode].best === null ||
-        result.absoluteErrorCents < stats.pitchMemory[result.mode].best
-    ) {
-        stats.pitchMemory[result.mode].best = result.absoluteErrorCents;
+    typeStats.trials += 1;
+    typeStats.correct += correct ? 1 : 0;
+    typeStats.errorTotal += result.absoluteErrorCents;
+    typeStats.streak = correct ? typeStats.streak + 1 : 0;
+
+    if (typeStats.best === null || result.absoluteErrorCents < typeStats.best) {
+        typeStats.best = result.absoluteErrorCents;
     }
 
-    savePitchMemoryStats();
+    savePitchStats();
     stopPitchMemoryResponseTone();
 
     getOutput('pitch-memory-result').textContent =
@@ -2491,11 +2493,40 @@ function submitPitchMemoryResponse() {
 }
 
 function updatePitchMemoryControls() {
-    const novel = getControl('pitch-memory-mode').value === 'novel';
+    const novel = getControl('pitch-memory-type').value === 'novel';
 
     document.querySelector('.pitch-memory-novel-control').hidden = !novel;
     document.querySelector('.pitch-memory-interference-control').hidden = novel;
     renderPitchMemoryReport();
+}
+
+function updatePitchMode() {
+    const mode = getControl('pitch-mode').value;
+
+    for (const panel of getModePanels('pitch')) {
+        panel.hidden = panel.dataset.modePanel !== mode;
+    }
+
+    stopAllAudio();
+    cancelPitchAdvance();
+
+    if (mode === 'memory') {
+        updatePitchMemoryControls();
+        updatePitchMemoryResponseMethod();
+        return;
+    }
+
+    if (
+        pitchMemory.trial?.state === 'waiting' &&
+        (pitchMemory.trial.type === 'interference' ||
+            Date.now() < pitchMemory.trial.encodingEndsAt)
+    ) {
+        cancelPitchMemoryTrial();
+    }
+
+    stopPitchMemoryMic();
+    newPitchPlacementTrial();
+    renderPitchPlacementStats();
 }
 
 function restorePitchMemoryTrial() {
@@ -2503,7 +2534,7 @@ function restorePitchMemoryTrial() {
 
     if (
         !trial ||
-        !['novel', 'interference'].includes(trial.mode) ||
+        !['novel', 'interference'].includes(trial.type) ||
         !['waiting', 'responding'].includes(trial.state)
     ) {
         pitchMemory.trial = null;
@@ -2512,13 +2543,13 @@ function restorePitchMemoryTrial() {
         return;
     }
 
-    getControl('pitch-memory-mode').value = trial.mode;
+    getControl('pitch-memory-type').value = trial.type;
     getControl('pitch-memory-response').value = trial.method;
     updatePitchMemoryResponseMethod();
 
     const conditionValue = String(Number.parseInt(trial.condition, 10));
 
-    if (trial.mode === 'novel') {
+    if (trial.type === 'novel') {
         getControl('pitch-memory-delay').value = conditionValue;
     } else {
         getControl('pitch-memory-distractors').value = conditionValue;
@@ -2544,10 +2575,10 @@ function restorePitchMemoryTrial() {
 }
 
 function clearPitchMemoryStats() {
-    const mode = getControl('pitch-memory-mode').value;
+    const type = getControl('pitch-memory-type').value;
 
-    stats.pitchMemory[mode] = defaultPitchMemoryTypeStats();
-    savePitchMemoryStats();
+    stats.pitch[pitchMemoryStatsType(type)] = defaultPitchTypeStats();
+    savePitchStats();
     renderPitchMemoryReport();
 }
 
@@ -3029,6 +3060,18 @@ function renderIntervalLevelOptions() {
     }
 }
 
+function updateIntervalMode() {
+    const mode = getControl('interval-mode').value;
+
+    for (const panel of getModePanels('intervals')) {
+        panel.hidden = panel.dataset.modePanel !== mode;
+    }
+
+    renderIntervalLevelOptions();
+    newIntervalTrial();
+    renderIntervalStats();
+}
+
 function renderIntervalAnswers(selected = null, enabled = false) {
     const answerSemitones = interval.trial?.answerSemitones || [];
     const buttons = answerSemitones.map((semitones) => {
@@ -3180,11 +3223,12 @@ function renderIntervalStats() {
     const { streak, trials, correct, best } = stats.interval[mode];
 
     const accuracy = trials > 0 ? (correct / trials) * 100 : 0;
-    getOutput('interval-streak').textContent = String(streak);
+    getOutput(`interval-${mode}-streak`).textContent = String(streak);
 
-    getOutput('interval-accuracy').textContent = `${accuracy.toFixed(0)}%`;
+    getOutput(`interval-${mode}-accuracy`).textContent =
+        `${accuracy.toFixed(0)}%`;
 
-    getOutput('interval-best').textContent =
+    getOutput(`interval-${mode}-best`).textContent =
         best === null ? '--' : String(best);
 }
 
@@ -3459,19 +3503,21 @@ function commitChord(quality) {
 
 function resetForReferenceChange() {
     stopGeneratedAudio();
-    cancelPlacementAdvance();
+    cancelPitchAdvance();
     cancelIntervalAdvance();
 
     resetTunerTracking(true);
 
     updateNoteReadouts();
 
-    newPlacementTrial();
+    newPitchPlacementTrial();
     newPickSet();
     newIntervalTrial();
 }
 
 function initializeEvents() {
+    getControl('pitch-mode').addEventListener('change', updatePitchMode);
+
     getNote('tuner').addEventListener('change', (event) => {
         updateNoteReadout(event.currentTarget);
 
@@ -3493,10 +3539,10 @@ function initializeEvents() {
 
     getAction('tap-tempo').addEventListener('click', tapTempo);
 
-    getNote('placement').addEventListener('change', (event) => {
+    getNote('pitch').addEventListener('change', (event) => {
         updateNoteReadout(event.currentTarget);
 
-        newPlacementTrial();
+        newPitchPlacementTrial();
     });
 
     getNote('pick').addEventListener('change', (event) => {
@@ -3510,11 +3556,7 @@ function initializeEvents() {
         newChordTrial();
     });
 
-    getControl('interval-mode').addEventListener('change', () => {
-        renderIntervalLevelOptions();
-        newIntervalTrial();
-        renderIntervalStats();
-    });
+    getControl('interval-mode').addEventListener('change', updateIntervalMode);
 
     for (const control of getControls('interval-level', 'interval-direction')) {
         control.addEventListener('change', () => {
@@ -3523,13 +3565,13 @@ function initializeEvents() {
     }
 
     for (const control of getControls(
-        'placement-range-min',
-        'placement-range-max',
-        'placement-interval'
+        'pitch-range-min',
+        'pitch-range-max',
+        'pitch-interval'
     )) {
         control.addEventListener('change', () => {
-            resetAdaptiveProgress('placement');
-            newPlacementTrial();
+            resetAdaptiveProgress('pitch');
+            newPitchPlacementTrial();
         });
     }
 
@@ -3544,7 +3586,7 @@ function initializeEvents() {
         });
     }
 
-    for (const exercise of ['placement', 'pick']) {
+    for (const exercise of ['pitch', 'pick']) {
         getControl(`${exercise}-adaptive`).addEventListener('change', () => {
             resetAdaptiveProgress(exercise);
         });
@@ -3560,7 +3602,7 @@ function initializeEvents() {
         resetForReferenceChange();
     });
 
-    getControl('placement-duration').addEventListener('change', (event) => {
+    getControl('pitch-duration').addEventListener('change', (event) => {
         normalizeNumberInput(event.currentTarget, 1);
     });
 
@@ -3582,10 +3624,10 @@ function initializeEvents() {
 
     getAction('toggle-tuner-mic').addEventListener('click', toggleMicTuner);
 
-    getAction('play-placement').addEventListener('click', playPlacementTrial);
+    getAction('play-pitch').addEventListener('click', playPitchPlacementTrial);
 
-    getAction('new-placement').addEventListener('click', () => {
-        newPlacementTrial(true);
+    getAction('new-pitch').addEventListener('click', () => {
+        newPitchPlacementTrial(true);
     });
 
     getAction('new-pick').addEventListener('click', newPickSet);
@@ -3625,7 +3667,7 @@ function initializeEvents() {
     getControl('chord-playback').addEventListener('change', stopGeneratedAudio);
 
     for (const control of getControls(
-        'pitch-memory-mode',
+        'pitch-memory-type',
         'pitch-memory-delay',
         'pitch-memory-distractors'
     )) {
@@ -3687,17 +3729,17 @@ function initializeEvents() {
     );
 
     for (const button of document.querySelectorAll(
-        '.placement-judgment .answer-option'
+        '.pitch-judgment .answer-option'
     )) {
         button.addEventListener('click', () => {
-            commitPlacement(button.dataset.answer);
+            commitPitchPlacement(button.dataset.answer);
         });
     }
 
     for (const button of getActions('stop-audio')) {
         button.addEventListener('click', () => {
             stopAllAudio();
-            cancelPlacementAdvance();
+            cancelPitchAdvance();
             cancelPickAdvance();
             cancelIntervalAdvance();
             cancelChordAdvance();
@@ -3731,17 +3773,16 @@ function initializeEvents() {
             }
         });
 
-    getAction('clear-placement-stats').addEventListener(
+    getAction('clear-pitch-stats').addEventListener(
         'click',
-        clearPlacementStats
+        clearPitchStats
     );
 
     getAction('clear-pick-stats').addEventListener('click', clearPickStats);
 
-    getAction('clear-interval-stats').addEventListener(
-        'click',
-        clearIntervalStats
-    );
+    for (const button of getActions('clear-interval-stats')) {
+        button.addEventListener('click', clearIntervalStats);
+    }
 
     getAction('clear-chord-stats').addEventListener('click', clearChordStats);
 }
@@ -3749,6 +3790,7 @@ function initializeEvents() {
 // Initialization
 
 function initialize() {
+    initializeModePanels('pitch');
     initializeTabs();
     initializeTooltips();
     initializeNotes();
@@ -3757,17 +3799,15 @@ function initialize() {
 
     resetTunerDetection();
 
-    clearPlacementResult();
-    renderPlacementStats();
+    clearPitchPlacementResult();
+    renderPitchPlacementStats();
+    updatePitchMode();
 
-    renderIntervalLevelOptions();
-    newPlacementTrial();
     newPickSet();
-    newIntervalTrial();
+    updateIntervalMode();
     newChordTrial();
 
     renderPickStats();
-    renderIntervalStats();
     renderChordStats();
     restorePitchMemoryTrial();
     renderPitchMemoryResponseFrequency();
@@ -3780,7 +3820,7 @@ initialize();
 window.addEventListener('beforeunload', () => {
     stopAllAudio();
     stopPitchMemoryMic();
-    cancelPlacementAdvance();
+    cancelPitchAdvance();
     cancelPickAdvance();
     cancelIntervalAdvance();
     cancelChordAdvance();

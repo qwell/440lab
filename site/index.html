@@ -131,7 +131,7 @@
                                 "@id": "https://440lab.com/#metronome"
                             },
                             {
-                                "@id": "https://440lab.com/#pitch-placement"
+                                "@id": "https://440lab.com/#pitch"
                             },
                             {
                                 "@id": "https://440lab.com/#pick-target"
@@ -141,9 +141,6 @@
                             },
                             {
                                 "@id": "https://440lab.com/#chord-quality"
-                            },
-                            {
-                                "@id": "https://440lab.com/#pitch-memory"
                             }
                         ],
                         "mainEntity": {
@@ -184,18 +181,9 @@
                     },
                     {
                         "@type": "WebPageElement",
-                        "@id": "https://440lab.com/#pitch-placement",
-                        "name": "Pitch Placement",
-                        "description": "Ear-training exercise for identifying whether a target pitch is flat or sharp.",
-                        "isPartOf": {
-                            "@id": "https://440lab.com/#webpage"
-                        }
-                    },
-                    {
-                        "@type": "WebPageElement",
-                        "@id": "https://440lab.com/#pitch-memory",
-                        "name": "Pitch Memory",
-                        "description": "Tests absolute-frequency memory using generated tones, delayed recall, and interfering tones.",
+                        "@id": "https://440lab.com/#pitch",
+                        "name": "Pitch",
+                        "description": "Ear-training exercises for pitch placement and absolute-frequency memory.",
                         "isPartOf": {
                             "@id": "https://440lab.com/#webpage"
                         }
@@ -356,7 +344,7 @@
                             {
                                 "@type": "ImageObject",
                                 "contentUrl": "https://440lab.com/assets/images/screenshot-pitch-placement.png",
-                                "caption": "440 Lab pitch-placement ear-training exercise for identifying flat and sharp intonation",
+                                "caption": "440 Lab pitch ear-training exercise for identifying flat and sharp intonation",
                                 "encodingFormat": "image/png",
                                 "datePublished": "2026-08-27",
                                 "dateModified": "2026-09-06",
@@ -429,7 +417,7 @@
                             "Music tuner with adjustable A4 reference pitch",
                             "Reference-tone playback",
                             "Metronome",
-                            "Flat and sharp pitch-placement ear training",
+                            "Flat and sharp pitch ear training",
                             "Target-pitch identification exercises",
                             "Melodic interval ear training",
                             "Major, minor, diminished, and augmented chord-quality identification",
@@ -586,29 +574,16 @@
                 </button>
 
                 <button
-                    id="tab-pitch-placement"
+                    id="tab-pitch"
                     class="tab"
-                    data-tab="pitch-placement"
+                    data-tab="pitch"
                     type="button"
                     role="tab"
                     aria-selected="false"
-                    aria-controls="panel-pitch-placement"
+                    aria-controls="panel-pitch"
                     tabindex="-1"
                 >
-                    Pitch Placement
-                </button>
-
-                <button
-                    id="tab-pitch-memory"
-                    class="tab"
-                    data-tab="pitch-memory"
-                    type="button"
-                    role="tab"
-                    aria-selected="false"
-                    aria-controls="panel-pitch-memory"
-                    tabindex="-1"
-                >
-                    Pitch Memory
+                    Pitch
                 </button>
 
                 <button
@@ -657,8 +632,7 @@
                     <option value="about">About</option>
                     <option value="tuner">Tuning</option>
                     <option value="metronome">Metronome</option>
-                    <option value="pitch-placement">Pitch Placement</option>
-                    <option value="pitch-memory">Pitch Memory</option>
+                    <option value="pitch">Pitch</option>
                     <option value="pick-target">Pick Target</option>
                     <option value="intervals">Intervals</option>
                     <option value="chord-quality">Chord Quality</option>
@@ -1078,306 +1052,23 @@
                 </div>
             </section>
 
-            <!-- Pitch Placement -->
+            <!-- Pitch -->
             <section
-                id="panel-pitch-placement"
+                id="panel-pitch"
                 class="tab-panel"
-                data-panel="pitch-placement"
+                data-panel="pitch"
                 role="tabpanel"
-                aria-labelledby="tab-pitch-placement"
+                aria-labelledby="tab-pitch"
                 hidden
             >
-                <h2 class="sr-only">Pitch Placement</h2>
-                <h3 class="blurb">
+                <h2 class="sr-only">Pitch</h2>
+
+                <h3 class="blurb" data-mode-panel="placement">
                     Hear a reference followed by a mistuned target. Decide
                     whether the target landed flat or sharp.
                 </h3>
 
-                <div class="form-grid">
-                    <div class="field">
-                        <label for="placement-note">
-                            Note (<span
-                                class="frequency-value note-frequency"
-                                data-note-frequency="placement"
-                            ></span
-                            >)
-                        </label>
-
-                        <div class="control-row">
-                            <select
-                                id="placement-note"
-                                class="note-select"
-                                data-note="placement"
-                            ></select>
-                        </div>
-                    </div>
-
-                    <div class="field">
-                        <label for="placement-waveform">
-                            Wave type
-
-                            <span
-                                class="info-tip"
-                                tabindex="0"
-                                aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
-                                data-tooltip="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
-                            >
-                                ⓘ
-                            </span>
-                        </label>
-
-                        <div class="control-row">
-                            <select
-                                id="placement-waveform"
-                                class="waveform-select"
-                                data-waveform="placement"
-                            >
-                                <option value="sine" selected>sine</option>
-
-                                <option value="triangle">triangle</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="field">
-                        <label for="placement-range-min">
-                            Range (cents)
-
-                            <span
-                                class="info-tip"
-                                tabindex="0"
-                                aria-label="Minimum and maximum mistuning. Each trial is randomly flat or sharp within this range."
-                                data-tooltip="Minimum and maximum mistuning. Each trial is randomly flat or sharp within this range."
-                            >
-                                ⓘ
-                            </span>
-                        </label>
-
-                        <div class="range-controls">
-                            <input
-                                id="placement-range-min"
-                                data-control="placement-range-min"
-                                type="number"
-                                min="0.1"
-                                max="200"
-                                step="0.1"
-                                value="10.0"
-                                aria-label="Minimum range"
-                            />
-
-                            <span aria-hidden="true">–</span>
-
-                            <input
-                                id="placement-range-max"
-                                data-control="placement-range-max"
-                                type="number"
-                                min="0.1"
-                                max="200"
-                                step="0.1"
-                                value="50.0"
-                                aria-label="Maximum range"
-                            />
-                        </div>
-                    </div>
-
-                    <div class="field">
-                        <label for="placement-duration">
-                            Duration (seconds)
-                        </label>
-
-                        <div class="control-row">
-                            <input
-                                id="placement-duration"
-                                data-control="placement-duration"
-                                type="number"
-                                min="0.1"
-                                max="10"
-                                step="0.1"
-                                value="1.0"
-                            />
-                        </div>
-                    </div>
-
-                    <div class="field">
-                        <label for="placement-interval">
-                            Interval
-
-                            <span
-                                class="info-tip"
-                                tabindex="0"
-                                aria-label="Equal-tempered distance from the reference note to the correctly tuned target before mistuning is applied."
-                                data-tooltip="Equal-tempered distance from the reference note to the correctly tuned target before mistuning is applied."
-                            >
-                                ⓘ
-                            </span>
-                        </label>
-
-                        <div class="control-row">
-                            <select
-                                id="placement-interval"
-                                data-control="placement-interval"
-                            >
-                                <option value="0" selected>unison</option>
-
-                                <option value="12">octave</option>
-
-                                <option value="7">perfect fifth</option>
-
-                                <option value="5">perfect fourth</option>
-
-                                <option value="4">major third</option>
-
-                                <option value="3">minor third</option>
-
-                                <option value="2">major second</option>
-
-                                <option value="1">minor second</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="field">
-                        <label for="placement-adaptive">
-                            Adaptive difficulty
-
-                            <span
-                                class="info-tip"
-                                tabindex="0"
-                                aria-label="After every five answers, the cents range narrows when four or more are correct and widens when two or fewer are correct."
-                                data-tooltip="After every five answers, the cents range narrows when four or more are correct and widens when two or fewer are correct."
-                                >ⓘ</span
-                            >
-                        </label>
-
-                        <div class="control-row">
-                            <select
-                                id="placement-adaptive"
-                                data-control="placement-adaptive"
-                            >
-                                <option value="off" selected>off</option>
-                                <option value="on">on</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="practice pitch-placement-practice">
-                    <div class="action-button-grid">
-                        <button
-                            class="icon-button"
-                            data-action="play-placement"
-                            type="button"
-                            aria-label="Play trial"
-                            title="Play"
-                        >
-                            <span aria-hidden="true">▶</span>
-                        </button>
-
-                        <button
-                            class="icon-button"
-                            data-action="stop-audio"
-                            type="button"
-                            aria-label="Stop all audio"
-                            title="Stop"
-                        >
-                            <span aria-hidden="true">■</span>
-                        </button>
-
-                        <button
-                            class="icon-button placement-refresh auto-refresh"
-                            data-action="new-placement"
-                            type="button"
-                            aria-label="New trial and play"
-                            title="New trial and play"
-                        >
-                            <span aria-hidden="true">↻</span>
-                        </button>
-                    </div>
-
-                    <div
-                        class="placement-judgment"
-                        role="group"
-                        aria-label="Pitch judgment"
-                    >
-                        <button
-                            class="answer-option"
-                            type="button"
-                            data-answer="flat"
-                            disabled
-                        >
-                            Flat
-                        </button>
-
-                        <button
-                            class="answer-option"
-                            type="button"
-                            data-answer="sharp"
-                            disabled
-                        >
-                            Sharp
-                        </button>
-                    </div>
-
-                    <div
-                        class="practice-result placement-result"
-                        data-output="placement-result"
-                        aria-live="polite"
-                    ></div>
-
-                    <dl class="stats practice-stats">
-                        <div class="adaptive-status-row">
-                            <dt>Adaptive</dt>
-                            <dd
-                                data-output="placement-adaptive-status"
-                                aria-live="polite"
-                            ></dd>
-                        </div>
-
-                        <div class="stats-with-action">
-                            <dt>Streak</dt>
-
-                            <dd>
-                                <strong data-output="placement-streak"
-                                    >0</strong
-                                >
-
-                                <button
-                                    class="link-button"
-                                    data-action="clear-placement-stats"
-                                    type="button"
-                                    title="Clear pitch-placement statistics"
-                                >
-                                    Clear
-                                </button>
-                            </dd>
-                        </div>
-
-                        <div>
-                            <dt>Mean error</dt>
-                            <dd data-output="placement-mean-error">
-                                0.0 cents
-                            </dd>
-                        </div>
-
-                        <div>
-                            <dt>Best</dt>
-                            <dd data-output="placement-best">--</dd>
-                        </div>
-                    </dl>
-                </div>
-            </section>
-
-            <!-- Pitch Memory -->
-            <section
-                id="panel-pitch-memory"
-                class="tab-panel"
-                data-panel="pitch-memory"
-                role="tabpanel"
-                aria-labelledby="tab-pitch-memory"
-                hidden
-            >
-                <h2 class="sr-only">Pitch Memory</h2>
-                <h3 class="blurb">
+                <h3 class="blurb" data-mode-panel="memory" hidden>
                     Recall an unfamiliar melody's exact opening frequency after
                     a delay, or recall a target after interfering tones. No note
                     names or familiar recordings are used.
@@ -1385,8 +1076,38 @@
 
                 <div class="form-grid">
                     <div class="field">
-                        <label for="pitch-memory-mode">
-                            Mode
+                        <label for="pitch-mode">Mode</label>
+                        <div class="control-row">
+                            <select id="pitch-mode" data-control="pitch-mode">
+                                <option value="placement" selected>
+                                    placement
+                                </option>
+                                <option value="memory">memory</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="field" data-mode-panel="placement">
+                        <label for="pitch-note">
+                            Note (<span
+                                class="frequency-value note-frequency"
+                                data-note-frequency="pitch"
+                            ></span
+                            >)
+                        </label>
+
+                        <div class="control-row">
+                            <select
+                                id="pitch-note"
+                                class="note-select"
+                                data-note="pitch"
+                            ></select>
+                        </div>
+                    </div>
+
+                    <div class="field" data-mode-panel="memory" hidden>
+                        <label for="pitch-memory-type">
+                            Type
                             <span
                                 class="info-tip"
                                 tabindex="0"
@@ -1398,8 +1119,8 @@
                         </label>
                         <div class="control-row">
                             <select
-                                id="pitch-memory-mode"
-                                data-control="pitch-memory-mode"
+                                id="pitch-memory-type"
+                                data-control="pitch-memory-type"
                             >
                                 <option value="novel">novel melody</option>
                                 <option value="interference">
@@ -1408,244 +1129,522 @@
                             </select>
                         </div>
                     </div>
-
-                    <div class="field">
-                        <label for="pitch-memory-response">
-                            Response
-                            <span
-                                class="info-tip"
-                                tabindex="0"
-                                aria-label="Oscillator scores the exact frequency of an adjusted tone. Microphone measures a pitch you sing, hum, or play and scores its nearest octave equivalent, so the same note in another octave is accepted."
-                                data-tooltip="Oscillator scores the exact frequency of an adjusted tone. Microphone measures a pitch you sing, hum, or play and scores its nearest octave equivalent, so the same note in another octave is accepted."
-                            >
-                                ⓘ
-                            </span>
-                        </label>
-                        <div class="control-row">
-                            <select
-                                id="pitch-memory-response"
-                                data-control="pitch-memory-response"
-                            >
-                                <option value="oscillator">oscillator</option>
-                                <option value="microphone">microphone</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="field pitch-memory-novel-control">
-                        <label for="pitch-memory-delay">
-                            Recall after
-                            <span
-                                class="info-tip"
-                                tabindex="0"
-                                aria-label="Sets the delay after the generated melody finishes. Delayed trials are saved in this browser."
-                                data-tooltip="Sets the delay after the generated melody finishes. Delayed trials are saved in this browser."
-                            >
-                                ⓘ
-                            </span>
-                        </label>
-                        <div class="control-row">
-                            <select
-                                id="pitch-memory-delay"
-                                data-control="pitch-memory-delay"
-                            >
-                                <option value="10">10 seconds</option>
-                                <option value="60">1 minute</option>
-                                <option value="3600">1 hour</option>
-                                <option value="86400">1 day</option>
-                                <option value="604800">1 week</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="field pitch-memory-interference-control" hidden>
-                        <label for="pitch-memory-distractors">
-                            Distractors
-                            <span
-                                class="info-tip"
-                                tabindex="0"
-                                aria-label="Sets how many unrelated tones play between the target and your response. More tones create stronger interference."
-                                data-tooltip="Sets how many unrelated tones play between the target and your response. More tones create stronger interference."
-                            >
-                                ⓘ
-                            </span>
-                        </label>
-                        <div class="control-row">
-                            <select
-                                id="pitch-memory-distractors"
-                                data-control="pitch-memory-distractors"
-                            >
-                                <option value="0">0</option>
-                                <option value="11">11</option>
-                                <option value="31" selected>31</option>
-                                <option value="71">71</option>
-                            </select>
-                        </div>
-                    </div>
                 </div>
 
-                <div class="practice practice-wide pitch-memory-practice">
-                    <div class="action-button-grid">
-                        <button
-                            class="icon-button"
-                            data-action="start-pitch-memory"
-                            type="button"
-                            aria-label="Replay pitch-memory stimulus"
-                            title="Replay stimulus"
-                            disabled
-                        >
-                            <span aria-hidden="true">▶</span>
-                        </button>
-                        <button
-                            class="icon-button"
-                            data-action="stop-pitch-memory"
-                            type="button"
-                            aria-label="Pause pitch-memory trial"
-                            title="Pause trial"
-                            disabled
-                        >
-                            <span aria-hidden="true">■</span>
-                        </button>
-                        <button
-                            class="icon-button"
-                            data-action="new-pitch-memory"
-                            type="button"
-                            aria-label="New pitch-memory trial and start"
-                            title="New trial and start"
-                        >
-                            <span aria-hidden="true">↻</span>
-                        </button>
-                    </div>
+                <div data-mode-panel="placement">
+                    <div class="form-grid">
+                        <div class="field">
+                            <label for="pitch-waveform">
+                                Wave type
 
-                    <div class="practice-body practice-wide-content">
-                        <p
-                            class="practice-status"
-                            data-output="pitch-memory-status"
-                            aria-live="polite"
-                        >
-                            Ready for a new trial.
-                        </p>
-
-                        <div class="pitch-memory-frequency-response" hidden>
-                            <label for="pitch-memory-frequency">
-                                Response frequency (<span
-                                    class="frequency-value"
-                                    data-output="pitch-memory-response-frequency"
-                                ></span
-                                >)
                                 <span
                                     class="info-tip"
                                     tabindex="0"
-                                    aria-label="With an oscillator, adjust continuously from 200 to 900 Hz without snapping to musical notes. With a microphone, this disabled control shows the detected pitch."
-                                    data-tooltip="With an oscillator, adjust continuously from 200 to 900 Hz without snapping to musical notes. With a microphone, this disabled control shows the detected pitch."
+                                    aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
+                                    data-tooltip="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
                                 >
                                     ⓘ
                                 </span>
                             </label>
-                            <div class="pitch-memory-frequency-scale">
-                                <input
-                                    id="pitch-memory-frequency"
-                                    data-control="pitch-memory-frequency"
-                                    type="range"
-                                    min="0"
-                                    max="2603.9"
-                                    step="0.1"
-                                    value="1302"
-                                />
-                                <span class="pitch-memory-frequency-markers">
-                                    <span
-                                        class="pitch-memory-frequency-marker is-target"
-                                        data-output="pitch-memory-target-marker"
-                                        title="Target frequency"
-                                        hidden
-                                    ></span>
-                                    <span
-                                        class="pitch-memory-frequency-marker is-response"
-                                        data-output="pitch-memory-response-marker"
-                                        title="Your response"
-                                        hidden
-                                    ></span>
+
+                            <div class="control-row">
+                                <select
+                                    id="pitch-waveform"
+                                    class="waveform-select"
+                                    data-waveform="pitch"
+                                >
+                                    <option value="sine" selected>sine</option>
+
+                                    <option value="triangle">triangle</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label for="pitch-range-min">
+                                Range (cents)
+
+                                <span
+                                    class="info-tip"
+                                    tabindex="0"
+                                    aria-label="Minimum and maximum mistuning. Each trial is randomly flat or sharp within this range."
+                                    data-tooltip="Minimum and maximum mistuning. Each trial is randomly flat or sharp within this range."
+                                >
+                                    ⓘ
                                 </span>
+                            </label>
+
+                            <div class="range-controls">
+                                <input
+                                    id="pitch-range-min"
+                                    data-control="pitch-range-min"
+                                    type="number"
+                                    min="0.1"
+                                    max="200"
+                                    step="0.1"
+                                    value="10.0"
+                                    aria-label="Minimum range"
+                                />
+
+                                <span aria-hidden="true">–</span>
+
+                                <input
+                                    id="pitch-range-max"
+                                    data-control="pitch-range-max"
+                                    type="number"
+                                    min="0.1"
+                                    max="200"
+                                    step="0.1"
+                                    value="50.0"
+                                    aria-label="Maximum range"
+                                />
                             </div>
                         </div>
 
-                        <div class="pitch-memory-oscillator-response" hidden>
-                            <div class="response-actions">
-                                <button
-                                    data-action="play-pitch-memory-response"
-                                    type="button"
-                                    title="Play the currently selected response frequency"
-                                    disabled
-                                >
-                                    Play
-                                </button>
-                                <button
-                                    data-action="stop-pitch-memory-response"
-                                    type="button"
-                                    title="Stop the response tone"
-                                    disabled
-                                >
-                                    Stop
-                                </button>
-                                <button
-                                    data-action="submit-pitch-memory"
-                                    type="button"
-                                    title="Check your response and reveal the target"
-                                >
-                                    Check
-                                </button>
+                        <div class="field">
+                            <label for="pitch-duration">
+                                Duration (seconds)
+                            </label>
+
+                            <div class="control-row">
+                                <input
+                                    id="pitch-duration"
+                                    data-control="pitch-duration"
+                                    type="number"
+                                    min="0.1"
+                                    max="10"
+                                    step="0.1"
+                                    value="1.0"
+                                />
                             </div>
                         </div>
 
-                        <div class="pitch-memory-microphone-response" hidden>
-                            <div class="response-actions">
-                                <button
-                                    data-action="submit-pitch-memory"
-                                    type="button"
-                                    title="Check the detected pitch and reveal the target"
-                                    disabled
+                        <div class="field">
+                            <label for="pitch-interval">
+                                Interval
+
+                                <span
+                                    class="info-tip"
+                                    tabindex="0"
+                                    aria-label="Equal-tempered distance from the reference note to the correctly tuned target before mistuning is applied."
+                                    data-tooltip="Equal-tempered distance from the reference note to the correctly tuned target before mistuning is applied."
                                 >
-                                    Check
-                                </button>
+                                    ⓘ
+                                </span>
+                            </label>
+
+                            <div class="control-row">
+                                <select
+                                    id="pitch-interval"
+                                    data-control="pitch-interval"
+                                >
+                                    <option value="0" selected>unison</option>
+
+                                    <option value="12">octave</option>
+
+                                    <option value="7">perfect fifth</option>
+
+                                    <option value="5">perfect fourth</option>
+
+                                    <option value="4">major third</option>
+
+                                    <option value="3">minor third</option>
+
+                                    <option value="2">major second</option>
+
+                                    <option value="1">minor second</option>
+                                </select>
                             </div>
+                        </div>
+
+                        <div class="field">
+                            <label for="pitch-adaptive">
+                                Adaptive difficulty
+
+                                <span
+                                    class="info-tip"
+                                    tabindex="0"
+                                    aria-label="After every five answers, the cents range narrows when four or more are correct and widens when two or fewer are correct."
+                                    data-tooltip="After every five answers, the cents range narrows when four or more are correct and widens when two or fewer are correct."
+                                    >ⓘ</span
+                                >
+                            </label>
+
+                            <div class="control-row">
+                                <select
+                                    id="pitch-adaptive"
+                                    data-control="pitch-adaptive"
+                                >
+                                    <option value="off" selected>off</option>
+                                    <option value="on">on</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="practice pitch-practice">
+                        <div class="action-button-grid">
+                            <button
+                                class="icon-button"
+                                data-action="play-pitch"
+                                type="button"
+                                aria-label="Play trial"
+                                title="Play"
+                            >
+                                <span aria-hidden="true">▶</span>
+                            </button>
+
+                            <button
+                                class="icon-button"
+                                data-action="stop-audio"
+                                type="button"
+                                aria-label="Stop all audio"
+                                title="Stop"
+                            >
+                                <span aria-hidden="true">■</span>
+                            </button>
+
+                            <button
+                                class="icon-button pitch-refresh auto-refresh"
+                                data-action="new-pitch"
+                                type="button"
+                                aria-label="New trial and play"
+                                title="New trial and play"
+                            >
+                                <span aria-hidden="true">↻</span>
+                            </button>
                         </div>
 
                         <div
-                            class="practice-result pitch-memory-result"
-                            data-output="pitch-memory-result"
+                            class="pitch-judgment"
+                            role="group"
+                            aria-label="Pitch judgment"
+                        >
+                            <button
+                                class="answer-option"
+                                type="button"
+                                data-answer="flat"
+                                disabled
+                            >
+                                Flat
+                            </button>
+
+                            <button
+                                class="answer-option"
+                                type="button"
+                                data-answer="sharp"
+                                disabled
+                            >
+                                Sharp
+                            </button>
+                        </div>
+
+                        <div
+                            class="practice-result pitch-result"
+                            data-output="pitch-result"
                             aria-live="polite"
                         ></div>
-                    </div>
 
-                    <div class="practice-report practice-wide-content">
                         <dl class="stats practice-stats">
+                            <div class="adaptive-status-row">
+                                <dt>Adaptive</dt>
+                                <dd
+                                    data-output="pitch-adaptive-status"
+                                    aria-live="polite"
+                                ></dd>
+                            </div>
+
                             <div class="stats-with-action">
                                 <dt>Streak</dt>
+
                                 <dd>
-                                    <strong data-output="pitch-memory-streak"
+                                    <strong data-output="pitch-streak"
                                         >0</strong
                                     >
+
                                     <button
                                         class="link-button"
-                                        data-action="clear-pitch-memory-stats"
+                                        data-action="clear-pitch-stats"
                                         type="button"
-                                        title="Clear pitch-memory statistics"
+                                        title="Clear pitch statistics"
                                     >
                                         Clear
                                     </button>
                                 </dd>
                             </div>
+
                             <div>
                                 <dt>Mean error</dt>
-                                <dd data-output="pitch-memory-mean-error">
-                                    --
+                                <dd data-output="pitch-mean-error">
+                                    0.0 cents
                                 </dd>
                             </div>
+
                             <div>
                                 <dt>Best</dt>
-                                <dd data-output="pitch-memory-best">--</dd>
+                                <dd data-output="pitch-best">--</dd>
                             </div>
                         </dl>
+                    </div>
+                </div>
+
+                <!-- Pitch Memory -->
+                <div data-mode-panel="memory" hidden>
+                    <div class="form-grid">
+                        <div class="field">
+                            <label for="pitch-memory-response">
+                                Response
+                                <span
+                                    class="info-tip"
+                                    tabindex="0"
+                                    aria-label="Oscillator scores the exact frequency of an adjusted tone. Microphone measures a pitch you sing, hum, or play and scores its nearest octave equivalent, so the same note in another octave is accepted."
+                                    data-tooltip="Oscillator scores the exact frequency of an adjusted tone. Microphone measures a pitch you sing, hum, or play and scores its nearest octave equivalent, so the same note in another octave is accepted."
+                                >
+                                    ⓘ
+                                </span>
+                            </label>
+                            <div class="control-row">
+                                <select
+                                    id="pitch-memory-response"
+                                    data-control="pitch-memory-response"
+                                >
+                                    <option value="oscillator">
+                                        oscillator
+                                    </option>
+                                    <option value="microphone">
+                                        microphone
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="field pitch-memory-novel-control">
+                            <label for="pitch-memory-delay">
+                                Recall after
+                                <span
+                                    class="info-tip"
+                                    tabindex="0"
+                                    aria-label="Sets the delay after the generated melody finishes. Delayed trials are saved in this browser."
+                                    data-tooltip="Sets the delay after the generated melody finishes. Delayed trials are saved in this browser."
+                                >
+                                    ⓘ
+                                </span>
+                            </label>
+                            <div class="control-row">
+                                <select
+                                    id="pitch-memory-delay"
+                                    data-control="pitch-memory-delay"
+                                >
+                                    <option value="10">10 seconds</option>
+                                    <option value="60">1 minute</option>
+                                    <option value="3600">1 hour</option>
+                                    <option value="86400">1 day</option>
+                                    <option value="604800">1 week</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div
+                            class="field pitch-memory-interference-control"
+                            hidden
+                        >
+                            <label for="pitch-memory-distractors">
+                                Distractors
+                                <span
+                                    class="info-tip"
+                                    tabindex="0"
+                                    aria-label="Sets how many unrelated tones play between the target and your response. More tones create stronger interference."
+                                    data-tooltip="Sets how many unrelated tones play between the target and your response. More tones create stronger interference."
+                                >
+                                    ⓘ
+                                </span>
+                            </label>
+                            <div class="control-row">
+                                <select
+                                    id="pitch-memory-distractors"
+                                    data-control="pitch-memory-distractors"
+                                >
+                                    <option value="0">0</option>
+                                    <option value="11">11</option>
+                                    <option value="31" selected>31</option>
+                                    <option value="71">71</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="practice practice-wide pitch-memory-practice">
+                        <div class="action-button-grid">
+                            <button
+                                class="icon-button"
+                                data-action="start-pitch-memory"
+                                type="button"
+                                aria-label="Replay pitch-memory stimulus"
+                                title="Replay stimulus"
+                                disabled
+                            >
+                                <span aria-hidden="true">▶</span>
+                            </button>
+                            <button
+                                class="icon-button"
+                                data-action="stop-pitch-memory"
+                                type="button"
+                                aria-label="Pause pitch-memory trial"
+                                title="Pause trial"
+                                disabled
+                            >
+                                <span aria-hidden="true">■</span>
+                            </button>
+                            <button
+                                class="icon-button"
+                                data-action="new-pitch-memory"
+                                type="button"
+                                aria-label="New pitch-memory trial and start"
+                                title="New trial and start"
+                            >
+                                <span aria-hidden="true">↻</span>
+                            </button>
+                        </div>
+
+                        <div class="practice-body practice-wide-content">
+                            <p
+                                class="practice-status"
+                                data-output="pitch-memory-status"
+                                aria-live="polite"
+                            >
+                                Ready for a new trial.
+                            </p>
+
+                            <div class="pitch-memory-frequency-response" hidden>
+                                <label for="pitch-memory-frequency">
+                                    Response frequency (<span
+                                        class="frequency-value"
+                                        data-output="pitch-memory-response-frequency"
+                                    ></span
+                                    >)
+                                    <span
+                                        class="info-tip"
+                                        tabindex="0"
+                                        aria-label="With an oscillator, adjust continuously from 200 to 900 Hz without snapping to musical notes. With a microphone, this disabled control shows the detected pitch."
+                                        data-tooltip="With an oscillator, adjust continuously from 200 to 900 Hz without snapping to musical notes. With a microphone, this disabled control shows the detected pitch."
+                                    >
+                                        ⓘ
+                                    </span>
+                                </label>
+                                <div class="pitch-memory-frequency-scale">
+                                    <input
+                                        id="pitch-memory-frequency"
+                                        data-control="pitch-memory-frequency"
+                                        type="range"
+                                        min="0"
+                                        max="2603.9"
+                                        step="0.1"
+                                        value="1302"
+                                    />
+                                    <span
+                                        class="pitch-memory-frequency-markers"
+                                    >
+                                        <span
+                                            class="pitch-memory-frequency-marker is-target"
+                                            data-output="pitch-memory-target-marker"
+                                            title="Target frequency"
+                                            hidden
+                                        ></span>
+                                        <span
+                                            class="pitch-memory-frequency-marker is-response"
+                                            data-output="pitch-memory-response-marker"
+                                            title="Your response"
+                                            hidden
+                                        ></span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div
+                                class="pitch-memory-oscillator-response"
+                                hidden
+                            >
+                                <div class="response-actions">
+                                    <button
+                                        data-action="play-pitch-memory-response"
+                                        type="button"
+                                        title="Play the currently selected response frequency"
+                                        disabled
+                                    >
+                                        Play
+                                    </button>
+                                    <button
+                                        data-action="stop-pitch-memory-response"
+                                        type="button"
+                                        title="Stop the response tone"
+                                        disabled
+                                    >
+                                        Stop
+                                    </button>
+                                    <button
+                                        data-action="submit-pitch-memory"
+                                        type="button"
+                                        title="Check your response and reveal the target"
+                                    >
+                                        Check
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div
+                                class="pitch-memory-microphone-response"
+                                hidden
+                            >
+                                <div class="response-actions">
+                                    <button
+                                        data-action="submit-pitch-memory"
+                                        type="button"
+                                        title="Check the detected pitch and reveal the target"
+                                        disabled
+                                    >
+                                        Check
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div
+                                class="practice-result pitch-memory-result"
+                                data-output="pitch-memory-result"
+                                aria-live="polite"
+                            ></div>
+                        </div>
+
+                        <div class="practice-report practice-wide-content">
+                            <dl class="stats practice-stats">
+                                <div class="stats-with-action">
+                                    <dt>Streak</dt>
+                                    <dd>
+                                        <strong
+                                            data-output="pitch-memory-streak"
+                                            >0</strong
+                                        >
+                                        <button
+                                            class="link-button"
+                                            data-action="clear-pitch-memory-stats"
+                                            type="button"
+                                            title="Clear pitch-memory statistics"
+                                        >
+                                            Clear
+                                        </button>
+                                    </dd>
+                                </div>
+                                <div>
+                                    <dt>Mean error</dt>
+                                    <dd data-output="pitch-memory-mean-error">
+                                        --
+                                    </dd>
+                                </div>
+                                <div>
+                                    <dt>Best</dt>
+                                    <dd data-output="pitch-memory-best">--</dd>
+                                </div>
+                            </dl>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -1904,9 +1903,11 @@
                 hidden
             >
                 <h2 class="sr-only">Intervals</h2>
-                <h3 class="blurb">
-                    Identify intervals by ear or construct them from a starting
-                    note.
+                <h3 class="blurb" data-mode-panel="recognition">
+                    Hear two notes and identify the size of the pitch jump.
+                </h3>
+                <h3 class="blurb" data-mode-panel="construction" hidden>
+                    Build a requested interval above or below a starting note.
                 </h3>
 
                 <details class="interval-guide">
@@ -2144,11 +2145,17 @@
                         aria-live="polite"
                     ></div>
 
-                    <dl class="stats practice-stats">
+                    <dl
+                        class="stats practice-stats"
+                        data-mode-panel="recognition"
+                    >
                         <div class="stats-with-action">
                             <dt>Streak</dt>
                             <dd>
-                                <strong data-output="interval-streak">0</strong>
+                                <strong
+                                    data-output="interval-recognition-streak"
+                                    >0</strong
+                                >
                                 <button
                                     class="link-button"
                                     data-action="clear-interval-stats"
@@ -2161,11 +2168,47 @@
                         </div>
                         <div>
                             <dt>Accuracy</dt>
-                            <dd data-output="interval-accuracy">0%</dd>
+                            <dd data-output="interval-recognition-accuracy">
+                                0%
+                            </dd>
                         </div>
                         <div>
                             <dt>Best</dt>
-                            <dd data-output="interval-best">--</dd>
+                            <dd data-output="interval-recognition-best">--</dd>
+                        </div>
+                    </dl>
+
+                    <dl
+                        class="stats practice-stats"
+                        data-mode-panel="construction"
+                        hidden
+                    >
+                        <div class="stats-with-action">
+                            <dt>Streak</dt>
+                            <dd>
+                                <strong
+                                    data-output="interval-construction-streak"
+                                    >0</strong
+                                >
+                                <button
+                                    class="link-button"
+                                    data-action="clear-interval-stats"
+                                    type="button"
+                                    title="Clear interval statistics"
+                                >
+                                    Clear
+                                </button>
+                            </dd>
+                        </div>
+                        <div>
+                            <dt>Accuracy</dt>
+                            <dd data-output="interval-construction-accuracy">
+                                0%
+                            </dd>
+                        </div>
+                        <div>
+                            <dt>Best</dt>
+                            <dd data-output="interval-construction-best">--</dd>
                         </div>
                     </dl>
                 </div>

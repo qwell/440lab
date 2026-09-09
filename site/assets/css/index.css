@@ -487,10 +487,10 @@ main {
     grid-template-areas: 'actions .';
 }
 
-.pitch-placement-practice {
+.pitch-practice {
     grid-template-areas:
         'actions .'
-        'placement-judgment result'
+        'pitch-judgment result'
         'stats stats';
 }
 
@@ -683,7 +683,7 @@ main {
 
 .action-button-grid [data-action='play-tuner'],
 .action-button-grid [data-action='play-metronome'],
-.action-button-grid [data-action='play-placement'],
+.action-button-grid [data-action='play-pitch'],
 .action-button-grid [data-action='play-interval'],
 .action-button-grid [data-action='play-chord'] {
     grid-column: 1;
@@ -695,7 +695,7 @@ main {
 
 .action-button-grid [data-action='toggle-tuner-mic'],
 .action-button-grid [data-action='tap-tempo'],
-.action-button-grid [data-action='new-placement'],
+.action-button-grid [data-action='new-pitch'],
 .action-button-grid [data-action='new-pick'],
 .action-button-grid [data-action='new-interval'],
 .action-button-grid [data-action='new-chord'] {
@@ -970,8 +970,8 @@ main {
 
 /* Pitch placement */
 
-.placement-judgment {
-    grid-area: placement-judgment;
+.pitch-judgment {
+    grid-area: pitch-judgment;
 
     width: var(--control-width);
     max-width: 100%;
@@ -984,7 +984,7 @@ main {
     overflow: hidden;
 }
 
-.placement-judgment button {
+.pitch-judgment button {
     flex: 1;
 
     min-width: 0;
@@ -999,11 +999,11 @@ main {
     background: #222;
 }
 
-.placement-judgment button + button {
+.pitch-judgment button + button {
     border-left: 1px solid var(--border);
 }
 
-.placement-result {
+.pitch-result {
     grid-area: result;
 
     white-space: nowrap;
@@ -1437,11 +1437,11 @@ footer a:hover {
 
     .action-button-grid,
     .pick-target-candidate-actions,
-    .placement-judgment {
+    .pitch-judgment {
         width: var(--control-width);
     }
 
-    .placement-result,
+    .pitch-result,
     .chord-result,
     .practice-body,
     .pick-target-candidate-details {
