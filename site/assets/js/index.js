@@ -735,6 +735,26 @@ function isPitchMemoryActive(tabName) {
     return tabName === 'pitch' && getControl('pitch-mode').value === 'memory';
 }
 
+function tabHash(tabName) {
+    if (tabName === 'pitch') {
+        return `#pitch/${getControl('pitch-mode').value}`;
+    }
+
+    if (tabName === 'intervals') {
+        return `#intervals/${getControl('interval-mode').value}`;
+    }
+
+    return `#${tabName}`;
+}
+
+function updateModeHash(tabName) {
+    const hash = tabHash(tabName);
+
+    if (window.location.hash !== hash) {
+        history.pushState(null, '', hash);
+    }
+}
+
 function activateTab(button, focus = false, updateUrl = true) {
     const tabName = button.dataset.tab;
     const pitchMemoryActive = isPitchMemoryActive(tabName);
@@ -783,8 +803,10 @@ function activateTab(button, focus = false, updateUrl = true) {
     cancelIntervalAdvance();
     cancelChordAdvance();
 
-    if (updateUrl && window.location.hash !== `#${tabName}`) {
-        history.pushState(null, '', `#${tabName}`);
+    const hash = tabHash(tabName);
+
+    if (updateUrl && window.location.hash !== hash) {
+        history.pushState(null, '', hash);
     }
 
     if (focus) {
@@ -817,20 +839,40 @@ function initializeTabs() {
     function activateHashTab() {
         const hash = window.location.hash.slice(1);
         const pitchHash = ['pitch-placement', 'pitch-memory'].includes(hash);
+        const [hashTab, hashMode] = hash.split('/');
 
         if (pitchHash) {
             getControl('pitch-mode').value =
                 hash === 'pitch-memory' ? 'memory' : 'placement';
+        } else if (
+            hashTab === 'pitch' &&
+            ['placement', 'memory'].includes(hashMode)
+        ) {
+            getControl('pitch-mode').value = hashMode;
+        } else if (
+            hashTab === 'intervals' &&
+            ['recognition', 'construction'].includes(hashMode)
+        ) {
+            getControl('interval-mode').value = hashMode;
         }
 
+        const tabName = pitchHash ? 'pitch' : hashTab;
         const tab =
-            tabs.find(
-                (candidate) =>
-                    candidate.dataset.tab === (pitchHash ? 'pitch' : hash)
-            ) || (hash === '' ? tabs[0] : null);
+            tabs.find((candidate) => candidate.dataset.tab === tabName) ||
+            (hash === '' ? tabs[0] : null);
 
-        if (tab && !tab.classList.contains('is-active')) {
+        if (!tab) {
+            return;
+        }
+
+        if (!tab.classList.contains('is-active')) {
             activateTab(tab, false, false);
+        }
+
+        if (tabName === 'pitch') {
+            updatePitchMode();
+        } else if (tabName === 'intervals') {
+            updateIntervalMode();
         }
     }
 
@@ -1503,14 +1545,13 @@ function renderPitchStats() {
         mode === 'memory' ? getControl('pitch-memory-type').value : null;
     const { streak, trials, errorTotal, best } =
         stats.pitch[pitchStatsType(mode, type)];
-    const output = mode === 'memory' ? 'pitch-memory' : 'pitch-placement';
     const meanError =
         trials > 0 ? errorTotal / trials : mode === 'placement' ? 0 : null;
 
-    getOutput(`${output}-streak`).textContent = String(streak);
-    getOutput(`${output}-mean-error`).textContent =
+    getOutput(`pitch-${mode}-streak`).textContent = String(streak);
+    getOutput(`pitch-${mode}-mean-error`).textContent =
         meanError === null ? '--' : `${meanError.toFixed(1)} cents`;
-    getOutput(`${output}-best`).textContent =
+    getOutput(`pitch-${mode}-best`).textContent =
         best === null ? '--' : `${best.toFixed(2)} cents`;
 }
 
@@ -3507,7 +3548,15 @@ function resetForReferenceChange() {
 }
 
 function initializeEvents() {
-    getControl('pitch-mode').addEventListener('change', updatePitchMode);
+    getControl('pitch-mode').addEventListener('input', () => {
+        updateModeHash('pitch');
+        updatePitchMode();
+    });
+
+    getControl('interval-mode').addEventListener('input', () => {
+        updateModeHash('intervals');
+        updateIntervalMode();
+    });
 
     getNote('tuner').addEventListener('change', (event) => {
         updateNoteReadout(event.currentTarget);
@@ -3541,8 +3590,6 @@ function initializeEvents() {
 
         newPickSet();
     });
-
-    getControl('interval-mode').addEventListener('change', updateIntervalMode);
 
     for (const control of getControls('interval-level', 'interval-direction')) {
         control.addEventListener('change', () => {
@@ -3771,11 +3818,11 @@ function initializeEvents() {
 
 function initialize() {
     initializeModePanels('pitch');
-    initializeTabs();
     initializeTooltips();
     initializeNotes();
-
+    initializeEvents();
     updateNoteReadouts();
+    initializeTabs();
 
     resetTunerDetection();
 
@@ -3791,8 +3838,6 @@ function initialize() {
     renderChordStats();
     restorePitchMemoryTrial();
     renderPitchMemoryResponseFrequency();
-
-    initializeEvents();
 }
 
 initialize();
