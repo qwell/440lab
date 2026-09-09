@@ -2230,33 +2230,6 @@
 
                 <div class="form-grid">
                     <div class="field">
-                        <label for="chord-note">
-                            Root note (<span
-                                class="frequency-value note-frequency"
-                                data-note-frequency="chords"
-                            ></span
-                            >)
-
-                            <span
-                                class="info-tip"
-                                tabindex="0"
-                                aria-label="The note on which the chord is built. The other chord tones are calculated above it."
-                                data-tooltip="The note on which the chord is built. The other chord tones are calculated above it."
-                            >
-                                ⓘ
-                            </span>
-                        </label>
-
-                        <div class="control-row">
-                            <select
-                                id="chord-note"
-                                class="note-select"
-                                data-note="chords"
-                            ></select>
-                        </div>
-                    </div>
-
-                    <div class="field">
                         <label for="chord-waveform">
                             Wave type
 
@@ -2289,8 +2262,8 @@
                             <span
                                 class="info-tip"
                                 tabindex="0"
-                                aria-label="Together plays all chord tones at once. Ascending plays them one at a time from lowest to highest."
-                                data-tooltip="Together plays all chord tones at once. Ascending plays them one at a time from lowest to highest."
+                                aria-label="Together plays all chord tones at once. Ascending plays them one at a time from lowest to highest; descending plays them from highest to lowest."
+                                data-tooltip="Together plays all chord tones at once. Ascending plays them one at a time from lowest to highest; descending plays them from highest to lowest."
                             >
                                 ⓘ
                             </span>
@@ -2305,6 +2278,7 @@
                                     together
                                 </option>
                                 <option value="ascending">ascending</option>
+                                <option value="descending">descending</option>
                             </select>
                         </div>
                     </div>

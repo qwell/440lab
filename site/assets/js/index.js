@@ -3320,6 +3320,7 @@ stats.chord = loadChordStats();
 
 const chord = {
     quality: null,
+    rootMidi: null,
     committed: false,
     playedNotes: [],
 };
@@ -3373,6 +3374,7 @@ function newChordTrial(playImmediately = false) {
     const qualities = Object.keys(CHORD_QUALITIES);
 
     chord.quality = qualities[Math.floor(Math.random() * qualities.length)];
+    chord.rootMidi = 48 + Math.floor(Math.random() * 24);
     chord.committed = false;
     chord.playedNotes = [];
 
@@ -3395,22 +3397,26 @@ function playChordTrial() {
 
     stopAllAudio();
 
-    const rootMidi = Number(getNote('chords').value);
-    const rootHz = midiFrequency(rootMidi);
     const waveform = getWaveform('chords').value;
-    const ascending = getControl('chord-playback').value === 'ascending';
+    const playback = getControl('chord-playback').value;
+    const sequential = playback !== 'together';
+    const intervals = [...CHORD_QUALITIES[chord.quality]];
 
-    chord.playedNotes = CHORD_QUALITIES[chord.quality].map(
-        (semitones) => rootMidi + semitones
+    if (playback === 'descending') {
+        intervals.reverse();
+    }
+
+    chord.playedNotes = intervals.map(
+        (semitones) => chord.rootMidi + semitones
     );
 
-    CHORD_QUALITIES[chord.quality].forEach((semitones, index) => {
+    intervals.forEach((semitones, index) => {
         audio.playTransient(
-            rootHz * 2 ** (semitones / 12),
+            midiFrequency(chord.rootMidi + semitones),
             waveform,
-            ascending ? 0.7 : 1.2,
+            sequential ? 0.7 : 1.2,
             0.55,
-            ascending ? index * 0.35 : 0
+            sequential ? index * 0.35 : 0
         );
     });
 
@@ -3534,11 +3540,6 @@ function initializeEvents() {
         updateNoteReadout(event.currentTarget);
 
         newPickSet();
-    });
-
-    getNote('chords').addEventListener('change', (event) => {
-        updateNoteReadout(event.currentTarget);
-        newChordTrial();
     });
 
     getControl('interval-mode').addEventListener('change', updateIntervalMode);
