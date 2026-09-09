@@ -1545,8 +1545,7 @@ function renderPitchStats() {
         mode === 'memory' ? getControl('pitch-memory-type').value : null;
     const { streak, trials, errorTotal, best } =
         stats.pitch[pitchStatsType(mode, type)];
-    const meanError =
-        trials > 0 ? errorTotal / trials : mode === 'placement' ? 0 : null;
+    const meanError = trials > 0 ? errorTotal / trials : null;
 
     getOutput(`pitch-${mode}-streak`).textContent = String(streak);
     getOutput(`pitch-${mode}-mean-error`).textContent =
