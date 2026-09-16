@@ -768,9 +768,9 @@
             >
                 <h2 class="sr-only">Tuning</h2>
                 <h3 class="blurb">
-                    Play a known note as a reference, or use the microphone to
-                    identify a live pitch and see how far it is from the nearest
-                    note.
+                    Play a known note or string as a reference, or use the
+                    microphone to identify a live pitch and compare it with the
+                    selected string or nearest note.
                 </h3>
 
                 <div class="form-grid">
@@ -817,6 +817,28 @@
                                 </option>
                                 <option value="sine">sine</option>
                             </select>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label for="tuner-instrument">Instrument</label>
+                        <div class="control-row">
+                            <select
+                                id="tuner-instrument"
+                                data-control="tuner-instrument"
+                            >
+                                <option value="">custom note</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="tuner-variation">Tuning variation</label>
+                        <div class="control-row">
+                            <select
+                                id="tuner-variation"
+                                data-control="tuner-variation"
+                                disabled
+                            ></select>
                         </div>
                     </div>
                 </div>
@@ -950,6 +972,14 @@
                             Microphone off
                         </div>
                     </div>
+
+                    <div
+                        class="tuner-strings practice-wide-content"
+                        data-output="tuner-strings"
+                        role="group"
+                        aria-label="String reference tones, highest string number first. Press a note to start or stop."
+                        hidden
+                    ></div>
                 </div>
             </section>
 

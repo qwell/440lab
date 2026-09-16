@@ -9,8 +9,9 @@ const TUNER_MIN_RMS = 0.006;
 const TUNER_STABLE_FRAMES = 3;
 const TUNER_YIN_THRESHOLD = 0.15;
 const TUNER_HISTORY_LENGTH = 5;
+const TUNER_ANALYSIS_FFT_SIZE = 4096;
 
-const TUNER_MIN_HZ = 50;
+const TUNER_MIN_HZ = 25;
 const TUNER_MAX_HZ = 4200;
 
 const RHYTHM_LOOKAHEAD_MS = 25;
@@ -88,6 +89,23 @@ const NOTE_NAMES = [
     'B',
 ];
 
+const TUNER_ACCIDENTAL_NAMES = {
+    sharp: {
+        1: 'C♯',
+        3: 'D♯',
+        6: 'F♯',
+        8: 'G♯',
+        10: 'A♯',
+    },
+    flat: {
+        1: 'D♭',
+        3: 'E♭',
+        6: 'G♭',
+        8: 'A♭',
+        10: 'B♭',
+    },
+};
+
 const CHORD_QUALITIES = {
     major: [0, 4, 7],
     minor: [0, 3, 7],
@@ -118,6 +136,69 @@ const INTERVAL_LEVELS = {
         ({ semitones }) => semitones
     ),
 };
+
+const TUNER_INSTRUMENTS = [
+    {
+        name: 'guitar',
+        tunings: [
+            ['standard', [40, 45, 50, 55, 59, 64]],
+            ['drop D', [38, 45, 50, 55, 59, 64]],
+            ['DADGAD', [38, 45, 50, 55, 57, 62]],
+            ['open G', [38, 43, 50, 55, 59, 62]],
+            ['open D', [38, 45, 50, 54, 57, 62]],
+            ['half step down', [39, 44, 49, 54, 58, 63], 'flat'],
+        ],
+    },
+    {
+        name: 'bass guitar',
+        tunings: [
+            ['standard (4 strings)', [28, 33, 38, 43]],
+            ['drop D', [26, 33, 38, 43]],
+            ['standard (5 strings)', [23, 28, 33, 38, 43]],
+            ['standard (6 strings)', [23, 28, 33, 38, 43, 48]],
+        ],
+    },
+    {
+        name: 'violin',
+        tunings: [['standard', [55, 62, 69, 76]]],
+    },
+    {
+        name: 'viola',
+        tunings: [['standard', [48, 55, 62, 69]]],
+    },
+    {
+        name: 'cello',
+        tunings: [['standard', [36, 43, 50, 57]]],
+    },
+    {
+        name: 'double bass',
+        tunings: [
+            ['standard (4 strings)', [28, 33, 38, 43]],
+            ['standard (5 strings)', [23, 28, 33, 38, 43]],
+        ],
+    },
+    {
+        name: 'ukulele',
+        tunings: [
+            ['standard (high G)', [67, 60, 64, 69]],
+            ['low G', [55, 60, 64, 69]],
+            ['baritone', [50, 55, 59, 64]],
+        ],
+    },
+    {
+        name: 'banjo',
+        tunings: [
+            ['open G (5 strings)', [67, 50, 55, 59, 62]],
+            ['double C', [67, 48, 55, 60, 62]],
+            ['sawmill', [67, 50, 55, 60, 62]],
+            ['tenor', [48, 55, 62, 69]],
+        ],
+    },
+    {
+        name: 'mandolin',
+        tunings: [['standard (paired)', [55, 55, 62, 62, 69, 69, 76, 76]]],
+    },
+];
 
 function clamp(value, minimum, maximum) {
     return Math.min(maximum, Math.max(minimum, value));
@@ -179,6 +260,25 @@ function midiToNoteName(midi) {
     const octave = Math.floor(roundedMidi / 12) - 1;
 
     return `${NOTE_NAMES[pitchClass]}${octave}`;
+}
+
+function midiToTunerNoteName(midi, accidental = 'sharp') {
+    const roundedMidi = Math.round(midi);
+    const pitchClass = ((roundedMidi % 12) + 12) % 12;
+    const octave = Math.floor(roundedMidi / 12) - 1;
+    const noteName =
+        TUNER_ACCIDENTAL_NAMES[accidental][pitchClass] ??
+        NOTE_NAMES[pitchClass];
+
+    return `${noteName}${octave}`;
+}
+
+function tunerTargetNoteName() {
+    const instrument = TUNER_INSTRUMENTS[getControl('tuner-instrument').value];
+    const tuning = instrument?.tunings[getControl('tuner-variation').value];
+    const accidental = tuning?.[2] ?? 'sharp';
+
+    return midiToTunerNoteName(tunerTargetMidi, accidental);
 }
 
 function selectedNoteFrequency(select) {
@@ -673,10 +773,112 @@ function updateVolume() {
     audio.setMasterVolume(volume);
 }
 
+let tunerTargetMidi = null;
+
+function initializeTunerInstruments() {
+    const select = getControl('tuner-instrument');
+    TUNER_INSTRUMENTS.forEach((instrument, index) => {
+        select.add(new Option(instrument.name, String(index)));
+    });
+    updateTunerInstrument();
+}
+
+function updateTunerInstrument() {
+    const select = getControl('tuner-variation');
+    const instrument = TUNER_INSTRUMENTS[getControl('tuner-instrument').value];
+    select.replaceChildren();
+    select.disabled = !instrument || instrument.tunings.length === 1;
+    if (instrument) {
+        instrument.tunings.forEach(([name], index) => {
+            select.add(new Option(name, String(index)));
+        });
+    } else {
+        select.add(new Option('select an instrument', ''));
+    }
+    updateTunerStrings();
+}
+
+function clearTunerTarget() {
+    if (tunerTargetMidi === null) {
+        return;
+    }
+
+    tunerTargetMidi = null;
+    for (const button of getOutput('tuner-strings').children) {
+        button.setAttribute('aria-pressed', 'false');
+    }
+    resetTunerTracking(true);
+    tunerMic.lastValidTime = 0;
+    resetTunerDetection(tunerMic.stream ? 'Listening...' : 'Microphone off');
+}
+
+function updateTunerStrings() {
+    stopTuner();
+    clearTunerTarget();
+    const container = getOutput('tuner-strings');
+    container.replaceChildren();
+    const instrument = TUNER_INSTRUMENTS[getControl('tuner-instrument').value];
+    container.hidden = !instrument;
+    if (!instrument) {
+        return;
+    }
+    const [, notes, accidental = 'sharp'] =
+        instrument.tunings[getControl('tuner-variation').value];
+    notes.forEach((midi, index) => {
+        const button = document.createElement('button');
+        const noteName = midiToTunerNoteName(midi, accidental);
+
+        button.type = 'button';
+        button.textContent = noteName;
+        button.setAttribute(
+            'aria-label',
+            `String ${notes.length - index}: ${noteName}`
+        );
+        button.setAttribute('aria-pressed', 'false');
+        button.addEventListener('click', () => {
+            const wasPlaying = tunerVoice !== null && tunerTargetMidi === midi;
+            stopGeneratedAudio();
+
+            if (tunerTargetMidi !== midi) {
+                tunerTargetMidi = midi;
+                for (const candidate of container.children) {
+                    candidate.setAttribute(
+                        'aria-pressed',
+                        String(candidate === button)
+                    );
+                }
+            }
+
+            if (wasPlaying) {
+                return;
+            }
+
+            tunerVoice = audio.playContinuous(
+                midiFrequency(midi),
+                getWaveform('tuner').value
+            );
+            button.classList.add('is-playing');
+            resetTunerTracking(true);
+            tunerMic.lastValidTime = 0;
+            resetTunerDetection(
+                tunerMic.stream ? 'Listening...' : 'Microphone off'
+            );
+        });
+        container.append(button);
+    });
+}
+
+function renderTunerString() {
+    getOutput('tuner-closest').textContent = tunerTargetNoteName();
+    getOutput('tuner-target').textContent =
+        `${midiFrequency(tunerTargetMidi).toFixed(3)} Hz`;
+}
+
 let tunerVoice = null;
 
 function playTuner() {
     stopGeneratedAudio();
+    clearTunerTarget();
 
     tunerVoice = audio.playContinuous(
         selectedNoteFrequency(getNote('tuner')),
@@ -691,6 +893,14 @@ function stopTuner() {
 
     tunerVoice.stop();
     tunerVoice = null;
+
+    for (const button of getOutput('tuner-strings').children) {
+        button.classList.remove('is-playing');
+    }
+
+    if (tunerTargetMidi !== null) {
+        setTunerStatus(tunerMic.stream ? 'Listening...' : 'Microphone off');
+    }
 }
 
 function stopGeneratedAudio() {
@@ -1017,6 +1227,9 @@ const tunerMic = {
 };
 
 function setTunerStatus(text) {
+    if (tunerVoice !== null && tunerTargetMidi !== null) {
+        text = `Playing string tone · ${text}`;
+    }
     getOutput('tuner-status').textContent = text;
 }
 
@@ -1046,9 +1259,12 @@ function resetTunerTracking(resetPending) {
 }
 
 function resetTunerDetection(status = 'Microphone off') {
-    getOutput('tuner-closest').textContent = '--';
-
-    getOutput('tuner-target').textContent = '-- Hz';
+    if (tunerTargetMidi !== null) {
+        renderTunerString();
+    } else {
+        getOutput('tuner-closest').textContent = '--';
+        getOutput('tuner-target').textContent = '-- Hz';
+    }
 
     getOutput('tuner-detected').textContent = '-- Hz detected';
 
@@ -1233,7 +1449,21 @@ function nearestMusicalNote(frequencyHz) {
 }
 
 function renderTunerDetection(frequencyHz) {
-    const nearest = nearestMusicalNote(frequencyHz);
+    const targetHz =
+        tunerTargetMidi === null ? null : midiFrequency(tunerTargetMidi);
+    const scoredFrequencyHz =
+        targetHz === null
+            ? frequencyHz
+            : nearestOctaveFrequency(frequencyHz, targetHz);
+    const nearest =
+        targetHz === null
+            ? nearestMusicalNote(frequencyHz)
+            : {
+                  midi: tunerTargetMidi,
+                  name: tunerTargetNoteName(),
+                  targetHz,
+                  cents: centsBetween(scoredFrequencyHz, targetHz),
+              };
 
     if (tunerMic.smoothedNoteMidi !== nearest.midi) {
         tunerMic.smoothedNoteMidi = nearest.midi;
@@ -1254,8 +1484,12 @@ function renderTunerDetection(frequencyHz) {
 
     getOutput('tuner-target').textContent = `${nearest.targetHz.toFixed(3)} Hz`;
 
+    const detectedNote =
+        tunerTargetMidi === null
+            ? ''
+            : `${nearestMusicalNote(frequencyHz).name} · `;
     getOutput('tuner-detected').textContent =
-        `${frequencyHz.toFixed(3)} Hz detected`;
+        `${detectedNote}${frequencyHz.toFixed(3)} Hz detected`;
 
     getOutput('tuner-cents').textContent = `${signed(cents, 1)} cents`;
 
@@ -1265,6 +1499,7 @@ function renderTunerDetection(frequencyHz) {
     needle.style.left = `${percent}%`;
     needle.classList.add('is-visible');
     needle.classList.toggle('is-in-tune', inTune);
+    setTunerStatus('Listening...');
 }
 
 function analyzeTunerMic(time) {
@@ -1334,7 +1569,7 @@ async function startMicTuner() {
     resetTunerDetection('Requesting microphone access...');
 
     try {
-        if (!(await startMicrophoneInput(tunerMic, 2048))) {
+        if (!(await startMicrophoneInput(tunerMic, TUNER_ANALYSIS_FFT_SIZE))) {
             return;
         }
 
@@ -4225,6 +4460,10 @@ function resetForReferenceChange() {
 
     updateNoteReadouts();
 
+    if (tunerTargetMidi !== null) {
+        renderTunerString();
+    }
+
     newPitchPlacementTrial();
     newPickSet();
     newIntervalTrial();
@@ -4243,6 +4482,10 @@ function initializeEvents() {
 
     getNote('tuner').addEventListener('change', (event) => {
         updateNoteReadout(event.currentTarget);
+        if (tunerTargetMidi !== null) {
+            stopTuner();
+            clearTunerTarget();
+        }
 
         if (tunerVoice) {
             tunerVoice.setFrequency(selectedNoteFrequency(event.currentTarget));
@@ -4452,6 +4695,15 @@ function initializeEvents() {
         resetForReferenceChange();
     });
 
+    getControl('tuner-instrument').addEventListener(
+        'change',
+        updateTunerInstrument
+    );
+    getControl('tuner-variation').addEventListener(
+        'change',
+        updateTunerStrings
+    );
+
     getAction('play-tuner').addEventListener('click', playTuner);
 
     getAction('toggle-tuner-mic').addEventListener('click', toggleMicTuner);
@@ -4620,6 +4872,7 @@ function initialize() {
     initializeModePanels('pitch');
     initializeTooltips();
     initializeNotes();
+    initializeTunerInstruments();
     initializeEvents();
     updateRhythmMode();
     updateNoteReadouts();

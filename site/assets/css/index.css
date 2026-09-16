@@ -528,6 +528,13 @@ main {
         'meter meter';
 }
 
+.tuner-practice:has(.tuner-strings:not([hidden])) {
+    grid-template-areas:
+        'actions .'
+        'meter meter'
+        'strings strings';
+}
+
 .rhythm-practice {
     grid-template-areas: 'actions .';
 }
@@ -772,6 +779,28 @@ main {
 }
 
 /* Tuner */
+
+.tuner-strings {
+    grid-area: strings;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: var(--button-gap);
+}
+
+.tuner-strings[hidden] {
+    display: none;
+}
+
+.tuner-strings button {
+    min-width: 0;
+    padding-inline: 0;
+}
+
+.tuner-strings button.is-playing {
+    border-color: var(--target);
+    color: var(--target);
+}
 
 .tuner-header,
 .tuner-footer {
@@ -1766,6 +1795,13 @@ footer a:hover {
             'meter';
 
         row-gap: 14px;
+    }
+
+    .tuner-practice:has(.tuner-strings:not([hidden])) {
+        grid-template-areas:
+            'actions'
+            'meter'
+            'strings';
     }
 
     .tuner-note {
