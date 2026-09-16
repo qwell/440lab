@@ -1,3 +1,11 @@
+@font-face {
+    font-family: 'Noto Music';
+    src: url('../fonts/NotoMusic-Regular.ttf') format('truetype');
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+}
+
 :root {
     color-scheme: dark;
 
@@ -25,6 +33,7 @@
     --button: #272727;
     --button-hover: #333;
     --border: #444;
+    --border-radius: 4px;
     --muted: #999;
     --text: #eee;
     --mic-accent: crimson;
@@ -78,7 +87,7 @@ select {
 
 button {
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--border-radius);
 
     background: var(--button);
     color: var(--text);
@@ -104,7 +113,7 @@ select {
     min-width: 0;
 
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--border-radius);
 
     background: var(--surface);
     color: var(--text);
@@ -336,6 +345,20 @@ main {
     min-width: 0;
 }
 
+.rhythm-bpm-row {
+    width: var(--control-width);
+    max-width: 100%;
+
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+
+    gap: var(--button-gap);
+}
+
+.rhythm-bpm-row input[type='number'] {
+    width: 100%;
+}
+
 .control-row input[type='number'],
 .control-row select {
     width: var(--control-width);
@@ -416,7 +439,7 @@ main {
     padding: 7px 9px;
 
     border: 1px solid #555;
-    border-radius: 5px;
+    border-radius: var(--border-radius);
 
     background: #202020;
     color: var(--text);
@@ -477,14 +500,42 @@ main {
     max-width: 100%;
 }
 
+.practice-guide {
+    width: min(430px, 100%);
+
+    margin-top: 10px;
+
+    color: #bbb;
+}
+
+.practice-guide summary {
+    width: max-content;
+
+    color: var(--text);
+
+    cursor: pointer;
+}
+
+.practice-guide p {
+    margin: 8px 0;
+
+    line-height: 1.4;
+}
+
 .tuner-practice {
     grid-template-areas:
         'actions .'
         'meter meter';
 }
 
-.metronome-practice {
+.rhythm-practice {
     grid-template-areas: 'actions .';
+}
+
+.rhythm-practice.practice-wide {
+    grid-template-areas:
+        'actions .'
+        'body body';
 }
 
 .pitch-practice {
@@ -682,7 +733,7 @@ main {
 }
 
 .action-button-grid [data-action='play-tuner'],
-.action-button-grid [data-action='play-metronome'],
+.action-button-grid [data-action='play-rhythm'],
 .action-button-grid [data-action='play-pitch'],
 .action-button-grid [data-action='play-interval'],
 .action-button-grid [data-action='play-chord'] {
@@ -694,7 +745,6 @@ main {
 }
 
 .action-button-grid [data-action='toggle-tuner-mic'],
-.action-button-grid [data-action='tap-tempo'],
 .action-button-grid [data-action='new-pitch'],
 .action-button-grid [data-action='new-pick'],
 .action-button-grid [data-action='new-interval'],
@@ -811,7 +861,7 @@ main {
     height: 28px;
 
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--border-radius);
 
     background: var(--surface);
 }
@@ -902,6 +952,318 @@ main {
     line-height: 1.2;
 }
 
+/* Rhythm */
+
+#rhythm-time-signature {
+    font-family: 'Noto Music', serif;
+}
+
+.rhythm-timing-track {
+    position: relative;
+
+    height: 28px;
+
+    margin-bottom: var(--practice-row-gap);
+
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius);
+
+    background: var(--surface);
+}
+
+.rhythm-timing-target,
+.rhythm-timing-mark {
+    position: absolute;
+
+    top: 0;
+    left: 50%;
+
+    width: 2px;
+    height: 100%;
+
+    background: var(--target);
+}
+
+.rhythm-timing-mark {
+    top: auto;
+    bottom: 0;
+
+    height: 8px;
+
+    background: var(--text);
+}
+
+.rhythm-timing-dot {
+    position: absolute;
+
+    top: 50%;
+    left: 0;
+
+    width: 12px;
+    height: 12px;
+
+    border-radius: 50%;
+
+    background: var(--target);
+
+    transform: translate(-50%, -50%);
+}
+
+.rhythm-timing-labels {
+    margin-bottom: var(--practice-row-gap);
+
+    display: flex;
+    justify-content: space-between;
+
+    color: var(--muted);
+
+    font-size: 10px;
+}
+
+#rhythm-timing-tap {
+    width: var(--control-width);
+    max-width: 100%;
+
+    touch-action: none;
+}
+
+.rhythm-response {
+    margin-bottom: var(--practice-row-gap);
+}
+
+#rhythm-hold {
+    grid-column: span 2;
+
+    width: 100%;
+
+    touch-action: none;
+}
+
+#rhythm-hold.is-held {
+    border-color: var(--target);
+
+    background: var(--target-background);
+}
+
+.rhythm-count-in {
+    min-height: 28px;
+
+    display: flex;
+    align-items: center;
+
+    color: var(--muted);
+
+    font-size: 12px;
+}
+
+.rhythm-score {
+    position: relative;
+
+    width: 100%;
+    height: 2.25rem;
+
+    margin-bottom: var(--practice-row-gap);
+
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius);
+
+    background: var(--surface);
+
+    font-family: 'Noto Music', serif;
+
+    overflow: hidden;
+}
+
+.rhythm-lane {
+    position: absolute;
+    inset: 0;
+
+    will-change: transform;
+}
+
+.rhythm-lane-note {
+    position: absolute;
+
+    top: 0;
+
+    height: 100%;
+
+    color: var(--text);
+}
+
+.rhythm-note-symbol {
+    position: absolute;
+
+    left: 0.4rem;
+
+    font-size: 1.6rem;
+    line-height: 2rem;
+
+    white-space: nowrap;
+}
+
+.rhythm-score-heading {
+    position: absolute;
+
+    top: 0;
+
+    height: 100%;
+
+    display: flex;
+    align-items: center;
+
+    gap: 0.25rem;
+
+    white-space: nowrap;
+
+    color: var(--muted);
+
+    transform: translateX(calc(-100% - 1rem));
+}
+
+.rhythm-score-heading > span:first-child,
+.rhythm-barline {
+    display: flex;
+    align-items: center;
+
+    height: 100%;
+
+    overflow: hidden;
+
+    font-size: 2rem;
+    line-height: 1;
+
+    transform: scaleY(1.125);
+    transform-origin: center;
+}
+
+.rhythm-score-heading > span:first-child {
+    flex: none;
+}
+
+.rhythm-signature {
+    height: 100%;
+
+    overflow: hidden;
+}
+
+.rhythm-signature:not(.is-numeric) {
+    display: flex;
+    align-items: center;
+
+    font-size: 1.6rem;
+    line-height: 1;
+}
+
+.rhythm-signature.is-numeric {
+    display: grid;
+    grid-template-rows: repeat(2, 1rem);
+    align-content: center;
+
+    text-align: center;
+
+    font-size: 0.9rem;
+    line-height: 1rem;
+}
+
+.rhythm-lane-note.is-current {
+    color: var(--target);
+}
+
+.rhythm-duration-track,
+.rhythm-held-section {
+    position: absolute;
+
+    bottom: 0;
+    left: 0;
+
+    height: 0.25rem;
+}
+
+.rhythm-duration-track {
+    width: calc(100% + 1px);
+
+    background: var(--target);
+}
+
+.rhythm-held-section {
+    z-index: 1;
+
+    background: var(--incorrect);
+
+    pointer-events: none;
+}
+
+.rhythm-lane-note.is-rest .rhythm-duration-track {
+    border-bottom: 1px dashed var(--muted);
+
+    background: none;
+}
+
+.rhythm-count-marker {
+    position: absolute;
+
+    top: 0;
+
+    font-size: 1.25rem;
+    line-height: 2rem;
+
+    color: var(--muted);
+
+    transform: translateX(-50%);
+}
+
+.rhythm-play-line {
+    position: absolute;
+
+    top: 0;
+    left: 2rem;
+
+    width: 1px;
+    height: 100%;
+
+    background: var(--target);
+
+    pointer-events: none;
+}
+
+.rhythm-barline {
+    position: absolute;
+
+    top: 0;
+
+    margin-left: -0.05em;
+
+    color: var(--muted);
+}
+
+#rhythm-timing-result,
+#rhythm-timing-stats,
+#rhythm-result,
+#rhythm-report {
+    font-variant-numeric: tabular-nums;
+}
+
+#rhythm-stats > div {
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: 0.5rem;
+}
+
+#rhythm-stats dt::after {
+    content: ':';
+}
+
+#rhythm-stats dd {
+    margin: 0;
+}
+
+.rhythm-score[aria-disabled='false'] {
+    cursor: pointer;
+    touch-action: none;
+}
+
 /* Stats */
 
 .stats {
@@ -979,7 +1341,7 @@ main {
     display: flex;
 
     border: 1px solid var(--border);
-    border-radius: 5px;
+    border-radius: var(--border-radius);
 
     overflow: hidden;
 }
@@ -1148,27 +1510,6 @@ main {
 }
 
 /* Intervals */
-
-.interval-guide {
-    width: min(430px, 100%);
-
-    margin-top: 10px;
-
-    color: #bbb;
-}
-
-.interval-guide summary {
-    width: max-content;
-
-    color: var(--text);
-    cursor: pointer;
-}
-
-.interval-guide p {
-    margin: 8px 0;
-
-    line-height: 1.4;
-}
 
 .interval-guide-table {
     width: 100%;

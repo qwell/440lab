@@ -13,14 +13,27 @@ const TUNER_HISTORY_LENGTH = 5;
 const TUNER_MIN_HZ = 50;
 const TUNER_MAX_HZ = 4200;
 
-const METRONOME_LOOKAHEAD_MS = 25;
-const METRONOME_SCHEDULE_AHEAD_SECONDS = 0.1;
-const METRONOME_CLICK_DURATION = 0.035;
-const METRONOME_NORMAL_HZ = 800;
-const METRONOME_GROUP_HZ = 1000;
-const METRONOME_FIRST_HZ = 1200;
+const RHYTHM_LOOKAHEAD_MS = 25;
+const RHYTHM_SCHEDULE_AHEAD_SECONDS = 0.1;
+const RHYTHM_CLICK_DURATION = 0.035;
+const RHYTHM_NORMAL_HZ = 800;
+const RHYTHM_GROUP_HZ = 1000;
+const RHYTHM_FIRST_HZ = 1200;
 
-const METRONOME_METERS = {
+const RHYTHM_NOTE_VALUES = [
+    { value: 1, name: 'whole', symbol: '𝅝', rest: '𝄻' },
+    { value: 2, name: 'half', symbol: '𝅗𝅥', rest: '𝄼' },
+    { value: 4, name: 'quarter', symbol: '𝅘𝅥', rest: '𝄽' },
+    { value: 8, name: 'eighth', symbol: '𝅘𝅥𝅮', rest: '𝄾' },
+    { value: 16, name: 'sixteenth', symbol: '𝅘𝅥𝅯', rest: '𝄿' },
+];
+const RHYTHM_DOT_MULTIPLIER = 1.5;
+const RHYTHM_COMPOUND_SUBDIVISIONS = 3;
+// Keep the written distance for one quarter note fixed as the lane scrolls.
+const RHYTHM_REM_PER_QUARTER = 8;
+const RHYTHM_PLAY_LINE_REM = 2;
+
+const RHYTHM_METERS = {
     '2/4': [2, 0],
     '3/4': [2, 0, 0],
     '4/4': [2, 0, 0, 0],
@@ -35,6 +48,10 @@ const METRONOME_METERS = {
     '5/4': [2, 0, 0, 1, 0],
     '7/8': [2, 0, 1, 0, 1, 0, 0],
 };
+const RHYTHM_SIGNATURE_SYMBOLS = {
+    '4/4': '𝄴',
+    '2/2': '𝄵',
+};
 
 const STATS_KEYS = {
     pitch: '440Lab.pitchStats.v1',
@@ -44,8 +61,8 @@ const STATS_KEYS = {
 };
 
 const PITCH_MEMORY_TRIAL_KEY = '440Lab.pitchMemoryTrial.v1';
-const PITCH_MEMORY_MIN_HZ = 200;
-const PITCH_MEMORY_MAX_HZ = 900;
+const PITCH_MEMORY_MIN_HZ = 100;
+const PITCH_MEMORY_MAX_HZ = 1000;
 const PITCH_MEMORY_CORRECT_CENTS = 50;
 const PITCH_MEMORY_RANGE_CENTS =
     1200 * Math.log2(PITCH_MEMORY_MAX_HZ / PITCH_MEMORY_MIN_HZ);
@@ -678,7 +695,7 @@ function stopTuner() {
 
 function stopGeneratedAudio() {
     stopTuner();
-    stopMetronome();
+    stopRhythm();
     audio.stopTransient();
 }
 
@@ -742,6 +759,10 @@ function tabHash(tabName) {
 
     if (tabName === 'intervals') {
         return `#intervals/${getControl('interval-mode').value}`;
+    }
+
+    if (tabName === 'rhythm') {
+        return `#rhythm/${getControl('rhythm-mode').value}`;
     }
 
     return `#${tabName}`;
@@ -856,6 +877,13 @@ function initializeTabs() {
             getControl('interval-mode').value = hashMode;
         }
 
+        if (
+            hashTab === 'rhythm' &&
+            ['metronome', 'timing', 'reading'].includes(hashMode)
+        ) {
+            getControl('rhythm-mode').value = hashMode;
+        }
+
         const tabName = pitchHash ? 'pitch' : hashTab;
         const tab =
             tabs.find((candidate) => candidate.dataset.tab === tabName) ||
@@ -869,7 +897,9 @@ function initializeTabs() {
             activateTab(tab, false, false);
         }
 
-        if (tabName === 'pitch') {
+        if (tabName === 'rhythm') {
+            updateRhythmMode();
+        } else if (tabName === 'pitch') {
             updatePitchMode();
         } else if (tabName === 'intervals') {
             updateIntervalMode();
@@ -1341,9 +1371,9 @@ function toggleMicTuner() {
     void startMicTuner();
 }
 
-// Metronome
+// Rhythm
 
-const metronome = {
+const rhythm = {
     running: false,
     timer: null,
     nextBeatTime: 0,
@@ -1351,107 +1381,750 @@ const metronome = {
     tapTimes: [],
 };
 
-function scheduleMetronome() {
-    if (!metronome.running) {
+const rhythmTiming = {
+    origin: 0,
+    interval: 0.6,
+    frame: null,
+    lastBeat: -1,
+    errors: [],
+};
+
+const rhythmReading = {
+    phrase: [],
+    origin: 0,
+    interval: 0.6,
+    frame: null,
+    active: false,
+    held: null,
+    input: null,
+    extra: 0,
+    holdSpans: [],
+    currentHold: null,
+};
+
+function rhythmReadingEnabled() {
+    return getControl('rhythm-mode').value === 'reading';
+}
+
+function rhythmMeter(signature) {
+    const [units, denominator] = signature.split('/').map(Number);
+    return {
+        units,
+        denominator,
+        compound:
+            denominator === 8 &&
+            units >= 6 &&
+            units % RHYTHM_COMPOUND_SUBDIVISIONS === 0,
+    };
+}
+
+function rhythmClickInterval(signature, bpm) {
+    return (
+        60 /
+        bpm /
+        (rhythmMeter(signature).compound ? RHYTHM_COMPOUND_SUBDIVISIONS : 1)
+    );
+}
+
+function rhythmNoteValue(note) {
+    const denominator = rhythmReading.meter.denominator;
+    for (const noteValue of RHYTHM_NOTE_VALUES) {
+        const { value } = noteValue;
+        const duration = denominator / value;
+        if (note.duration === duration) {
+            return {
+                ...noteValue,
+                dotted: false,
+            };
+        }
+        if (note.duration === duration * RHYTHM_DOT_MULTIPLIER) {
+            return {
+                ...noteValue,
+                dotted: true,
+            };
+        }
+    }
+    throw new Error('Unsupported rhythm note duration');
+}
+
+function rhythmNoteName(note) {
+    const { name, dotted } = rhythmNoteValue(note);
+    return `${dotted ? 'dotted ' : ''}${name}`;
+}
+
+function rhythmNotePosition(note) {
+    const { units, compound } = rhythmReading.meter;
+    return `Bar ${Math.floor(note.beat / units) + 1}, ${compound ? 'subdivision' : 'beat'} ${(note.beat % units) + 1}`;
+}
+
+function rhythmCanFill(amount, durations) {
+    if (amount === 0) {
+        return true;
+    }
+    return durations.some(
+        (duration) =>
+            duration <= amount && rhythmCanFill(amount - duration, durations)
+    );
+}
+
+function newRhythmPhrase() {
+    stopGeneratedAudio();
+    rhythmReading.signature = getControl('rhythm-time-signature').value;
+    rhythmReading.meter = rhythmMeter(rhythmReading.signature);
+    const { units, denominator } = rhythmReading.meter;
+    rhythmReading.bars = Number(getControl('rhythm-bars').value);
+    rhythmReading.total = units * rhythmReading.bars;
+    rhythmReading.phrase = [];
+    const includeDots = getControl('rhythm-note-values').value === 'all-dotted';
+    const durations = RHYTHM_NOTE_VALUES.flatMap(({ value }) => {
+        const duration = denominator / value;
+        return includeDots
+            ? [duration, duration * RHYTHM_DOT_MULTIPLIER]
+            : [duration];
+    });
+    const pattern = RHYTHM_METERS[rhythmReading.signature];
+    for (let beat = 0; beat < rhythmReading.total;) {
+        const withinBar = beat % units;
+        let remaining = units - withinBar;
+        for (let next = Math.floor(withinBar) + 1; next < units; next += 1) {
+            if (pattern[next] > 0) {
+                remaining = next - withinBar;
+                break;
+            }
+        }
+        const choices = durations.filter(
+            (duration) =>
+                duration <= remaining &&
+                rhythmCanFill(remaining - duration, durations)
+        );
+        const duration = choices[Math.floor(Math.random() * choices.length)];
+        const rest = beat !== 0 && Math.random() < 0.25;
+        rhythmReading.phrase.push({
+            beat,
+            duration,
+            rest,
+            attack: null,
+            release: null,
+        });
+        beat += duration;
+    }
+    renderRhythmScore();
+    document.getElementById('rhythm-result').textContent =
+        'Press Play for a count-in.';
+}
+
+function rhythmDurationLabel(duration) {
+    const fractions = {
+        0.125: '⅛',
+        0.25: '¼',
+        0.375: '⅜',
+        0.5: '½',
+        0.75: '¾',
+    };
+    const whole = Math.floor(duration);
+    const fraction = fractions[duration - whole] || '';
+    return `${whole || !fraction ? whole : ''}${fraction}`;
+}
+
+function rhythmDurationUnit() {
+    return rhythmReading.meter.compound ? 'subdivisions' : 'beats';
+}
+
+function renderRhythmScore() {
+    rhythmReading.holdSpans = [];
+    rhythmReading.currentHold = null;
+    document.getElementById('rhythm-report').hidden = true;
+    document.getElementById('rhythm-stats').replaceChildren();
+    document.getElementById('rhythm-results').replaceChildren();
+    const { units, denominator, compound } = rhythmReading.meter;
+    rhythmReading.spacing = (RHYTHM_REM_PER_QUARTER * 4) / denominator;
+    const lane = document.createElement('div');
+    lane.id = 'rhythm-lane';
+    lane.className = 'rhythm-lane';
+    for (let index = 0; index < units; index += 1) {
+        const marker = document.createElement('span');
+        marker.className = 'rhythm-count-marker';
+        marker.style.left = `${(index - units) * rhythmReading.spacing}rem`;
+        marker.textContent = String(index + 1);
+        lane.append(marker);
+    }
+    for (let bar = 0; bar <= rhythmReading.bars; bar += 1) {
+        const line = document.createElement('span');
+        line.className = 'rhythm-barline';
+        line.style.left = `${bar * units * rhythmReading.spacing}rem`;
+        line.textContent = bar === rhythmReading.bars ? '𝄂' : '𝄀';
+
+        lane.append(line);
+    }
+    const heading = document.createElement('span');
+    heading.className = 'rhythm-score-heading';
+    heading.style.left = `${-units * rhythmReading.spacing}rem`;
+    const clef = document.createElement('span');
+    clef.textContent = '𝄥';
+    const signature = document.createElement('span');
+    signature.className = 'rhythm-signature';
+    if (RHYTHM_SIGNATURE_SYMBOLS[rhythmReading.signature]) {
+        signature.textContent =
+            RHYTHM_SIGNATURE_SYMBOLS[rhythmReading.signature];
+    } else {
+        signature.classList.add('is-numeric');
+        const [top, bottom] = rhythmReading.signature.split('/');
+        for (const number of [top, bottom]) {
+            const row = document.createElement('span');
+            row.textContent = number;
+            signature.append(row);
+        }
+    }
+    heading.append(clef, signature);
+    lane.append(heading);
+    rhythmReading.phrase.forEach((note, index) => {
+        const x = note.beat * rhythmReading.spacing;
+        const width = note.duration * rhythmReading.spacing;
+        const element = document.createElement('span');
+        element.id = `rhythm-note-${index}`;
+        element.className = `rhythm-lane-note${note.rest ? ' is-rest' : ''}`;
+        element.style.left = `${x}rem`;
+        element.style.width = `${width}rem`;
+        element.title = `${rhythmNoteName(note)} ${note.rest ? 'rest' : 'note'} - ${rhythmDurationLabel(note.duration)} ${rhythmDurationUnit()}`;
+        const symbol = document.createElement('span');
+        symbol.className = 'rhythm-note-symbol';
+        symbol.setAttribute('aria-hidden', 'true');
+        const value = rhythmNoteValue(note);
+        symbol.textContent = `${note.rest ? value.rest : value.symbol}${value.dotted ? '.' : ''}`;
+        const track = document.createElement('span');
+        track.className = 'rhythm-duration-track';
+        element.append(symbol, track);
+        lane.append(element);
+    });
+    const playLine = document.createElement('span');
+    playLine.className = 'rhythm-play-line';
+    document.getElementById('rhythm-score').replaceChildren(lane, playLine);
+    lane.style.transform = `translateX(${RHYTHM_PLAY_LINE_REM + (units + 1) * rhythmReading.spacing}rem)`;
+    document.getElementById('rhythm-description').textContent =
+        rhythmReading.phrase
+            .map(
+                (note) =>
+                    `${rhythmNotePosition(note)}: ${rhythmNoteName(note)} ${note.rest ? 'rest' : 'note'}, ${rhythmDurationLabel(note.duration)} ${rhythmDurationUnit()}.`
+            )
+            .join(' ');
+    document.getElementById('rhythm-meter-help').textContent = compound
+        ? `${rhythmReading.signature}: BPM counts dotted-quarter beats; each beat has three eighth-note subdivisions (1 & a). A dotted quarter lasts three subdivisions, a quarter two, and an eighth one.`
+        : `${rhythmReading.signature}: BPM counts ${denominator === 2 ? 'half' : denominator === 8 ? 'eighth' : 'quarter'} notes, with ${units} beats per bar.`;
+    document.getElementById('rhythm-count-label').textContent =
+        `Ready - durations in ${rhythmDurationUnit()}`;
+}
+
+function playRhythmInputSound() {
+    // A rounded tone distinct from the metronome, with enough duration to hear.
+    audio.playTransient(520, 'triangle', 0.055, 0.5);
+}
+
+function updateRhythmMode() {
+    const mode = getControl('rhythm-mode').value;
+    for (const panel of getModePanels('rhythm')) {
+        panel.hidden = panel.dataset.modePanel !== mode;
+    }
+    stopGeneratedAudio();
+    if (
+        rhythmReadingEnabled() &&
+        (!rhythmReading.phrase.length ||
+            rhythmReading.signature !==
+                getControl('rhythm-time-signature').value)
+    ) {
+        newRhythmPhrase();
+    }
+}
+
+function startRhythmReading() {
+    renderRhythmScore();
+    rhythmReading.interval = rhythmClickInterval(rhythm.signature, rhythm.bpm);
+    rhythmReading.origin =
+        rhythm.nextBeatTime +
+        rhythmReading.meter.units * rhythmReading.interval;
+    rhythmReading.extra = 0;
+    rhythmReading.active = true;
+    rhythmReading.countingIn = true;
+    for (const note of rhythmReading.phrase) {
+        note.attack = null;
+        note.release = null;
+    }
+    document
+        .getElementById('rhythm-score')
+        .setAttribute('aria-disabled', 'false');
+    document.getElementById('rhythm-hold').disabled = false;
+    document.getElementById('rhythm-hold').focus();
+    drawRhythmReading();
+}
+
+function rhythmOffset(value) {
+    const rounded = Math.round(value);
+    return `${rounded >= 0 ? '+' : ''}${rounded} ms`;
+}
+
+function updateRhythmHold(position, released = false) {
+    const hold = rhythmReading.currentHold;
+    if (!hold) {
+        return;
+    }
+    hold.end = Math.max(hold.start, position);
+    hold.element.style.width = `${(hold.end - hold.start) * rhythmReading.spacing}rem`;
+    if (released) {
+        rhythmReading.currentHold = null;
+    }
+}
+
+function beginRhythmHold(position) {
+    const element = document.createElement('span');
+    element.className = 'rhythm-held-section';
+    element.style.left = `${position * rhythmReading.spacing}rem`;
+    element.style.width = '0rem';
+    document.getElementById('rhythm-lane').append(element);
+    const hold = { start: position, end: position, element, spurious: false };
+    rhythmReading.holdSpans.push(hold);
+    rhythmReading.currentHold = hold;
+}
+
+function pressRhythm(input) {
+    if (!rhythmReading.active || rhythmReading.input !== null) {
+        return;
+    }
+    const position =
+        (audio.currentTime() - rhythmReading.origin) / rhythmReading.interval;
+    rhythmReading.input = input;
+    beginRhythmHold(position);
+    playRhythmInputSound();
+    if (position < -0.5 || position >= rhythmReading.total) {
+        return;
+    }
+    const note = rhythmReading.phrase
+        .filter((candidate) => !candidate.rest)
+        .reduce(
+            (nearest, candidate) =>
+                !nearest ||
+                Math.abs(position - candidate.beat) <
+                    Math.abs(position - nearest.beat)
+                    ? candidate
+                    : nearest,
+            null
+        );
+    document.getElementById('rhythm-hold').classList.add('is-held');
+    if (
+        !note ||
+        note.attack !== null ||
+        Math.abs(position - note.beat) >= Math.min(0.5, note.duration / 2)
+    ) {
+        rhythmReading.extra += 1;
+        rhythmReading.currentHold.spurious = true;
+        document.getElementById('rhythm-result').textContent =
+            'Spurious hold - follow the notes and leave rests silent.';
+        return;
+    }
+    note.attack = (position - note.beat) * rhythmReading.interval * 1000;
+    rhythmReading.held = note;
+    document.getElementById('rhythm-result').textContent =
+        `Attack: ${rhythmOffset(note.attack)}. Keep holding...`;
+}
+
+function releaseRhythm(input) {
+    if (rhythmReading.input !== input) {
+        return;
+    }
+    updateRhythmHold(
+        (audio.currentTime() - rhythmReading.origin) / rhythmReading.interval,
+        true
+    );
+    const note = rhythmReading.held;
+    if (note) {
+        note.release =
+            (audio.currentTime() -
+                rhythmReading.origin -
+                (note.beat + note.duration) * rhythmReading.interval) *
+            1000;
+        document.getElementById('rhythm-result').textContent =
+            `Attack: ${rhythmOffset(note.attack)} - Release: ${rhythmOffset(note.release)}`;
+    }
+    rhythmReading.input = null;
+    rhythmReading.held = null;
+    document.getElementById('rhythm-hold').classList.remove('is-held');
+}
+
+function finishRhythmReading() {
+    const notes = rhythmReading.phrase.filter((note) => !note.rest);
+    const attacks = notes.filter((note) => note.attack !== null);
+    const releases = notes.filter((note) => note.release !== null);
+
+    const average = (items, key) =>
+        items.length
+            ? Math.round(
+                  items.reduce((sum, note) => sum + Math.abs(note[key]), 0) /
+                      items.length
+              )
+            : '0';
+
+    const bias = (items, key) =>
+        items.length
+            ? rhythmOffset(
+                  items.reduce((sum, note) => sum + note[key], 0) / items.length
+              )
+            : '-';
+
+    const stats = document.getElementById('rhythm-stats');
+    stats.replaceChildren();
+    for (const [label, value] of [
+        [
+            'Average attack error',
+            `-${average(
+                attacks.filter((attack) => attack.attack < 0),
+                'attack'
+            )} ms, +${average(
+                attacks.filter((attack) => attack.attack >= 0),
+                'attack'
+            )} ms = ±${average(attacks, 'attack')} ms`,
+        ],
+        [
+            'Average release error',
+            `-${average(
+                releases.filter((release) => release.release < 0),
+                'release'
+            )} ms, +${average(
+                releases.filter((release) => release.release >= 0),
+                'release'
+            )} ms = ±${average(releases, 'release')} ms`,
+        ],
+        ['Attack bias', bias(attacks, 'attack')],
+        ['Release bias', bias(releases, 'release')],
+        ['Missed notes', notes.length - attacks.length],
+        ['Unreleased notes', attacks.length - releases.length],
+        ['Spurious holds', rhythmReading.extra],
+    ]) {
+        const row = document.createElement('div');
+        const term = document.createElement('dt');
+        const detail = document.createElement('dd');
+        term.textContent = label;
+        detail.textContent = String(value);
+        row.append(term, detail);
+        stats.append(row);
+    }
+    const results = document.getElementById('rhythm-results');
+    results.replaceChildren();
+    for (const note of rhythmReading.phrase) {
+        const spurious = rhythmReading.holdSpans.filter(
+            (hold) =>
+                hold.spurious &&
+                ((hold.start >= note.beat &&
+                    hold.start < note.beat + note.duration) ||
+                    (note.beat === 0 && hold.start < 0))
+        );
+        if (note.rest && !spurious.length) {
+            continue;
+        }
+
+        const item = document.createElement('li');
+        item.textContent = rhythmNotePosition(note);
+
+        const holds = document.createElement('ul');
+        if (note.rest) {
+            const rest = document.createElement('li');
+            rest.textContent = 'Rest';
+            holds.append(rest);
+        } else {
+            const attack =
+                note.attack === null
+                    ? 'Missed'
+                    : `Attack: ${rhythmOffset(note.attack)}`;
+            const release =
+                note.release === null
+                    ? 'not released'
+                    : `release: ${rhythmOffset(note.release)}`;
+
+            const detail = document.createElement('li');
+            detail.textContent = `${attack}, ${release}`;
+            holds.append(detail);
+        }
+
+        if (spurious.length) {
+            for (const hold of spurious) {
+                const detail = document.createElement('li');
+                const offset = Math.round(
+                    (hold.start - note.beat) * rhythmReading.interval * 1000
+                );
+                const duration = Math.round(
+                    (hold.end - hold.start) * rhythmReading.interval * 1000
+                );
+                detail.textContent = `Spurious hold: ${offset} ms, held ${duration} ms`;
+                holds.append(detail);
+            }
+        }
+
+        item.append(holds);
+        results.append(item);
+    }
+    document.getElementById('rhythm-report').hidden = false;
+    rhythmReading.active = false;
+    stopGeneratedAudio();
+    document.getElementById('rhythm-count-label').textContent =
+        `Complete - durations in ${rhythmDurationUnit()}`;
+    document.getElementById('rhythm-result').textContent =
+        'Phrase complete. Press Play to retry, or choose New phrase.';
+}
+
+function drawRhythmReading() {
+    const position =
+        (audio.currentTime() - rhythmReading.origin) / rhythmReading.interval;
+    const { units } = rhythmReading.meter;
+    const label = document.getElementById('rhythm-count-label');
+    if (position < -units) {
+        label.textContent = 'Get ready';
+    } else if (position < 0) {
+        const click = clamp(units + 1 + Math.floor(position), 1, units);
+        label.textContent = `Count-in ${click} / ${units}`;
+        document.getElementById('rhythm-result').textContent =
+            `Get ready - ${click} / ${units}`;
+    } else {
+        label.textContent = `Play - durations in ${rhythmDurationUnit()}`;
+        if (rhythmReading.countingIn) {
+            rhythmReading.countingIn = false;
+            document.getElementById('rhythm-result').textContent =
+                'Play the phrase.';
+        }
+    }
+    document.getElementById('rhythm-lane').style.transform =
+        `translateX(${RHYTHM_PLAY_LINE_REM - position * rhythmReading.spacing}rem)`;
+    updateRhythmHold(position);
+    rhythmReading.phrase.forEach((note, index) => {
+        const active =
+            position >= note.beat && position < note.beat + note.duration;
+        document
+            .getElementById(`rhythm-note-${index}`)
+            .classList.toggle('is-current', active);
+    });
+    if (position >= rhythmReading.total + 0.5) {
+        finishRhythmReading();
+        return;
+    }
+    rhythmReading.frame = requestAnimationFrame(drawRhythmReading);
+}
+
+function stopRhythmReading() {
+    if (rhythmReading.currentHold) {
+        updateRhythmHold(
+            (audio.currentTime() - rhythmReading.origin) /
+                rhythmReading.interval,
+            true
+        );
+    }
+    cancelAnimationFrame(rhythmReading.frame);
+    rhythmReading.frame = null;
+    if (rhythmReading.active) {
+        document.getElementById('rhythm-count-label').textContent =
+            `Stopped - durations in ${rhythmDurationUnit()}`;
+        document.getElementById('rhythm-result').textContent =
+            'Stopped. Press Play to retry this phrase.';
+    }
+    rhythmReading.active = false;
+    rhythmReading.input = null;
+    rhythmReading.held = null;
+    document
+        .getElementById('rhythm-score')
+        .setAttribute('aria-disabled', 'true');
+    document.getElementById('rhythm-hold').disabled = true;
+    document.getElementById('rhythm-hold').classList.remove('is-held');
+}
+
+function rhythmTimingEnabled() {
+    return getControl('rhythm-mode').value === 'timing';
+}
+
+function drawRhythmTiming() {
+    const phase = Math.max(
+        -0.5,
+        (audio.currentTime() - rhythmTiming.origin) / rhythmTiming.interval
+    );
+    const position = (((phase + 0.5) % 1) + 1) % 1;
+    document.getElementById('rhythm-timing-dot').style.left =
+        `${position * 100}%`;
+    rhythmTiming.frame = requestAnimationFrame(drawRhythmTiming);
+}
+
+function recordRhythmTimingTap() {
+    if (!rhythm.running || !rhythmTimingEnabled()) {
+        return;
+    }
+    const now = audio.currentTime();
+    const beat = Math.round(
+        (now - rhythmTiming.origin) / rhythmTiming.interval
+    );
+    if (beat < 0 || beat <= rhythmTiming.lastBeat) {
+        return;
+    }
+    rhythmTiming.lastBeat = beat;
+    playRhythmInputSound();
+    const error =
+        (now - (rhythmTiming.origin + beat * rhythmTiming.interval)) * 1000;
+    rhythmTiming.errors.push(error);
+    rhythmTiming.errors = rhythmTiming.errors.slice(-20);
+    const signed = (value) => `${value > 0 ? '+' : ''}${Math.round(value)}`;
+    document.getElementById('rhythm-timing-result').textContent =
+        `${signed(error)} ms - ${Math.abs(error) < 15 ? 'On beat' : error < 0 ? 'Early' : 'Late'}`;
+    const count = rhythmTiming.errors.length;
+    const average =
+        rhythmTiming.errors.reduce((sum, value) => sum + Math.abs(value), 0) /
+        count;
+    const bias =
+        rhythmTiming.errors.reduce((sum, value) => sum + value, 0) / count;
+    document.getElementById('rhythm-timing-stats').textContent =
+        `${count} tap${count === 1 ? '' : 's'} - Average error: ${Math.round(average)} ms - Bias: ${signed(bias)} ms`;
+    const mark = document.getElementById('rhythm-timing-mark');
+    mark.hidden = false;
+    mark.style.left = `${50 + (error / (rhythmTiming.interval * 1000)) * 100}%`;
+}
+
+function restartRhythm() {
+    if (rhythm.running) {
+        stopGeneratedAudio();
+        startRhythm();
+    }
+}
+
+function scheduleRhythm() {
+    if (!rhythm.running) {
         return;
     }
 
-    const bpm = readNumber(getControl('metronome-bpm'), 100);
+    const bpm = rhythm.bpm;
 
-    const signature = getControl('metronome-time-signature').value;
+    const signature = rhythm.signature;
 
-    const pattern = METRONOME_METERS[signature] || METRONOME_METERS['4/4'];
+    const pattern = RHYTHM_METERS[signature] || RHYTHM_METERS['4/4'];
 
-    const compound =
-        signature === '6/8' || signature === '9/8' || signature === '12/8';
+    const secondsPerClick = rhythmClickInterval(signature, bpm);
 
-    const secondsPerClick = compound ? 60 / bpm / 3 : 60 / bpm;
-
+    rhythmTiming.interval = secondsPerClick;
     const now = audio.currentTime();
 
-    while (metronome.nextBeatTime < now + METRONOME_SCHEDULE_AHEAD_SECONDS) {
-        const accent = pattern[metronome.beatIndex];
+    while (rhythm.nextBeatTime < now + RHYTHM_SCHEDULE_AHEAD_SECONDS) {
+        if (
+            rhythmReadingEnabled() &&
+            rhythm.nextBeatTime >=
+                rhythmReading.origin +
+                    rhythmReading.total * rhythmReading.interval -
+                    0.001
+        ) {
+            break;
+        }
+        const accent = pattern[rhythm.beatIndex];
 
         const frequency =
             accent === 2
-                ? METRONOME_FIRST_HZ
+                ? RHYTHM_FIRST_HZ
                 : accent === 1
-                  ? METRONOME_GROUP_HZ
-                  : METRONOME_NORMAL_HZ;
+                  ? RHYTHM_GROUP_HZ
+                  : RHYTHM_NORMAL_HZ;
 
         const volume = accent === 2 ? 0.9 : accent === 1 ? 0.75 : 0.6;
 
         audio.playTransient(
             frequency,
             'sine',
-            METRONOME_CLICK_DURATION,
+            RHYTHM_CLICK_DURATION,
             volume,
-            Math.max(0, metronome.nextBeatTime - now)
+            Math.max(0, rhythm.nextBeatTime - now)
         );
 
-        metronome.nextBeatTime += secondsPerClick;
+        rhythm.nextBeatTime += secondsPerClick;
 
-        metronome.beatIndex = (metronome.beatIndex + 1) % pattern.length;
+        rhythm.beatIndex = (rhythm.beatIndex + 1) % pattern.length;
     }
 }
 
-function startMetronome() {
-    if (metronome.running) {
+function startRhythm() {
+    if (rhythm.running) {
+        return;
+    }
+    if (
+        rhythmReadingEnabled() &&
+        (!rhythmReading.phrase.length ||
+            rhythmReading.signature !==
+                getControl('rhythm-time-signature').value)
+    ) {
+        newRhythmPhrase();
+    }
+
+    if (rhythmReadingEnabled() && !rhythmReading.phrase.length) {
         return;
     }
 
     stopAllAudio();
 
-    metronome.running = true;
-    metronome.beatIndex = 0;
-    metronome.nextBeatTime = audio.currentTime() + 0.05;
+    rhythm.bpm = clamp(readNumber(getControl('rhythm-bpm'), 100), 30, 240);
+    rhythm.signature = getControl('rhythm-time-signature').value;
+    rhythm.running = true;
+    rhythm.beatIndex = 0;
+    rhythm.nextBeatTime =
+        audio.currentTime() +
+        (rhythmTimingEnabled() || rhythmReadingEnabled() ? 1 : 0.05);
+    rhythmTiming.origin = rhythm.nextBeatTime;
+    rhythmTiming.lastBeat = -1;
+    rhythmTiming.errors = [];
+    document.getElementById('rhythm-timing-mark').hidden = true;
+    document.getElementById('rhythm-timing-result').textContent =
+        'Get ready... Match the center line.';
+    document.getElementById('rhythm-timing-stats').textContent = 'No taps yet.';
+    document.getElementById('rhythm-timing-tap').disabled =
+        !rhythmTimingEnabled();
 
-    scheduleMetronome();
+    if (rhythmReadingEnabled()) {
+        startRhythmReading();
+    }
+    scheduleRhythm();
+    if (rhythmTimingEnabled()) {
+        drawRhythmTiming();
+        document.getElementById('rhythm-timing-tap').focus();
+    }
 
-    metronome.timer = window.setInterval(
-        scheduleMetronome,
-        METRONOME_LOOKAHEAD_MS
-    );
+    rhythm.timer = window.setInterval(scheduleRhythm, RHYTHM_LOOKAHEAD_MS);
 }
 
-function stopMetronome() {
-    metronome.running = false;
-    metronome.beatIndex = 0;
+function stopRhythm() {
+    stopRhythmReading();
+    cancelAnimationFrame(rhythmTiming.frame);
+    rhythmTiming.frame = null;
+    document.getElementById('rhythm-timing-tap').disabled = true;
+    rhythm.running = false;
+    rhythm.beatIndex = 0;
 
-    if (metronome.timer !== null) {
-        clearInterval(metronome.timer);
-        metronome.timer = null;
+    if (rhythm.timer !== null) {
+        clearInterval(rhythm.timer);
+        rhythm.timer = null;
     }
 }
 
 function tapTempo() {
     const now = performance.now();
-    const previous = metronome.tapTimes.at(-1);
+    const previous = rhythm.tapTimes.at(-1);
 
     if (previous !== undefined && now - previous > 2000) {
-        metronome.tapTimes = [];
+        rhythm.tapTimes = [];
     }
 
-    metronome.tapTimes.push(now);
-    metronome.tapTimes = metronome.tapTimes.slice(-5);
+    rhythm.tapTimes.push(now);
+    rhythm.tapTimes = rhythm.tapTimes.slice(-5);
 
-    if (metronome.tapTimes.length < 3) {
+    if (rhythm.tapTimes.length < 3) {
         return;
     }
 
     const intervals = [];
 
-    for (let index = 1; index < metronome.tapTimes.length; index += 1) {
-        intervals.push(
-            metronome.tapTimes[index] - metronome.tapTimes[index - 1]
-        );
+    for (let index = 1; index < rhythm.tapTimes.length; index += 1) {
+        intervals.push(rhythm.tapTimes[index] - rhythm.tapTimes[index - 1]);
     }
 
     const averageInterval =
         intervals.reduce((total, interval) => total + interval, 0) /
         intervals.length;
 
-    const bpmInput = getControl('metronome-bpm');
+    const bpmInput = getControl('rhythm-bpm');
 
     const bpm = clamp(
         Math.round(60000 / averageInterval),
@@ -1460,6 +2133,7 @@ function tapTempo() {
     );
 
     bpmInput.value = String(bpm);
+    restartRhythm();
 }
 
 // Pitch placement
@@ -1826,7 +2500,7 @@ function commitPitchPlacement(judgment) {
     renderPracticeResult(
         'pitch-result',
         correct,
-        `${direction} · ` +
+        `${direction} - ` +
             `${signed(trial.mistuneCents, 2)} cents ` +
             `(${signed(errorHz, 3)} Hz)`
     );
@@ -1910,6 +2584,13 @@ function pitchMemoryFrequencyToSliderValue(frequencyHz) {
         0,
         PITCH_MEMORY_RANGE_CENTS
     );
+}
+
+function initializePitchMemoryFrequencySlider() {
+    const slider = getControl('pitch-memory-frequency');
+    slider.min = '0';
+    slider.max = String(PITCH_MEMORY_RANGE_CENTS);
+    slider.value = String(PITCH_MEMORY_RANGE_CENTS / 2);
 }
 
 function renderPitchMemoryResponseFrequency() {
@@ -2568,7 +3249,10 @@ function restorePitchMemoryTrial() {
     if (
         !trial ||
         !['novel', 'interference'].includes(trial.type) ||
-        !['waiting', 'responding'].includes(trial.state)
+        !['waiting', 'responding'].includes(trial.state) ||
+        !Number.isFinite(trial.targetHz) ||
+        trial.targetHz < PITCH_MEMORY_MIN_HZ ||
+        trial.targetHz > PITCH_MEMORY_MAX_HZ
     ) {
         pitchMemory.trial = null;
         storage.remove(PITCH_MEMORY_TRIAL_KEY);
@@ -3565,17 +4249,133 @@ function initializeEvents() {
         }
     });
 
-    getControl('metronome-time-signature').addEventListener('change', () => {
-        metronome.beatIndex = 0;
-
-        if (metronome.running) {
-            audio.stopTransient();
-            metronome.nextBeatTime = audio.currentTime() + 0.05;
+    for (const control of getControls(
+        'rhythm-time-signature',
+        'rhythm-bars',
+        'rhythm-note-values'
+    )) {
+        control.addEventListener('change', () => {
+            if (rhythmReadingEnabled()) {
+                const wasRunning = rhythm.running;
+                newRhythmPhrase();
+                if (wasRunning) {
+                    startRhythm();
+                }
+            } else {
+                restartRhythm();
+            }
+        });
+    }
+    getControl('rhythm-bpm').addEventListener('change', restartRhythm);
+    getControl('rhythm-mode').addEventListener('change', () => {
+        updateModeHash('rhythm');
+        updateRhythmMode();
+    });
+    const rhythmHold = document.getElementById('rhythm-hold');
+    document.getElementById('rhythm-new').addEventListener('click', () => {
+        newRhythmPhrase();
+        startRhythm();
+    });
+    const rhythmLane = document.getElementById('rhythm-score');
+    for (const target of [rhythmHold, rhythmLane]) {
+        target.addEventListener('pointerdown', (event) => {
+            if (
+                event.button !== 0 ||
+                event.pointerType !== 'mouse' ||
+                !event.isPrimary ||
+                !rhythmReading.active
+            ) {
+                return;
+            }
+            event.preventDefault();
+            target.setPointerCapture(event.pointerId);
+            pressRhythm(event.pointerId);
+        });
+        target.addEventListener('pointerup', (event) => {
+            releaseRhythm(event.pointerId);
+        });
+        target.addEventListener('pointercancel', (event) => {
+            if (
+                rhythmReading.active &&
+                rhythmReading.input === event.pointerId
+            ) {
+                stopGeneratedAudio();
+            }
+        });
+        target.addEventListener('lostpointercapture', (event) => {
+            releaseRhythm(event.pointerId);
+        });
+    }
+    document.addEventListener('keydown', (event) => {
+        if (
+            event.code !== 'Space' ||
+            !rhythmReadingEnabled() ||
+            !rhythmReading.active ||
+            document.getElementById('panel-rhythm').hidden ||
+            event.target.closest(
+                'input, select, textarea, [contenteditable="true"]'
+            ) ||
+            (event.target.closest('button, a') && event.target !== rhythmHold)
+        ) {
+            return;
+        }
+        event.preventDefault();
+        if (!event.repeat) {
+            pressRhythm('keyboard');
+        }
+    });
+    document.addEventListener('keyup', (event) => {
+        if (event.code === 'Space' && rhythmReading.input === 'keyboard') {
+            event.preventDefault();
+            releaseRhythm('keyboard');
+        }
+    });
+    window.addEventListener('blur', () => {
+        if (rhythmReading.active) {
+            stopGeneratedAudio();
+        }
+    });
+    const rhythmTimingTap = document.getElementById('rhythm-timing-tap');
+    rhythmTimingTap.addEventListener('pointerdown', (event) => {
+        if (event.button !== 0 || !event.isPrimary) {
+            return;
+        }
+        event.preventDefault();
+        recordRhythmTimingTap();
+    });
+    rhythmTimingTap.addEventListener('click', (event) => {
+        if (event.detail === 0) {
+            recordRhythmTimingTap();
+        }
+    });
+    document.addEventListener('keydown', (event) => {
+        if (
+            event.code !== 'Space' ||
+            !rhythmTimingEnabled() ||
+            !rhythm.running ||
+            document.getElementById('panel-rhythm').hidden ||
+            event.target.closest(
+                'input, select, textarea, [contenteditable="true"]'
+            ) ||
+            (event.target.closest('button, a') &&
+                event.target !== rhythmTimingTap)
+        ) {
+            return;
+        }
+        event.preventDefault();
+        if (!event.repeat) {
+            recordRhythmTimingTap();
+        }
+    });
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden && rhythm.running) {
+            stopGeneratedAudio();
         }
     });
 
-    getAction('play-metronome').addEventListener('click', startMetronome);
-
+    for (const button of getActions('play-rhythm')) {
+        button.addEventListener('click', startRhythm);
+    }
     getAction('tap-tempo').addEventListener('click', tapTempo);
 
     getNote('pitch').addEventListener('change', (event) => {
@@ -3816,10 +4616,12 @@ function initializeEvents() {
 // Initialization
 
 function initialize() {
+    initializePitchMemoryFrequencySlider();
     initializeModePanels('pitch');
     initializeTooltips();
     initializeNotes();
     initializeEvents();
+    updateRhythmMode();
     updateNoteReadouts();
     initializeTabs();
 

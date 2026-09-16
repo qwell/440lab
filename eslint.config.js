@@ -27,12 +27,17 @@ export default defineConfig(
         },
     },
 
+    prettier,
+
     {
         files: ['site/**/*.js'],
         languageOptions: {
             globals: {
                 ...globals.browser,
             },
+        },
+        rules: {
+            curly: ['error', 'all'],
         },
     },
 
@@ -72,7 +77,5 @@ export default defineConfig(
                 },
             ],
         },
-    },
-
-    prettier
+    }
 );
