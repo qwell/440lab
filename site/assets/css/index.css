@@ -1,3 +1,11 @@
+@font-face {
+    font-family: 'Noto Music';
+    src: url('../fonts/NotoMusic-Regular.ttf') format('truetype');
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+}
+
 :root {
     color-scheme: dark;
 
@@ -17,14 +25,15 @@
     --button-gap: 6px;
     --practice-detail-gap: 10px;
     --practice-row-gap: 8px;
-    --stats-spacing: 8px;
+    --practice-stats-spacing: 8px;
     --footer-height: 1.7rem;
 
     --background: #111;
     --surface: #1b1b1b;
-    --button: #272727;
-    --button-hover: #333;
+    --button-background: #272727;
+    --button-hover-background: #333;
     --border: #444;
+    --border-radius: 4px;
     --muted: #999;
     --text: #eee;
     --mic-accent: crimson;
@@ -78,9 +87,9 @@ select {
 
 button {
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--border-radius);
 
-    background: var(--button);
+    background: var(--button-background);
     color: var(--text);
 
     cursor: pointer;
@@ -104,7 +113,7 @@ select {
     min-width: 0;
 
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--border-radius);
 
     background: var(--surface);
     color: var(--text);
@@ -269,7 +278,7 @@ select {
 /* Main */
 
 main {
-    padding-block: 8px 8px;
+    padding-block: 8px;
 }
 
 .tab-panel[hidden] {
@@ -336,6 +345,20 @@ main {
     min-width: 0;
 }
 
+.input-button-row {
+    width: var(--control-width);
+    max-width: 100%;
+
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+
+    gap: var(--button-gap);
+}
+
+.input-button-row input[type='number'] {
+    width: 100%;
+}
+
 .control-row input[type='number'],
 .control-row select {
     width: var(--control-width);
@@ -372,8 +395,11 @@ main {
     font-variant-numeric: tabular-nums;
 }
 
+.tabular-numbers {
+    font-variant-numeric: tabular-nums;
+}
+
 .stats,
-.pick-target-candidate-details,
 .practice-result {
     font-variant-numeric: tabular-nums;
 }
@@ -416,7 +442,7 @@ main {
     padding: 7px 9px;
 
     border: 1px solid #555;
-    border-radius: 5px;
+    border-radius: var(--border-radius);
 
     background: #202020;
     color: var(--text);
@@ -450,26 +476,13 @@ main {
     margin-top: 17px;
 
     display: grid;
-
-    grid-template-columns:
-        var(--control-width)
-        max-content;
-
-    column-gap: var(--practice-detail-gap);
     row-gap: var(--practice-row-gap);
 
-    align-items: center;
+    align-items: start;
 }
 
 .practice-wide {
     width: auto;
-
-    grid-template-columns: repeat(2, var(--field-width));
-
-    column-gap: var(--column-gap);
-    row-gap: var(--practice-row-gap);
-
-    align-items: start;
 }
 
 .practice-wide-content {
@@ -477,53 +490,29 @@ main {
     max-width: 100%;
 }
 
-.tuner-practice {
-    grid-template-areas:
-        'actions .'
-        'meter meter';
+.practice-guide {
+    width: min(430px, 100%);
+
+    margin-top: 10px;
+
+    color: #bbb;
 }
 
-.metronome-practice {
-    grid-template-areas: 'actions .';
+.practice-guide summary {
+    width: max-content;
+
+    color: var(--text);
+
+    cursor: pointer;
 }
 
-.pitch-practice {
-    grid-template-areas:
-        'actions .'
-        'pitch-judgment result'
-        'stats stats';
-}
+.practice-guide p {
+    margin: 8px 0;
 
-.pick-target-practice {
-    grid-template-areas:
-        'actions .'
-        'candidates candidates'
-        'stats stats';
-}
-
-.intervals-practice {
-    grid-template-areas:
-        'actions .'
-        'answers result'
-        'stats stats';
-}
-
-.chord-quality-practice {
-    grid-template-areas:
-        'actions .'
-        'answers result'
-        'stats stats';
-}
-
-.pitch-memory-practice {
-    grid-template-areas:
-        'actions .'
-        'body body'
-        'report report';
+    line-height: 1.4;
 }
 
 .practice-body {
-    grid-area: body;
     min-width: 0;
 }
 
@@ -608,25 +597,17 @@ main {
 }
 
 .practice-report {
-    grid-area: report;
-
     display: flex;
     align-items: flex-end;
     gap: 12px;
 }
 
 .practice-report .practice-stats {
-    margin-top: var(--stats-spacing);
-}
-
-.practice > .action-button-grid {
-    grid-area: actions;
+    margin-top: var(--practice-stats-spacing);
 }
 
 .practice-stats {
-    grid-area: stats;
-
-    margin-top: calc(var(--stats-spacing) - var(--practice-row-gap));
+    margin-top: calc(var(--practice-stats-spacing) - var(--practice-row-gap));
 }
 
 .practice-result {
@@ -639,6 +620,10 @@ main {
 
 .practice-result.is-incorrect {
     color: var(--incorrect);
+}
+
+.practice-result.is-target {
+    color: var(--target);
 }
 
 .answer-option.is-correct {
@@ -665,10 +650,9 @@ main {
     opacity: 1;
 }
 
-/* Action buttons */
+/* Button rows */
 
-.action-button-grid,
-.pick-target-candidate-actions {
+.button-row {
     width: var(--control-width);
     max-width: 100%;
 
@@ -681,29 +665,28 @@ main {
     align-items: center;
 }
 
-.action-button-grid [data-action='play-tuner'],
-.action-button-grid [data-action='play-metronome'],
-.action-button-grid [data-action='play-pitch'],
-.action-button-grid [data-action='play-interval'],
-.action-button-grid [data-action='play-chord'] {
+.practice > .button-row [data-action='play-tuner'],
+.practice > .button-row [data-action='play-rhythm'],
+.practice > .button-row [data-action='play-pitch'],
+.practice > .button-row [data-action='play-interval'],
+.practice > .button-row [data-action='play-chord'] {
     grid-column: 1;
 }
 
-.action-button-grid [data-action='stop-audio'] {
+.practice > .button-row [data-action='stop-audio'] {
     grid-column: 2;
 }
 
-.action-button-grid [data-action='toggle-tuner-mic'],
-.action-button-grid [data-action='tap-tempo'],
-.action-button-grid [data-action='new-pitch'],
-.action-button-grid [data-action='new-pick'],
-.action-button-grid [data-action='new-interval'],
-.action-button-grid [data-action='new-chord'] {
+.practice > .button-row [data-action='toggle-tuner-mic'],
+.practice > .button-row [data-action='new-rhythm'],
+.practice > .button-row [data-action='new-pitch'],
+.practice > .button-row [data-action='new-pick'],
+.practice > .button-row [data-action='new-interval'],
+.practice > .button-row [data-action='new-chord'] {
     grid-column: 3;
 }
 
-.action-button-grid .icon-button,
-.pick-target-candidate-actions .icon-button {
+.button-row .icon-button {
     width: 100%;
     min-width: 0;
 }
@@ -723,6 +706,27 @@ main {
 
 /* Tuner */
 
+.tuner-strings {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: var(--button-gap);
+}
+
+.tuner-strings[hidden] {
+    display: none;
+}
+
+.tuner-strings button {
+    min-width: 0;
+    padding-inline: 0;
+}
+
+.tuner-strings button.is-playing {
+    border-color: var(--target);
+    color: var(--target);
+}
+
 .tuner-header,
 .tuner-footer {
     display: flex;
@@ -731,17 +735,13 @@ main {
     text-align: center;
 }
 
-.tuner-mic-button {
+.mic-button {
     font-size: 12px;
 }
 
-.tuner-mic-button.is-active {
+.mic-button.is-active {
     border-color: var(--mic-accent);
     color: var(--mic-accent);
-}
-
-.tuner-meter {
-    grid-area: meter;
 }
 
 .tuner-header {
@@ -756,7 +756,8 @@ main {
     font-variant-numeric: tabular-nums;
 }
 
-.tuner-target-frequency {
+.tuner-target-frequency,
+.tuner-detected-frequency {
     margin-top: 6px;
 
     color: var(--muted);
@@ -811,7 +812,7 @@ main {
     height: 28px;
 
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--border-radius);
 
     background: var(--surface);
 }
@@ -893,13 +894,310 @@ main {
     font-variant-numeric: tabular-nums;
 }
 
-.tuner-detected-frequency {
-    margin-top: 6px;
+/* Rhythm */
+
+.rhythm-time-signature {
+    font-family: 'Noto Music', serif;
+}
+
+.rhythm-timing-track {
+    position: relative;
+
+    height: 28px;
+
+    margin-bottom: var(--practice-row-gap);
+
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius);
+
+    background: var(--surface);
+}
+
+.rhythm-timing-target,
+.rhythm-timing-mark {
+    position: absolute;
+
+    top: 0;
+    left: 50%;
+
+    width: 2px;
+    height: 100%;
+
+    background: var(--target);
+}
+
+.rhythm-timing-mark {
+    top: auto;
+    bottom: 0;
+
+    height: 8px;
+
+    background: var(--text);
+}
+
+.rhythm-timing-dot {
+    position: absolute;
+
+    top: 50%;
+    left: 0;
+
+    width: 12px;
+    height: 12px;
+
+    border-radius: 50%;
+
+    background: var(--target);
+
+    transform: translate(-50%, -50%);
+}
+
+.rhythm-timing-labels {
+    margin-bottom: var(--practice-row-gap);
+
+    display: flex;
+    justify-content: space-between;
+
+    color: var(--muted);
+
+    font-size: 10px;
+}
+
+.rhythm-timing-tap {
+    width: var(--control-width);
+    max-width: 100%;
+
+    touch-action: none;
+}
+
+.response-row {
+    width: var(--control-width);
+    max-width: 100%;
+
+    margin-bottom: var(--practice-row-gap);
+}
+
+.rhythm-hold {
+    width: 100%;
+
+    touch-action: none;
+}
+
+.rhythm-hold.is-held {
+    border-color: var(--target);
+
+    background: var(--target-background);
+}
+
+.rhythm-count-in {
+    min-height: 28px;
+
+    display: flex;
+    align-items: center;
 
     color: var(--muted);
 
     font-size: 12px;
-    line-height: 1.2;
+}
+
+.rhythm-score {
+    position: relative;
+
+    width: 100%;
+    height: 2.25rem;
+
+    margin-bottom: var(--practice-row-gap);
+
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius);
+
+    background: var(--surface);
+
+    font-family: 'Noto Music', serif;
+
+    overflow: hidden;
+}
+
+.rhythm-lane {
+    position: absolute;
+    inset: 0;
+
+    will-change: transform;
+}
+
+.rhythm-lane-note {
+    position: absolute;
+
+    top: 0;
+
+    height: 100%;
+
+    color: var(--text);
+}
+
+.rhythm-note-symbol {
+    position: absolute;
+
+    left: 0.4rem;
+
+    font-size: 1.6rem;
+    line-height: 2rem;
+
+    white-space: nowrap;
+}
+
+.rhythm-score-heading {
+    position: absolute;
+
+    top: 0;
+
+    height: 100%;
+
+    display: flex;
+    align-items: center;
+
+    gap: 0.25rem;
+
+    white-space: nowrap;
+
+    color: var(--muted);
+
+    transform: translateX(calc(-100% - 1rem));
+}
+
+.rhythm-score-heading > span:first-child,
+.rhythm-barline {
+    display: flex;
+    align-items: center;
+
+    height: 100%;
+
+    overflow: hidden;
+
+    font-size: 2rem;
+    line-height: 1;
+
+    transform: scaleY(1.125);
+    transform-origin: center;
+}
+
+.rhythm-score-heading > span:first-child {
+    flex: none;
+}
+
+.rhythm-signature {
+    height: 100%;
+
+    overflow: hidden;
+}
+
+.rhythm-signature:not(.is-numeric) {
+    display: flex;
+    align-items: center;
+
+    font-size: 1.6rem;
+    line-height: 1;
+}
+
+.rhythm-signature.is-numeric {
+    display: grid;
+    grid-template-rows: repeat(2, 1rem);
+    align-content: center;
+
+    text-align: center;
+
+    font-size: 0.9rem;
+    line-height: 1rem;
+}
+
+.rhythm-lane-note.is-current {
+    color: var(--target);
+}
+
+.rhythm-duration-track,
+.rhythm-held-section {
+    position: absolute;
+
+    bottom: 0;
+    left: 0;
+
+    height: 0.25rem;
+}
+
+.rhythm-duration-track {
+    width: calc(100% + 1px);
+
+    background: var(--target);
+}
+
+.rhythm-held-section {
+    z-index: 1;
+
+    background: var(--incorrect);
+
+    pointer-events: none;
+}
+
+.rhythm-lane-note.is-rest .rhythm-duration-track {
+    border-bottom: 1px dashed var(--muted);
+
+    background: none;
+}
+
+.rhythm-count-marker {
+    position: absolute;
+
+    top: 0;
+
+    font-size: 1.25rem;
+    line-height: 2rem;
+
+    color: var(--muted);
+
+    transform: translateX(-50%);
+}
+
+.rhythm-play-line {
+    position: absolute;
+
+    top: 0;
+    left: 2rem;
+
+    width: 1px;
+    height: 100%;
+
+    background: var(--target);
+
+    pointer-events: none;
+}
+
+.rhythm-barline {
+    position: absolute;
+
+    top: 0;
+
+    margin-left: -0.05em;
+
+    color: var(--muted);
+}
+
+.inline-stats > div {
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: 0.5rem;
+}
+
+.inline-stats dt::after {
+    content: ':';
+}
+
+.inline-stats dd {
+    margin: 0;
+}
+
+.rhythm-score[aria-disabled='false'] {
+    cursor: pointer;
+    touch-action: none;
 }
 
 /* Stats */
@@ -968,23 +1266,23 @@ main {
     text-decoration: underline;
 }
 
-/* Pitch placement */
+/* Answers */
 
-.pitch-judgment {
-    grid-area: pitch-judgment;
-
+.answer-options {
     width: var(--control-width);
     max-width: 100%;
+}
 
+.segmented-answers {
     display: flex;
 
     border: 1px solid var(--border);
-    border-radius: 5px;
+    border-radius: var(--border-radius);
 
     overflow: hidden;
 }
 
-.pitch-judgment button {
+.segmented-answers button {
     flex: 1;
 
     min-width: 0;
@@ -999,17 +1297,11 @@ main {
     background: #222;
 }
 
-.pitch-judgment button + button {
+.segmented-answers button + button {
     border-left: 1px solid var(--border);
 }
 
-.pitch-result {
-    grid-area: result;
-
-    white-space: nowrap;
-}
-
-/* Placement refresh countdown */
+/* Automatic refresh countdown */
 
 .auto-refresh {
     position: relative;
@@ -1048,58 +1340,40 @@ main {
     }
 }
 
-/* Pitch memory */
+/* Practice results */
 
-.pitch-memory-detected-frequency {
-    min-height: 32px;
-    margin-bottom: 6px;
-
-    line-height: 32px;
-}
-
-.pitch-memory-result {
+.practice-body > .practice-result {
     min-height: 20px;
     margin-top: 8px;
 }
 
-.pitch-memory-result:empty {
+.practice-result:empty {
     display: none;
 }
 
-/* Pick target */
+/* Answer lists */
 
-.pick-target-candidate-list {
-    grid-area: candidates;
-
+.answer-list {
     display: grid;
-
-    grid-template-columns: subgrid;
-
     row-gap: 5px;
 }
 
-.pick-target-candidate-row {
-    grid-column: 1 / -1;
-
+.practice-row {
     min-width: 0;
     min-height: 32px;
 
     display: grid;
-
-    grid-template-columns: subgrid;
+    grid-template-columns: var(--control-width) max-content;
+    column-gap: var(--practice-detail-gap);
 
     align-items: center;
 }
 
-.pick-target-candidate-actions {
+.answer-play {
     grid-column: 1;
 }
 
-.pick-target-candidate-play {
-    grid-column: 1;
-}
-
-.pick-target-candidate-choose {
+.answer-select {
     grid-column: 2 / 4;
 
     width: 100%;
@@ -1111,17 +1385,11 @@ main {
     white-space: nowrap;
 }
 
-.pick-target-candidate-details {
-    grid-column: 2;
-
+.practice-row > .practice-result {
     min-width: 0;
-
-    white-space: nowrap;
-
-    color: #aaa;
 }
 
-.pick-target-candidate-result-icon {
+.result-icon {
     display: inline-block;
 
     width: 1.4em;
@@ -1132,43 +1400,7 @@ main {
     text-align: center;
 }
 
-.pick-target-candidate-row.is-incorrect,
-.pick-target-candidate-row.is-incorrect .pick-target-candidate-details {
-    color: var(--incorrect);
-}
-
-.pick-target-candidate-row.is-target,
-.pick-target-candidate-row.is-target .pick-target-candidate-details {
-    color: var(--target);
-}
-
-.pick-target-candidate-row.is-correct,
-.pick-target-candidate-row.is-correct .pick-target-candidate-details {
-    color: var(--correct);
-}
-
 /* Intervals */
-
-.interval-guide {
-    width: min(430px, 100%);
-
-    margin-top: 10px;
-
-    color: #bbb;
-}
-
-.interval-guide summary {
-    width: max-content;
-
-    color: var(--text);
-    cursor: pointer;
-}
-
-.interval-guide p {
-    margin: 8px 0;
-
-    line-height: 1.4;
-}
 
 .interval-guide-table {
     width: 100%;
@@ -1197,53 +1429,34 @@ main {
     white-space: nowrap;
 }
 
-.interval-answers,
-.chord-answers {
-    grid-area: answers;
-
-    width: var(--control-width);
-    max-width: 100%;
-
+.answer-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
 
     gap: var(--button-gap);
 }
 
-.interval-answers button {
+.answer-grid button {
     min-width: 0;
 
     padding-inline: 7px;
 }
 
-.interval-prompt {
+.answer-prompt {
     grid-column: 1 / -1;
 
     line-height: 1.4;
 }
 
-.interval-result,
-.chord-result {
-    grid-area: result;
-
+.practice-result {
     font-size: 13px;
+    white-space: nowrap;
 }
 
-.interval-result {
-    align-self: start;
-}
-
-.interval-played-notes,
-.chord-played-notes {
+.played-notes {
     margin-top: 4px;
 
     color: var(--text);
-}
-
-/* Chord quality */
-
-.chord-result {
-    white-space: nowrap;
 }
 
 /* Footer */
@@ -1292,7 +1505,7 @@ footer a:hover {
 
 @media (hover: hover) {
     button:hover:not(:disabled) {
-        background: var(--button-hover);
+        background: var(--button-hover-background);
     }
 
     .tab:hover:not(:disabled) {
@@ -1367,13 +1580,6 @@ footer a:hover {
         width: calc(100% - 16px);
     }
 
-    .topbar-inner {
-        grid-template-columns: repeat(2, var(--field-width));
-
-        column-gap: var(--column-gap);
-        row-gap: 8px;
-    }
-
     .brand-name {
         min-width: 0;
 
@@ -1397,34 +1603,18 @@ footer a:hover {
 
     .practice {
         width: 100%;
-
-        grid-template-columns:
-            var(--control-width)
-            minmax(0, 1fr);
     }
 
-    .pitch-memory-practice {
-        grid-template-columns: minmax(0, 1fr);
-        grid-template-areas:
-            'actions'
-            'body'
-            'report';
-
+    .practice-wide {
         row-gap: 14px;
+    }
+
+    .practice-row {
+        grid-template-columns: var(--control-width) minmax(0, 1fr);
     }
 
     .practice-wide-content {
         width: 100%;
-    }
-
-    .tuner-practice {
-        grid-template-columns: minmax(0, 1fr);
-
-        grid-template-areas:
-            'actions'
-            'meter';
-
-        row-gap: 14px;
     }
 
     .tuner-note {
@@ -1435,16 +1625,7 @@ footer a:hover {
         font-size: 19px;
     }
 
-    .action-button-grid,
-    .pick-target-candidate-actions,
-    .pitch-judgment {
-        width: var(--control-width);
-    }
-
-    .pitch-result,
-    .chord-result,
-    .practice-body,
-    .pick-target-candidate-details {
+    .practice-result {
         white-space: normal;
 
         overflow-wrap: anywhere;
@@ -1464,9 +1645,6 @@ footer a:hover {
     }
 
     footer {
-        flex-direction: row;
-        align-items: center;
-
         gap: 12px;
 
         white-space: nowrap;

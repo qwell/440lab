@@ -9,18 +9,32 @@ const TUNER_MIN_RMS = 0.006;
 const TUNER_STABLE_FRAMES = 3;
 const TUNER_YIN_THRESHOLD = 0.15;
 const TUNER_HISTORY_LENGTH = 5;
+const TUNER_ANALYSIS_FFT_SIZE = 4096;
 
-const TUNER_MIN_HZ = 50;
+const TUNER_MIN_HZ = 25;
 const TUNER_MAX_HZ = 4200;
 
-const METRONOME_LOOKAHEAD_MS = 25;
-const METRONOME_SCHEDULE_AHEAD_SECONDS = 0.1;
-const METRONOME_CLICK_DURATION = 0.035;
-const METRONOME_NORMAL_HZ = 800;
-const METRONOME_GROUP_HZ = 1000;
-const METRONOME_FIRST_HZ = 1200;
+const RHYTHM_LOOKAHEAD_MS = 25;
+const RHYTHM_SCHEDULE_AHEAD_SECONDS = 0.1;
+const RHYTHM_CLICK_DURATION = 0.035;
+const RHYTHM_NORMAL_HZ = 800;
+const RHYTHM_GROUP_HZ = 1000;
+const RHYTHM_FIRST_HZ = 1200;
 
-const METRONOME_METERS = {
+const RHYTHM_NOTE_VALUES = [
+    { value: 1, name: 'whole', symbol: '𝅝', rest: '𝄻' },
+    { value: 2, name: 'half', symbol: '𝅗𝅥', rest: '𝄼' },
+    { value: 4, name: 'quarter', symbol: '𝅘𝅥', rest: '𝄽' },
+    { value: 8, name: 'eighth', symbol: '𝅘𝅥𝅮', rest: '𝄾' },
+    { value: 16, name: 'sixteenth', symbol: '𝅘𝅥𝅯', rest: '𝄿' },
+];
+const RHYTHM_DOT_MULTIPLIER = 1.5;
+const RHYTHM_COMPOUND_SUBDIVISIONS = 3;
+// Keep the written distance for one quarter note fixed as the lane scrolls.
+const RHYTHM_REM_PER_QUARTER = 8;
+const RHYTHM_PLAY_LINE_REM = 2;
+
+const RHYTHM_METERS = {
     '2/4': [2, 0],
     '3/4': [2, 0, 0],
     '4/4': [2, 0, 0, 0],
@@ -35,6 +49,10 @@ const METRONOME_METERS = {
     '5/4': [2, 0, 0, 1, 0],
     '7/8': [2, 0, 1, 0, 1, 0, 0],
 };
+const RHYTHM_SIGNATURE_SYMBOLS = {
+    '4/4': '𝄴',
+    '2/2': '𝄵',
+};
 
 const STATS_KEYS = {
     pitch: '440Lab.pitchStats.v1',
@@ -44,8 +62,8 @@ const STATS_KEYS = {
 };
 
 const PITCH_MEMORY_TRIAL_KEY = '440Lab.pitchMemoryTrial.v1';
-const PITCH_MEMORY_MIN_HZ = 200;
-const PITCH_MEMORY_MAX_HZ = 900;
+const PITCH_MEMORY_MIN_HZ = 100;
+const PITCH_MEMORY_MAX_HZ = 1000;
 const PITCH_MEMORY_CORRECT_CENTS = 50;
 const PITCH_MEMORY_RANGE_CENTS =
     1200 * Math.log2(PITCH_MEMORY_MAX_HZ / PITCH_MEMORY_MIN_HZ);
@@ -70,6 +88,23 @@ const NOTE_NAMES = [
     'A♯ / B♭',
     'B',
 ];
+
+const TUNER_ACCIDENTAL_NAMES = {
+    sharp: {
+        1: 'C♯',
+        3: 'D♯',
+        6: 'F♯',
+        8: 'G♯',
+        10: 'A♯',
+    },
+    flat: {
+        1: 'D♭',
+        3: 'E♭',
+        6: 'G♭',
+        8: 'A♭',
+        10: 'B♭',
+    },
+};
 
 const CHORD_QUALITIES = {
     major: [0, 4, 7],
@@ -101,6 +136,69 @@ const INTERVAL_LEVELS = {
         ({ semitones }) => semitones
     ),
 };
+
+const TUNER_INSTRUMENTS = [
+    {
+        name: 'guitar',
+        tunings: [
+            ['standard', [40, 45, 50, 55, 59, 64]],
+            ['drop D', [38, 45, 50, 55, 59, 64]],
+            ['DADGAD', [38, 45, 50, 55, 57, 62]],
+            ['open G', [38, 43, 50, 55, 59, 62]],
+            ['open D', [38, 45, 50, 54, 57, 62]],
+            ['half step down', [39, 44, 49, 54, 58, 63], 'flat'],
+        ],
+    },
+    {
+        name: 'bass guitar',
+        tunings: [
+            ['standard (4 strings)', [28, 33, 38, 43]],
+            ['drop D', [26, 33, 38, 43]],
+            ['standard (5 strings)', [23, 28, 33, 38, 43]],
+            ['standard (6 strings)', [23, 28, 33, 38, 43, 48]],
+        ],
+    },
+    {
+        name: 'violin',
+        tunings: [['standard', [55, 62, 69, 76]]],
+    },
+    {
+        name: 'viola',
+        tunings: [['standard', [48, 55, 62, 69]]],
+    },
+    {
+        name: 'cello',
+        tunings: [['standard', [36, 43, 50, 57]]],
+    },
+    {
+        name: 'double bass',
+        tunings: [
+            ['standard (4 strings)', [28, 33, 38, 43]],
+            ['standard (5 strings)', [23, 28, 33, 38, 43]],
+        ],
+    },
+    {
+        name: 'ukulele',
+        tunings: [
+            ['standard (high G)', [67, 60, 64, 69]],
+            ['low G', [55, 60, 64, 69]],
+            ['baritone', [50, 55, 59, 64]],
+        ],
+    },
+    {
+        name: 'banjo',
+        tunings: [
+            ['open G (5 strings)', [67, 50, 55, 59, 62]],
+            ['double C', [67, 48, 55, 60, 62]],
+            ['sawmill', [67, 50, 55, 60, 62]],
+            ['tenor', [48, 55, 62, 69]],
+        ],
+    },
+    {
+        name: 'mandolin',
+        tunings: [['standard (paired)', [55, 55, 62, 62, 69, 69, 76, 76]]],
+    },
+];
 
 function clamp(value, minimum, maximum) {
     return Math.min(maximum, Math.max(minimum, value));
@@ -162,6 +260,25 @@ function midiToNoteName(midi) {
     const octave = Math.floor(roundedMidi / 12) - 1;
 
     return `${NOTE_NAMES[pitchClass]}${octave}`;
+}
+
+function midiToTunerNoteName(midi, accidental = 'sharp') {
+    const roundedMidi = Math.round(midi);
+    const pitchClass = ((roundedMidi % 12) + 12) % 12;
+    const octave = Math.floor(roundedMidi / 12) - 1;
+    const noteName =
+        TUNER_ACCIDENTAL_NAMES[accidental][pitchClass] ??
+        NOTE_NAMES[pitchClass];
+
+    return `${noteName}${octave}`;
+}
+
+function tunerTargetNoteName() {
+    const instrument = TUNER_INSTRUMENTS[getControl('tuner-instrument').value];
+    const tuning = instrument?.tunings[getControl('tuner-variation').value];
+    const accidental = tuning?.[2] ?? 'sharp';
+
+    return midiToTunerNoteName(tunerTargetMidi, accidental);
 }
 
 function selectedNoteFrequency(select) {
@@ -308,15 +425,20 @@ function createAutoAdvance(refreshSelector, advance) {
             timer = null;
         }
 
-        document
-            .querySelector(refreshSelector)
-            .classList.remove('is-counting-down');
+        for (const button of document.querySelectorAll(refreshSelector)) {
+            button.classList.remove('is-counting-down');
+        }
     }
 
     function schedule() {
         cancel();
 
-        const refreshButton = document.querySelector(refreshSelector);
+        const refreshButton = [
+            ...document.querySelectorAll(refreshSelector),
+        ].find((button) => !button.closest('[hidden]'));
+        if (!refreshButton) {
+            return;
+        }
 
         void refreshButton.offsetWidth;
         refreshButton.classList.add('is-counting-down');
@@ -345,6 +467,28 @@ function renderPracticeResult(outputName, correct, text) {
     result.classList.add(correct ? 'is-correct' : 'is-incorrect');
     icon.textContent = correct ? '✓' : '✕';
     result.replaceChildren(icon, document.createTextNode(` ${text}`));
+}
+
+function answerStateClass(answer, selected, correct) {
+    if (selected === null) {
+        return null;
+    }
+
+    if (answer === correct) {
+        return answer === selected ? 'is-correct' : 'is-target';
+    }
+
+    return answer === selected ? 'is-incorrect' : null;
+}
+
+function setAnswerOptionState(button, answer, selected, correct) {
+    button.classList.remove('is-correct', 'is-incorrect', 'is-target');
+
+    const stateClass = answerStateClass(answer, selected, correct);
+
+    if (stateClass) {
+        button.classList.add(stateClass);
+    }
 }
 
 // Audio
@@ -656,10 +800,112 @@ function updateVolume() {
     audio.setMasterVolume(volume);
 }
 
+let tunerTargetMidi = null;
+
+function initializeTunerInstruments() {
+    const select = getControl('tuner-instrument');
+    TUNER_INSTRUMENTS.forEach((instrument, index) => {
+        select.add(new Option(instrument.name, String(index)));
+    });
+    updateTunerInstrument();
+}
+
+function updateTunerInstrument() {
+    const select = getControl('tuner-variation');
+    const instrument = TUNER_INSTRUMENTS[getControl('tuner-instrument').value];
+    select.replaceChildren();
+    select.disabled = !instrument || instrument.tunings.length === 1;
+    if (instrument) {
+        instrument.tunings.forEach(([name], index) => {
+            select.add(new Option(name, String(index)));
+        });
+    } else {
+        select.add(new Option('select an instrument', ''));
+    }
+    updateTunerStrings();
+}
+
+function clearTunerTarget() {
+    if (tunerTargetMidi === null) {
+        return;
+    }
+
+    tunerTargetMidi = null;
+    for (const button of getOutput('tuner-strings').children) {
+        button.setAttribute('aria-pressed', 'false');
+    }
+    resetTunerTracking(true);
+    tunerMic.lastValidTime = 0;
+    resetTunerDetection(tunerMic.stream ? 'Listening...' : 'Microphone off');
+}
+
+function updateTunerStrings() {
+    stopTuner();
+    clearTunerTarget();
+    const container = getOutput('tuner-strings');
+    container.replaceChildren();
+    const instrument = TUNER_INSTRUMENTS[getControl('tuner-instrument').value];
+    container.hidden = !instrument;
+    if (!instrument) {
+        return;
+    }
+    const [, notes, accidental = 'sharp'] =
+        instrument.tunings[getControl('tuner-variation').value];
+    notes.forEach((midi, index) => {
+        const button = document.createElement('button');
+        const noteName = midiToTunerNoteName(midi, accidental);
+
+        button.type = 'button';
+        button.textContent = noteName;
+        button.setAttribute(
+            'aria-label',
+            `String ${notes.length - index}: ${noteName}`
+        );
+        button.setAttribute('aria-pressed', 'false');
+        button.addEventListener('click', () => {
+            const wasPlaying = tunerVoice !== null && tunerTargetMidi === midi;
+            stopGeneratedAudio();
+
+            if (tunerTargetMidi !== midi) {
+                tunerTargetMidi = midi;
+                for (const candidate of container.children) {
+                    candidate.setAttribute(
+                        'aria-pressed',
+                        String(candidate === button)
+                    );
+                }
+            }
+
+            if (wasPlaying) {
+                return;
+            }
+
+            tunerVoice = audio.playContinuous(
+                midiFrequency(midi),
+                getWaveform('tuner').value
+            );
+            button.classList.add('is-playing');
+            resetTunerTracking(true);
+            tunerMic.lastValidTime = 0;
+            resetTunerDetection(
+                tunerMic.stream ? 'Listening...' : 'Microphone off'
+            );
+        });
+        container.append(button);
+    });
+}
+
+function renderTunerString() {
+    getOutput('tuner-closest').textContent = tunerTargetNoteName();
+    getOutput('tuner-target').textContent =
+        `${midiFrequency(tunerTargetMidi).toFixed(3)} Hz`;
+}
+
 let tunerVoice = null;
 
 function playTuner() {
     stopGeneratedAudio();
+    clearTunerTarget();
 
     tunerVoice = audio.playContinuous(
         selectedNoteFrequency(getNote('tuner')),
@@ -674,11 +920,19 @@ function stopTuner() {
 
     tunerVoice.stop();
     tunerVoice = null;
+
+    for (const button of getOutput('tuner-strings').children) {
+        button.classList.remove('is-playing');
+    }
+
+    if (tunerTargetMidi !== null) {
+        setTunerStatus(tunerMic.stream ? 'Listening...' : 'Microphone off');
+    }
 }
 
 function stopGeneratedAudio() {
     stopTuner();
-    stopMetronome();
+    stopRhythm();
     audio.stopTransient();
 }
 
@@ -710,7 +964,7 @@ function populateNoteSelector(select) {
 }
 
 function initializeNotes() {
-    for (const select of document.querySelectorAll('.note-select')) {
+    for (const select of document.querySelectorAll('[data-note]')) {
         populateNoteSelector(select);
     }
 }
@@ -724,7 +978,7 @@ function updateNoteReadout(select) {
 }
 
 function updateNoteReadouts() {
-    for (const select of document.querySelectorAll('.note-select')) {
+    for (const select of document.querySelectorAll('[data-note]')) {
         updateNoteReadout(select);
     }
 }
@@ -742,6 +996,10 @@ function tabHash(tabName) {
 
     if (tabName === 'intervals') {
         return `#intervals/${getControl('interval-mode').value}`;
+    }
+
+    if (tabName === 'rhythm') {
+        return `#rhythm/${getControl('rhythm-mode').value}`;
     }
 
     return `#${tabName}`;
@@ -846,7 +1104,7 @@ function initializeTabs() {
                 hash === 'pitch-memory' ? 'memory' : 'placement';
         } else if (
             hashTab === 'pitch' &&
-            ['placement', 'memory'].includes(hashMode)
+            ['placement', 'identification', 'memory'].includes(hashMode)
         ) {
             getControl('pitch-mode').value = hashMode;
         } else if (
@@ -854,6 +1112,13 @@ function initializeTabs() {
             ['recognition', 'construction'].includes(hashMode)
         ) {
             getControl('interval-mode').value = hashMode;
+        }
+
+        if (
+            hashTab === 'rhythm' &&
+            ['metronome', 'timing', 'reading'].includes(hashMode)
+        ) {
+            getControl('rhythm-mode').value = hashMode;
         }
 
         const tabName = pitchHash ? 'pitch' : hashTab;
@@ -869,7 +1134,9 @@ function initializeTabs() {
             activateTab(tab, false, false);
         }
 
-        if (tabName === 'pitch') {
+        if (tabName === 'rhythm') {
+            updateRhythmMode();
+        } else if (tabName === 'pitch') {
             updatePitchMode();
         } else if (tabName === 'intervals') {
             updateIntervalMode();
@@ -987,6 +1254,9 @@ const tunerMic = {
 };
 
 function setTunerStatus(text) {
+    if (tunerVoice !== null && tunerTargetMidi !== null) {
+        text = `Playing string tone · ${text}`;
+    }
     getOutput('tuner-status').textContent = text;
 }
 
@@ -1016,9 +1286,12 @@ function resetTunerTracking(resetPending) {
 }
 
 function resetTunerDetection(status = 'Microphone off') {
-    getOutput('tuner-closest').textContent = '--';
-
-    getOutput('tuner-target').textContent = '-- Hz';
+    if (tunerTargetMidi !== null) {
+        renderTunerString();
+    } else {
+        getOutput('tuner-closest').textContent = '--';
+        getOutput('tuner-target').textContent = '-- Hz';
+    }
 
     getOutput('tuner-detected').textContent = '-- Hz detected';
 
@@ -1203,7 +1476,21 @@ function nearestMusicalNote(frequencyHz) {
 }
 
 function renderTunerDetection(frequencyHz) {
-    const nearest = nearestMusicalNote(frequencyHz);
+    const targetHz =
+        tunerTargetMidi === null ? null : midiFrequency(tunerTargetMidi);
+    const scoredFrequencyHz =
+        targetHz === null
+            ? frequencyHz
+            : nearestOctaveFrequency(frequencyHz, targetHz);
+    const nearest =
+        targetHz === null
+            ? nearestMusicalNote(frequencyHz)
+            : {
+                  midi: tunerTargetMidi,
+                  name: tunerTargetNoteName(),
+                  targetHz,
+                  cents: centsBetween(scoredFrequencyHz, targetHz),
+              };
 
     if (tunerMic.smoothedNoteMidi !== nearest.midi) {
         tunerMic.smoothedNoteMidi = nearest.midi;
@@ -1224,8 +1511,12 @@ function renderTunerDetection(frequencyHz) {
 
     getOutput('tuner-target').textContent = `${nearest.targetHz.toFixed(3)} Hz`;
 
+    const detectedNote =
+        tunerTargetMidi === null
+            ? ''
+            : `${nearestMusicalNote(frequencyHz).name} · `;
     getOutput('tuner-detected').textContent =
-        `${frequencyHz.toFixed(3)} Hz detected`;
+        `${detectedNote}${frequencyHz.toFixed(3)} Hz detected`;
 
     getOutput('tuner-cents').textContent = `${signed(cents, 1)} cents`;
 
@@ -1235,6 +1526,7 @@ function renderTunerDetection(frequencyHz) {
     needle.style.left = `${percent}%`;
     needle.classList.add('is-visible');
     needle.classList.toggle('is-in-tune', inTune);
+    setTunerStatus('Listening...');
 }
 
 function analyzeTunerMic(time) {
@@ -1304,7 +1596,7 @@ async function startMicTuner() {
     resetTunerDetection('Requesting microphone access...');
 
     try {
-        if (!(await startMicrophoneInput(tunerMic, 2048))) {
+        if (!(await startMicrophoneInput(tunerMic, TUNER_ANALYSIS_FFT_SIZE))) {
             return;
         }
 
@@ -1341,9 +1633,9 @@ function toggleMicTuner() {
     void startMicTuner();
 }
 
-// Metronome
+// Rhythm
 
-const metronome = {
+const rhythm = {
     running: false,
     timer: null,
     nextBeatTime: 0,
@@ -1351,107 +1643,750 @@ const metronome = {
     tapTimes: [],
 };
 
-function scheduleMetronome() {
-    if (!metronome.running) {
+const rhythmTiming = {
+    origin: 0,
+    interval: 0.6,
+    frame: null,
+    lastBeat: -1,
+    errors: [],
+};
+
+const rhythmReading = {
+    phrase: [],
+    origin: 0,
+    interval: 0.6,
+    frame: null,
+    active: false,
+    held: null,
+    input: null,
+    extra: 0,
+    holdSpans: [],
+    currentHold: null,
+};
+
+function rhythmReadingEnabled() {
+    return getControl('rhythm-mode').value === 'reading';
+}
+
+function rhythmMeter(signature) {
+    const [units, denominator] = signature.split('/').map(Number);
+    return {
+        units,
+        denominator,
+        compound:
+            denominator === 8 &&
+            units >= 6 &&
+            units % RHYTHM_COMPOUND_SUBDIVISIONS === 0,
+    };
+}
+
+function rhythmClickInterval(signature, bpm) {
+    return (
+        60 /
+        bpm /
+        (rhythmMeter(signature).compound ? RHYTHM_COMPOUND_SUBDIVISIONS : 1)
+    );
+}
+
+function rhythmNoteValue(note) {
+    const denominator = rhythmReading.meter.denominator;
+    for (const noteValue of RHYTHM_NOTE_VALUES) {
+        const { value } = noteValue;
+        const duration = denominator / value;
+        if (note.duration === duration) {
+            return {
+                ...noteValue,
+                dotted: false,
+            };
+        }
+        if (note.duration === duration * RHYTHM_DOT_MULTIPLIER) {
+            return {
+                ...noteValue,
+                dotted: true,
+            };
+        }
+    }
+    throw new Error('Unsupported rhythm note duration');
+}
+
+function rhythmNoteName(note) {
+    const { name, dotted } = rhythmNoteValue(note);
+    return `${dotted ? 'dotted ' : ''}${name}`;
+}
+
+function rhythmNotePosition(note) {
+    const { units, compound } = rhythmReading.meter;
+    return `Bar ${Math.floor(note.beat / units) + 1}, ${compound ? 'subdivision' : 'beat'} ${(note.beat % units) + 1}`;
+}
+
+function rhythmCanFill(amount, durations) {
+    if (amount === 0) {
+        return true;
+    }
+    return durations.some(
+        (duration) =>
+            duration <= amount && rhythmCanFill(amount - duration, durations)
+    );
+}
+
+function newRhythmPhrase() {
+    stopGeneratedAudio();
+    rhythmReading.signature = getControl('rhythm-time-signature').value;
+    rhythmReading.meter = rhythmMeter(rhythmReading.signature);
+    const { units, denominator } = rhythmReading.meter;
+    rhythmReading.bars = Number(getControl('rhythm-bars').value);
+    rhythmReading.total = units * rhythmReading.bars;
+    rhythmReading.phrase = [];
+    const includeDots = getControl('rhythm-note-values').value === 'all-dotted';
+    const durations = RHYTHM_NOTE_VALUES.flatMap(({ value }) => {
+        const duration = denominator / value;
+        return includeDots
+            ? [duration, duration * RHYTHM_DOT_MULTIPLIER]
+            : [duration];
+    });
+    const pattern = RHYTHM_METERS[rhythmReading.signature];
+    for (let beat = 0; beat < rhythmReading.total;) {
+        const withinBar = beat % units;
+        let remaining = units - withinBar;
+        for (let next = Math.floor(withinBar) + 1; next < units; next += 1) {
+            if (pattern[next] > 0) {
+                remaining = next - withinBar;
+                break;
+            }
+        }
+        const choices = durations.filter(
+            (duration) =>
+                duration <= remaining &&
+                rhythmCanFill(remaining - duration, durations)
+        );
+        const duration = choices[Math.floor(Math.random() * choices.length)];
+        const rest = beat !== 0 && Math.random() < 0.25;
+        rhythmReading.phrase.push({
+            beat,
+            duration,
+            rest,
+            attack: null,
+            release: null,
+        });
+        beat += duration;
+    }
+    renderRhythmScore();
+    document.getElementById('rhythm-result').textContent =
+        'Press Play for a count-in.';
+}
+
+function rhythmDurationLabel(duration) {
+    const fractions = {
+        0.125: '⅛',
+        0.25: '¼',
+        0.375: '⅜',
+        0.5: '½',
+        0.75: '¾',
+    };
+    const whole = Math.floor(duration);
+    const fraction = fractions[duration - whole] || '';
+    return `${whole || !fraction ? whole : ''}${fraction}`;
+}
+
+function rhythmDurationUnit() {
+    return rhythmReading.meter.compound ? 'subdivisions' : 'beats';
+}
+
+function renderRhythmScore() {
+    rhythmReading.holdSpans = [];
+    rhythmReading.currentHold = null;
+    document.getElementById('rhythm-report').hidden = true;
+    document.getElementById('rhythm-stats').replaceChildren();
+    document.getElementById('rhythm-results').replaceChildren();
+    const { units, denominator, compound } = rhythmReading.meter;
+    rhythmReading.spacing = (RHYTHM_REM_PER_QUARTER * 4) / denominator;
+    const lane = document.createElement('div');
+    lane.id = 'rhythm-lane';
+    lane.className = 'rhythm-lane';
+    for (let index = 0; index < units; index += 1) {
+        const marker = document.createElement('span');
+        marker.className = 'rhythm-count-marker';
+        marker.style.left = `${(index - units) * rhythmReading.spacing}rem`;
+        marker.textContent = String(index + 1);
+        lane.append(marker);
+    }
+    for (let bar = 0; bar <= rhythmReading.bars; bar += 1) {
+        const line = document.createElement('span');
+        line.className = 'rhythm-barline';
+        line.style.left = `${bar * units * rhythmReading.spacing}rem`;
+        line.textContent = bar === rhythmReading.bars ? '𝄂' : '𝄀';
+
+        lane.append(line);
+    }
+    const heading = document.createElement('span');
+    heading.className = 'rhythm-score-heading';
+    heading.style.left = `${-units * rhythmReading.spacing}rem`;
+    const clef = document.createElement('span');
+    clef.textContent = '𝄥';
+    const signature = document.createElement('span');
+    signature.className = 'rhythm-signature';
+    if (RHYTHM_SIGNATURE_SYMBOLS[rhythmReading.signature]) {
+        signature.textContent =
+            RHYTHM_SIGNATURE_SYMBOLS[rhythmReading.signature];
+    } else {
+        signature.classList.add('is-numeric');
+        const [top, bottom] = rhythmReading.signature.split('/');
+        for (const number of [top, bottom]) {
+            const row = document.createElement('span');
+            row.textContent = number;
+            signature.append(row);
+        }
+    }
+    heading.append(clef, signature);
+    lane.append(heading);
+    rhythmReading.phrase.forEach((note, index) => {
+        const x = note.beat * rhythmReading.spacing;
+        const width = note.duration * rhythmReading.spacing;
+        const element = document.createElement('span');
+        element.id = `rhythm-note-${index}`;
+        element.className = `rhythm-lane-note${note.rest ? ' is-rest' : ''}`;
+        element.style.left = `${x}rem`;
+        element.style.width = `${width}rem`;
+        element.title = `${rhythmNoteName(note)} ${note.rest ? 'rest' : 'note'} - ${rhythmDurationLabel(note.duration)} ${rhythmDurationUnit()}`;
+        const symbol = document.createElement('span');
+        symbol.className = 'rhythm-note-symbol';
+        symbol.setAttribute('aria-hidden', 'true');
+        const value = rhythmNoteValue(note);
+        symbol.textContent = `${note.rest ? value.rest : value.symbol}${value.dotted ? '.' : ''}`;
+        const track = document.createElement('span');
+        track.className = 'rhythm-duration-track';
+        element.append(symbol, track);
+        lane.append(element);
+    });
+    const playLine = document.createElement('span');
+    playLine.className = 'rhythm-play-line';
+    document.getElementById('rhythm-score').replaceChildren(lane, playLine);
+    lane.style.transform = `translateX(${RHYTHM_PLAY_LINE_REM + (units + 1) * rhythmReading.spacing}rem)`;
+    document.getElementById('rhythm-description').textContent =
+        rhythmReading.phrase
+            .map(
+                (note) =>
+                    `${rhythmNotePosition(note)}: ${rhythmNoteName(note)} ${note.rest ? 'rest' : 'note'}, ${rhythmDurationLabel(note.duration)} ${rhythmDurationUnit()}.`
+            )
+            .join(' ');
+    document.getElementById('rhythm-meter-help').textContent = compound
+        ? `${rhythmReading.signature}: BPM counts dotted-quarter beats; each beat has three eighth-note subdivisions (1 & a). A dotted quarter lasts three subdivisions, a quarter two, and an eighth one.`
+        : `${rhythmReading.signature}: BPM counts ${denominator === 2 ? 'half' : denominator === 8 ? 'eighth' : 'quarter'} notes, with ${units} beats per bar.`;
+    document.getElementById('rhythm-count-label').textContent =
+        `Ready - durations in ${rhythmDurationUnit()}`;
+}
+
+function playRhythmInputSound() {
+    // A rounded tone distinct from the metronome, with enough duration to hear.
+    audio.playTransient(520, 'triangle', 0.055, 0.5);
+}
+
+function updateRhythmMode() {
+    const mode = getControl('rhythm-mode').value;
+    for (const panel of getModePanels('rhythm')) {
+        panel.hidden = panel.dataset.modePanel !== mode;
+    }
+    stopGeneratedAudio();
+    if (
+        rhythmReadingEnabled() &&
+        (!rhythmReading.phrase.length ||
+            rhythmReading.signature !==
+                getControl('rhythm-time-signature').value)
+    ) {
+        newRhythmPhrase();
+    }
+}
+
+function startRhythmReading() {
+    renderRhythmScore();
+    rhythmReading.interval = rhythmClickInterval(rhythm.signature, rhythm.bpm);
+    rhythmReading.origin =
+        rhythm.nextBeatTime +
+        rhythmReading.meter.units * rhythmReading.interval;
+    rhythmReading.extra = 0;
+    rhythmReading.active = true;
+    rhythmReading.countingIn = true;
+    for (const note of rhythmReading.phrase) {
+        note.attack = null;
+        note.release = null;
+    }
+    document
+        .getElementById('rhythm-score')
+        .setAttribute('aria-disabled', 'false');
+    document.getElementById('rhythm-hold').disabled = false;
+    document.getElementById('rhythm-hold').focus();
+    drawRhythmReading();
+}
+
+function rhythmOffset(value) {
+    const rounded = Math.round(value);
+    return `${rounded >= 0 ? '+' : ''}${rounded} ms`;
+}
+
+function updateRhythmHold(position, released = false) {
+    const hold = rhythmReading.currentHold;
+    if (!hold) {
+        return;
+    }
+    hold.end = Math.max(hold.start, position);
+    hold.element.style.width = `${(hold.end - hold.start) * rhythmReading.spacing}rem`;
+    if (released) {
+        rhythmReading.currentHold = null;
+    }
+}
+
+function beginRhythmHold(position) {
+    const element = document.createElement('span');
+    element.className = 'rhythm-held-section';
+    element.style.left = `${position * rhythmReading.spacing}rem`;
+    element.style.width = '0rem';
+    document.getElementById('rhythm-lane').append(element);
+    const hold = { start: position, end: position, element, spurious: false };
+    rhythmReading.holdSpans.push(hold);
+    rhythmReading.currentHold = hold;
+}
+
+function pressRhythm(input) {
+    if (!rhythmReading.active || rhythmReading.input !== null) {
+        return;
+    }
+    const position =
+        (audio.currentTime() - rhythmReading.origin) / rhythmReading.interval;
+    rhythmReading.input = input;
+    beginRhythmHold(position);
+    playRhythmInputSound();
+    if (position < -0.5 || position >= rhythmReading.total) {
+        return;
+    }
+    const note = rhythmReading.phrase
+        .filter((candidate) => !candidate.rest)
+        .reduce(
+            (nearest, candidate) =>
+                !nearest ||
+                Math.abs(position - candidate.beat) <
+                    Math.abs(position - nearest.beat)
+                    ? candidate
+                    : nearest,
+            null
+        );
+    document.getElementById('rhythm-hold').classList.add('is-held');
+    if (
+        !note ||
+        note.attack !== null ||
+        Math.abs(position - note.beat) >= Math.min(0.5, note.duration / 2)
+    ) {
+        rhythmReading.extra += 1;
+        rhythmReading.currentHold.spurious = true;
+        document.getElementById('rhythm-result').textContent =
+            'Spurious hold - follow the notes and leave rests silent.';
+        return;
+    }
+    note.attack = (position - note.beat) * rhythmReading.interval * 1000;
+    rhythmReading.held = note;
+    document.getElementById('rhythm-result').textContent =
+        `Attack: ${rhythmOffset(note.attack)}. Keep holding...`;
+}
+
+function releaseRhythm(input) {
+    if (rhythmReading.input !== input) {
+        return;
+    }
+    updateRhythmHold(
+        (audio.currentTime() - rhythmReading.origin) / rhythmReading.interval,
+        true
+    );
+    const note = rhythmReading.held;
+    if (note) {
+        note.release =
+            (audio.currentTime() -
+                rhythmReading.origin -
+                (note.beat + note.duration) * rhythmReading.interval) *
+            1000;
+        document.getElementById('rhythm-result').textContent =
+            `Attack: ${rhythmOffset(note.attack)} - Release: ${rhythmOffset(note.release)}`;
+    }
+    rhythmReading.input = null;
+    rhythmReading.held = null;
+    document.getElementById('rhythm-hold').classList.remove('is-held');
+}
+
+function finishRhythmReading() {
+    const notes = rhythmReading.phrase.filter((note) => !note.rest);
+    const attacks = notes.filter((note) => note.attack !== null);
+    const releases = notes.filter((note) => note.release !== null);
+
+    const average = (items, key) =>
+        items.length
+            ? Math.round(
+                  items.reduce((sum, note) => sum + Math.abs(note[key]), 0) /
+                      items.length
+              )
+            : '0';
+
+    const bias = (items, key) =>
+        items.length
+            ? rhythmOffset(
+                  items.reduce((sum, note) => sum + note[key], 0) / items.length
+              )
+            : '-';
+
+    const stats = document.getElementById('rhythm-stats');
+    stats.replaceChildren();
+    for (const [label, value] of [
+        [
+            'Average attack error',
+            `-${average(
+                attacks.filter((attack) => attack.attack < 0),
+                'attack'
+            )} ms, +${average(
+                attacks.filter((attack) => attack.attack >= 0),
+                'attack'
+            )} ms = ±${average(attacks, 'attack')} ms`,
+        ],
+        [
+            'Average release error',
+            `-${average(
+                releases.filter((release) => release.release < 0),
+                'release'
+            )} ms, +${average(
+                releases.filter((release) => release.release >= 0),
+                'release'
+            )} ms = ±${average(releases, 'release')} ms`,
+        ],
+        ['Attack bias', bias(attacks, 'attack')],
+        ['Release bias', bias(releases, 'release')],
+        ['Missed notes', notes.length - attacks.length],
+        ['Unreleased notes', attacks.length - releases.length],
+        ['Spurious holds', rhythmReading.extra],
+    ]) {
+        const row = document.createElement('div');
+        const term = document.createElement('dt');
+        const detail = document.createElement('dd');
+        term.textContent = label;
+        detail.textContent = String(value);
+        row.append(term, detail);
+        stats.append(row);
+    }
+    const results = document.getElementById('rhythm-results');
+    results.replaceChildren();
+    for (const note of rhythmReading.phrase) {
+        const spurious = rhythmReading.holdSpans.filter(
+            (hold) =>
+                hold.spurious &&
+                ((hold.start >= note.beat &&
+                    hold.start < note.beat + note.duration) ||
+                    (note.beat === 0 && hold.start < 0))
+        );
+        if (note.rest && !spurious.length) {
+            continue;
+        }
+
+        const item = document.createElement('li');
+        item.textContent = rhythmNotePosition(note);
+
+        const holds = document.createElement('ul');
+        if (note.rest) {
+            const rest = document.createElement('li');
+            rest.textContent = 'Rest';
+            holds.append(rest);
+        } else {
+            const attack =
+                note.attack === null
+                    ? 'Missed'
+                    : `Attack: ${rhythmOffset(note.attack)}`;
+            const release =
+                note.release === null
+                    ? 'not released'
+                    : `release: ${rhythmOffset(note.release)}`;
+
+            const detail = document.createElement('li');
+            detail.textContent = `${attack}, ${release}`;
+            holds.append(detail);
+        }
+
+        if (spurious.length) {
+            for (const hold of spurious) {
+                const detail = document.createElement('li');
+                const offset = Math.round(
+                    (hold.start - note.beat) * rhythmReading.interval * 1000
+                );
+                const duration = Math.round(
+                    (hold.end - hold.start) * rhythmReading.interval * 1000
+                );
+                detail.textContent = `Spurious hold: ${offset} ms, held ${duration} ms`;
+                holds.append(detail);
+            }
+        }
+
+        item.append(holds);
+        results.append(item);
+    }
+    document.getElementById('rhythm-report').hidden = false;
+    rhythmReading.active = false;
+    stopGeneratedAudio();
+    document.getElementById('rhythm-count-label').textContent =
+        `Complete - durations in ${rhythmDurationUnit()}`;
+    document.getElementById('rhythm-result').textContent =
+        'Phrase complete. Press Play to retry, or choose New phrase.';
+}
+
+function drawRhythmReading() {
+    const position =
+        (audio.currentTime() - rhythmReading.origin) / rhythmReading.interval;
+    const { units } = rhythmReading.meter;
+    const label = document.getElementById('rhythm-count-label');
+    if (position < -units) {
+        label.textContent = 'Get ready';
+    } else if (position < 0) {
+        const click = clamp(units + 1 + Math.floor(position), 1, units);
+        label.textContent = `Count-in ${click} / ${units}`;
+        document.getElementById('rhythm-result').textContent =
+            `Get ready - ${click} / ${units}`;
+    } else {
+        label.textContent = `Play - durations in ${rhythmDurationUnit()}`;
+        if (rhythmReading.countingIn) {
+            rhythmReading.countingIn = false;
+            document.getElementById('rhythm-result').textContent =
+                'Play the phrase.';
+        }
+    }
+    document.getElementById('rhythm-lane').style.transform =
+        `translateX(${RHYTHM_PLAY_LINE_REM - position * rhythmReading.spacing}rem)`;
+    updateRhythmHold(position);
+    rhythmReading.phrase.forEach((note, index) => {
+        const active =
+            position >= note.beat && position < note.beat + note.duration;
+        document
+            .getElementById(`rhythm-note-${index}`)
+            .classList.toggle('is-current', active);
+    });
+    if (position >= rhythmReading.total + 0.5) {
+        finishRhythmReading();
+        return;
+    }
+    rhythmReading.frame = requestAnimationFrame(drawRhythmReading);
+}
+
+function stopRhythmReading() {
+    if (rhythmReading.currentHold) {
+        updateRhythmHold(
+            (audio.currentTime() - rhythmReading.origin) /
+                rhythmReading.interval,
+            true
+        );
+    }
+    cancelAnimationFrame(rhythmReading.frame);
+    rhythmReading.frame = null;
+    if (rhythmReading.active) {
+        document.getElementById('rhythm-count-label').textContent =
+            `Stopped - durations in ${rhythmDurationUnit()}`;
+        document.getElementById('rhythm-result').textContent =
+            'Stopped. Press Play to retry this phrase.';
+    }
+    rhythmReading.active = false;
+    rhythmReading.input = null;
+    rhythmReading.held = null;
+    document
+        .getElementById('rhythm-score')
+        .setAttribute('aria-disabled', 'true');
+    document.getElementById('rhythm-hold').disabled = true;
+    document.getElementById('rhythm-hold').classList.remove('is-held');
+}
+
+function rhythmTimingEnabled() {
+    return getControl('rhythm-mode').value === 'timing';
+}
+
+function drawRhythmTiming() {
+    const phase = Math.max(
+        -0.5,
+        (audio.currentTime() - rhythmTiming.origin) / rhythmTiming.interval
+    );
+    const position = (((phase + 0.5) % 1) + 1) % 1;
+    document.getElementById('rhythm-timing-dot').style.left =
+        `${position * 100}%`;
+    rhythmTiming.frame = requestAnimationFrame(drawRhythmTiming);
+}
+
+function recordRhythmTimingTap() {
+    if (!rhythm.running || !rhythmTimingEnabled()) {
+        return;
+    }
+    const now = audio.currentTime();
+    const beat = Math.round(
+        (now - rhythmTiming.origin) / rhythmTiming.interval
+    );
+    if (beat < 0 || beat <= rhythmTiming.lastBeat) {
+        return;
+    }
+    rhythmTiming.lastBeat = beat;
+    playRhythmInputSound();
+    const error =
+        (now - (rhythmTiming.origin + beat * rhythmTiming.interval)) * 1000;
+    rhythmTiming.errors.push(error);
+    rhythmTiming.errors = rhythmTiming.errors.slice(-20);
+    const signed = (value) => `${value > 0 ? '+' : ''}${Math.round(value)}`;
+    document.getElementById('rhythm-timing-result').textContent =
+        `${signed(error)} ms - ${Math.abs(error) < 15 ? 'On beat' : error < 0 ? 'Early' : 'Late'}`;
+    const count = rhythmTiming.errors.length;
+    const average =
+        rhythmTiming.errors.reduce((sum, value) => sum + Math.abs(value), 0) /
+        count;
+    const bias =
+        rhythmTiming.errors.reduce((sum, value) => sum + value, 0) / count;
+    document.getElementById('rhythm-timing-stats').textContent =
+        `${count} tap${count === 1 ? '' : 's'} - Average error: ${Math.round(average)} ms - Bias: ${signed(bias)} ms`;
+    const mark = document.getElementById('rhythm-timing-mark');
+    mark.hidden = false;
+    mark.style.left = `${50 + (error / (rhythmTiming.interval * 1000)) * 100}%`;
+}
+
+function restartRhythm() {
+    if (rhythm.running) {
+        stopGeneratedAudio();
+        startRhythm();
+    }
+}
+
+function scheduleRhythm() {
+    if (!rhythm.running) {
         return;
     }
 
-    const bpm = readNumber(getControl('metronome-bpm'), 100);
+    const bpm = rhythm.bpm;
 
-    const signature = getControl('metronome-time-signature').value;
+    const signature = rhythm.signature;
 
-    const pattern = METRONOME_METERS[signature] || METRONOME_METERS['4/4'];
+    const pattern = RHYTHM_METERS[signature] || RHYTHM_METERS['4/4'];
 
-    const compound =
-        signature === '6/8' || signature === '9/8' || signature === '12/8';
+    const secondsPerClick = rhythmClickInterval(signature, bpm);
 
-    const secondsPerClick = compound ? 60 / bpm / 3 : 60 / bpm;
-
+    rhythmTiming.interval = secondsPerClick;
     const now = audio.currentTime();
 
-    while (metronome.nextBeatTime < now + METRONOME_SCHEDULE_AHEAD_SECONDS) {
-        const accent = pattern[metronome.beatIndex];
+    while (rhythm.nextBeatTime < now + RHYTHM_SCHEDULE_AHEAD_SECONDS) {
+        if (
+            rhythmReadingEnabled() &&
+            rhythm.nextBeatTime >=
+                rhythmReading.origin +
+                    rhythmReading.total * rhythmReading.interval -
+                    0.001
+        ) {
+            break;
+        }
+        const accent = pattern[rhythm.beatIndex];
 
         const frequency =
             accent === 2
-                ? METRONOME_FIRST_HZ
+                ? RHYTHM_FIRST_HZ
                 : accent === 1
-                  ? METRONOME_GROUP_HZ
-                  : METRONOME_NORMAL_HZ;
+                  ? RHYTHM_GROUP_HZ
+                  : RHYTHM_NORMAL_HZ;
 
         const volume = accent === 2 ? 0.9 : accent === 1 ? 0.75 : 0.6;
 
         audio.playTransient(
             frequency,
             'sine',
-            METRONOME_CLICK_DURATION,
+            RHYTHM_CLICK_DURATION,
             volume,
-            Math.max(0, metronome.nextBeatTime - now)
+            Math.max(0, rhythm.nextBeatTime - now)
         );
 
-        metronome.nextBeatTime += secondsPerClick;
+        rhythm.nextBeatTime += secondsPerClick;
 
-        metronome.beatIndex = (metronome.beatIndex + 1) % pattern.length;
+        rhythm.beatIndex = (rhythm.beatIndex + 1) % pattern.length;
     }
 }
 
-function startMetronome() {
-    if (metronome.running) {
+function startRhythm() {
+    if (rhythm.running) {
+        return;
+    }
+    if (
+        rhythmReadingEnabled() &&
+        (!rhythmReading.phrase.length ||
+            rhythmReading.signature !==
+                getControl('rhythm-time-signature').value)
+    ) {
+        newRhythmPhrase();
+    }
+
+    if (rhythmReadingEnabled() && !rhythmReading.phrase.length) {
         return;
     }
 
     stopAllAudio();
 
-    metronome.running = true;
-    metronome.beatIndex = 0;
-    metronome.nextBeatTime = audio.currentTime() + 0.05;
+    rhythm.bpm = clamp(readNumber(getControl('rhythm-bpm'), 100), 30, 240);
+    rhythm.signature = getControl('rhythm-time-signature').value;
+    rhythm.running = true;
+    rhythm.beatIndex = 0;
+    rhythm.nextBeatTime =
+        audio.currentTime() +
+        (rhythmTimingEnabled() || rhythmReadingEnabled() ? 1 : 0.05);
+    rhythmTiming.origin = rhythm.nextBeatTime;
+    rhythmTiming.lastBeat = -1;
+    rhythmTiming.errors = [];
+    document.getElementById('rhythm-timing-mark').hidden = true;
+    document.getElementById('rhythm-timing-result').textContent =
+        'Get ready... Match the center line.';
+    document.getElementById('rhythm-timing-stats').textContent = 'No taps yet.';
+    document.getElementById('rhythm-timing-tap').disabled =
+        !rhythmTimingEnabled();
 
-    scheduleMetronome();
+    if (rhythmReadingEnabled()) {
+        startRhythmReading();
+    }
+    scheduleRhythm();
+    if (rhythmTimingEnabled()) {
+        drawRhythmTiming();
+        document.getElementById('rhythm-timing-tap').focus();
+    }
 
-    metronome.timer = window.setInterval(
-        scheduleMetronome,
-        METRONOME_LOOKAHEAD_MS
-    );
+    rhythm.timer = window.setInterval(scheduleRhythm, RHYTHM_LOOKAHEAD_MS);
 }
 
-function stopMetronome() {
-    metronome.running = false;
-    metronome.beatIndex = 0;
+function stopRhythm() {
+    stopRhythmReading();
+    cancelAnimationFrame(rhythmTiming.frame);
+    rhythmTiming.frame = null;
+    document.getElementById('rhythm-timing-tap').disabled = true;
+    rhythm.running = false;
+    rhythm.beatIndex = 0;
 
-    if (metronome.timer !== null) {
-        clearInterval(metronome.timer);
-        metronome.timer = null;
+    if (rhythm.timer !== null) {
+        clearInterval(rhythm.timer);
+        rhythm.timer = null;
     }
 }
 
 function tapTempo() {
     const now = performance.now();
-    const previous = metronome.tapTimes.at(-1);
+    const previous = rhythm.tapTimes.at(-1);
 
     if (previous !== undefined && now - previous > 2000) {
-        metronome.tapTimes = [];
+        rhythm.tapTimes = [];
     }
 
-    metronome.tapTimes.push(now);
-    metronome.tapTimes = metronome.tapTimes.slice(-5);
+    rhythm.tapTimes.push(now);
+    rhythm.tapTimes = rhythm.tapTimes.slice(-5);
 
-    if (metronome.tapTimes.length < 3) {
+    if (rhythm.tapTimes.length < 3) {
         return;
     }
 
     const intervals = [];
 
-    for (let index = 1; index < metronome.tapTimes.length; index += 1) {
-        intervals.push(
-            metronome.tapTimes[index] - metronome.tapTimes[index - 1]
-        );
+    for (let index = 1; index < rhythm.tapTimes.length; index += 1) {
+        intervals.push(rhythm.tapTimes[index] - rhythm.tapTimes[index - 1]);
     }
 
     const averageInterval =
         intervals.reduce((total, interval) => total + interval, 0) /
         intervals.length;
 
-    const bpmInput = getControl('metronome-bpm');
+    const bpmInput = getControl('rhythm-bpm');
 
     const bpm = clamp(
         Math.round(60000 / averageInterval),
@@ -1460,9 +2395,10 @@ function tapTempo() {
     );
 
     bpmInput.value = String(bpm);
+    restartRhythm();
 }
 
-// Pitch placement
+// Pitch
 
 function defaultPitchTypeStats() {
     return {
@@ -1477,6 +2413,7 @@ function defaultPitchTypeStats() {
 function defaultPitchStats() {
     return {
         placement: defaultPitchTypeStats(),
+        identification: defaultPitchTypeStats(),
         'memory|novel': defaultPitchTypeStats(),
         'memory|interference': defaultPitchTypeStats(),
     };
@@ -1505,6 +2442,7 @@ function loadPitchStats() {
 
     return {
         placement: loadPitchTypeStats(stored.placement),
+        identification: loadPitchTypeStats(stored.identification),
         'memory|novel': loadPitchTypeStats(stored['memory|novel']),
         'memory|interference': loadPitchTypeStats(
             stored['memory|interference']
@@ -1523,8 +2461,12 @@ const pitch = {
     adaptiveResults: [],
 };
 
-const pitchAdvance = createAutoAdvance('.pitch-refresh', () => {
-    newPitchPlacementTrial(true);
+const pitchAdvance = createAutoAdvance('[data-action="new-pitch"]', () => {
+    if (getControl('pitch-mode').value === 'identification') {
+        newPitchIdentificationTrial(true);
+    } else {
+        newPitchPlacementTrial(true);
+    }
 });
 
 function cancelPitchAdvance() {
@@ -1541,6 +2483,10 @@ function pitchStatsType(mode, type = null) {
 
 function renderPitchStats() {
     const mode = getControl('pitch-mode').value;
+    if (mode === 'identification') {
+        renderPitchIdentificationStats();
+        return;
+    }
     const type =
         mode === 'memory' ? getControl('pitch-memory-type').value : null;
     const { streak, trials, errorTotal, best } =
@@ -1565,33 +2511,16 @@ function clearPitchStats() {
     renderPitchStats();
 }
 
-function setJudgmentState({ disabled, selected = null, correct = null }) {
+function setPitchPlacementAnswerState({
+    disabled,
+    selected = null,
+    correct = null,
+}) {
     for (const button of document.querySelectorAll(
-        '.pitch-judgment .answer-option'
+        '[data-pitch-placement-answers] [data-answer]'
     )) {
         button.disabled = disabled;
-
-        button.classList.remove('is-correct', 'is-incorrect', 'is-target');
-
-        if (selected === null) {
-            continue;
-        }
-
-        const judgment = button.dataset.answer;
-
-        if (selected === correct && judgment === selected) {
-            button.classList.add('is-correct');
-
-            continue;
-        }
-
-        if (judgment === selected) {
-            button.classList.add('is-incorrect');
-        }
-
-        if (selected !== correct && judgment === correct) {
-            button.classList.add('is-target');
-        }
+        setAnswerOptionState(button, button.dataset.answer, selected, correct);
     }
 }
 
@@ -1696,8 +2625,10 @@ function resetAdaptiveProgress(exercise) {
         : '';
 }
 
+// Pitch: placement
+
 function clearPitchPlacementResult() {
-    clearPracticeResult('pitch-result');
+    clearPracticeResult('pitch-placement-result');
 }
 
 function createPitchPlacementTrial() {
@@ -1733,7 +2664,7 @@ function newPitchPlacementTrial(playImmediately = false) {
 
     pitch.trial = createPitchPlacementTrial();
 
-    setJudgmentState({
+    setPitchPlacementAnswerState({
         disabled: true,
     });
 
@@ -1754,7 +2685,7 @@ function playPitchPlacementTrial() {
     stopAllAudio();
 
     if (!pitch.trial.committed) {
-        setJudgmentState({
+        setPitchPlacementAnswerState({
             disabled: false,
         });
     }
@@ -1772,7 +2703,7 @@ function playPitchPlacementTrial() {
     audio.playTransient(targetHz, waveform, duration, 1, duration + 0.1);
 }
 
-function commitPitchPlacement(judgment) {
+function commitPitchPlacement(answer) {
     const trial = pitch.trial;
 
     if (!trial || trial.committed) {
@@ -1787,7 +2718,7 @@ function commitPitchPlacement(judgment) {
 
     const direction = trial.mistuneCents < 0 ? 'flat' : 'sharp';
 
-    const correct = judgment === direction;
+    const correct = answer === direction;
 
     const mistunedHz = frequencyFromCents(
         trial.correctTargetHz,
@@ -1796,9 +2727,9 @@ function commitPitchPlacement(judgment) {
 
     const errorHz = mistunedHz - trial.correctTargetHz;
 
-    setJudgmentState({
+    setPitchPlacementAnswerState({
         disabled: true,
-        selected: judgment,
+        selected: answer,
         correct: direction,
     });
 
@@ -1824,9 +2755,9 @@ function commitPitchPlacement(judgment) {
     updateAdaptiveDifficulty('pitch', correct);
 
     renderPracticeResult(
-        'pitch-result',
+        'pitch-placement-result',
         correct,
-        `${direction} · ` +
+        `${direction} - ` +
             `${signed(trial.mistuneCents, 2)} cents ` +
             `(${signed(errorHz, 3)} Hz)`
     );
@@ -1834,7 +2765,7 @@ function commitPitchPlacement(judgment) {
     schedulePitchAdvance();
 }
 
-// Pitch memory
+// Pitch: memory
 
 const pitchMemory = {
     trial: storage.load(PITCH_MEMORY_TRIAL_KEY, null),
@@ -1904,12 +2835,31 @@ function getPitchMemoryFrequencyFromSlider() {
     return PITCH_MEMORY_MIN_HZ * 2 ** (cents / 1200);
 }
 
+function getPitchMemoryResponse(name) {
+    return document.querySelector(`[data-pitch-memory-response="${name}"]`);
+}
+
+function hidePitchMemoryResponses() {
+    for (const response of document.querySelectorAll(
+        '[data-pitch-memory-response]'
+    )) {
+        response.hidden = true;
+    }
+}
+
 function pitchMemoryFrequencyToSliderValue(frequencyHz) {
     return clamp(
         1200 * Math.log2(frequencyHz / PITCH_MEMORY_MIN_HZ),
         0,
         PITCH_MEMORY_RANGE_CENTS
     );
+}
+
+function initializePitchMemoryFrequencySlider() {
+    const slider = getControl('pitch-memory-frequency');
+    slider.min = '0';
+    slider.max = String(PITCH_MEMORY_RANGE_CENTS);
+    slider.value = String(PITCH_MEMORY_RANGE_CENTS / 2);
 }
 
 function renderPitchMemoryResponseFrequency() {
@@ -2046,9 +2996,7 @@ function analyzePitchMemoryMic(time) {
             getControl('pitch-memory-frequency').value = String(
                 pitchMemoryFrequencyToSliderValue(mic.detectedHz)
             );
-            const response = document.querySelector(
-                '.pitch-memory-microphone-response'
-            );
+            const response = getPitchMemoryResponse('microphone');
 
             getAction('submit-pitch-memory', response).disabled =
                 mic.frequencies.length < 5;
@@ -2119,15 +3067,11 @@ function showPitchMemoryResponse() {
     pitchMemory.trial.state = 'responding';
     pitchMemory.trial.responseStartedAt = Date.now();
 
-    const oscillator =
-        pitchMemory.trial.method === 'oscillator'
-            ? document.querySelector('.pitch-memory-oscillator-response')
-            : document.querySelector('.pitch-memory-microphone-response');
+    const response = getPitchMemoryResponse(pitchMemory.trial.method);
 
-    document.querySelector('.pitch-memory-oscillator-response').hidden = true;
-    document.querySelector('.pitch-memory-microphone-response').hidden = true;
-    document.querySelector('.pitch-memory-frequency-response').hidden = false;
-    oscillator.hidden = false;
+    hidePitchMemoryResponses();
+    getPitchMemoryResponse('frequency').hidden = false;
+    response.hidden = false;
 
     if (pitchMemory.trial.method === 'oscillator') {
         const random = seededRandom(pitchMemory.trial.seed ^ 0xa55a5aa5);
@@ -2145,7 +3089,7 @@ function showPitchMemoryResponse() {
         getControl('pitch-memory-frequency').disabled = false;
         getAction('play-pitch-memory-response').disabled = false;
         getAction('stop-pitch-memory-response').disabled = false;
-        getAction('submit-pitch-memory', oscillator).disabled = false;
+        getAction('submit-pitch-memory', response).disabled = false;
         setPitchMemoryStatus(
             'Adjust the tone to the frequency you remember, then submit.'
         );
@@ -2158,10 +3102,7 @@ function showPitchMemoryResponse() {
         );
         clearPitchMemoryFrequencyMarkers();
         getControl('pitch-memory-frequency').disabled = true;
-        getAction(
-            'submit-pitch-memory',
-            document.querySelector('.pitch-memory-microphone-response')
-        ).disabled = true;
+        getAction('submit-pitch-memory', response).disabled = true;
         setPitchMemoryStatus('Produce the remembered pitch, then submit.');
     }
 
@@ -2350,9 +3291,7 @@ function startPitchMemoryTrial() {
         stimulusPlayed: false,
     };
 
-    document.querySelector('.pitch-memory-oscillator-response').hidden = true;
-    document.querySelector('.pitch-memory-microphone-response').hidden = true;
-    document.querySelector('.pitch-memory-frequency-response').hidden = true;
+    hidePitchMemoryResponses();
     clearPitchMemoryFrequencyMarkers();
     getOutput('pitch-memory-result').textContent = '';
     setPitchMemoryReplayEnabled(true);
@@ -2382,9 +3321,7 @@ function cancelPitchMemoryTrial(showStatus = true) {
 
     startButton.disabled = true;
     getAction('stop-pitch-memory').disabled = true;
-    document.querySelector('.pitch-memory-oscillator-response').hidden = true;
-    document.querySelector('.pitch-memory-microphone-response').hidden = true;
-    document.querySelector('.pitch-memory-frequency-response').hidden = true;
+    hidePitchMemoryResponses();
 
     if (showStatus) {
         setPitchMemoryStatus('Trial cancelled.');
@@ -2406,12 +3343,7 @@ function stopPitchMemoryAudio() {
     if (pitchMemory.trial?.state !== 'complete') {
         pitchMemory.trial.state = 'stopped';
         getAction('stop-pitch-memory').disabled = true;
-        document.querySelector('.pitch-memory-oscillator-response').hidden =
-            true;
-        document.querySelector('.pitch-memory-microphone-response').hidden =
-            true;
-        document.querySelector('.pitch-memory-frequency-response').hidden =
-            true;
+        hidePitchMemoryResponses();
         setPitchMemoryStatus('Trial paused.');
         savePitchMemoryState();
     }
@@ -2419,7 +3351,7 @@ function stopPitchMemoryAudio() {
 
 function playPitchMemoryResponse() {
     if (
-        document.querySelector('.pitch-memory-oscillator-response').hidden ||
+        getPitchMemoryResponse('oscillator').hidden ||
         !pitchMemory.trial ||
         pitchMemory.trial.state !== 'responding'
     ) {
@@ -2507,12 +3439,12 @@ function submitPitchMemoryResponse() {
         getAction('stop-pitch-memory-response').disabled = true;
         getAction(
             'submit-pitch-memory',
-            document.querySelector('.pitch-memory-oscillator-response')
+            getPitchMemoryResponse('oscillator')
         ).disabled = true;
     } else {
         getAction(
             'submit-pitch-memory',
-            document.querySelector('.pitch-memory-microphone-response')
+            getPitchMemoryResponse('microphone')
         ).disabled = true;
     }
 
@@ -2528,8 +3460,9 @@ function submitPitchMemoryResponse() {
 function updatePitchMemoryControls() {
     const novel = getControl('pitch-memory-type').value === 'novel';
 
-    document.querySelector('.pitch-memory-novel-control').hidden = !novel;
-    document.querySelector('.pitch-memory-interference-control').hidden = novel;
+    document.querySelector('[data-pitch-memory-type="novel"]').hidden = !novel;
+    document.querySelector('[data-pitch-memory-type="interference"]').hidden =
+        novel;
     renderPitchStats();
 }
 
@@ -2558,7 +3491,11 @@ function updatePitchMode() {
     }
 
     stopPitchMemoryMic();
-    newPitchPlacementTrial();
+    if (mode === 'identification') {
+        newPitchIdentificationTrial();
+    } else {
+        newPitchPlacementTrial();
+    }
     renderPitchStats();
 }
 
@@ -2568,7 +3505,10 @@ function restorePitchMemoryTrial() {
     if (
         !trial ||
         !['novel', 'interference'].includes(trial.type) ||
-        !['waiting', 'responding'].includes(trial.state)
+        !['waiting', 'responding'].includes(trial.state) ||
+        !Number.isFinite(trial.targetHz) ||
+        trial.targetHz < PITCH_MEMORY_MIN_HZ ||
+        trial.targetHz > PITCH_MEMORY_MAX_HZ
     ) {
         pitchMemory.trial = null;
         storage.remove(PITCH_MEMORY_TRIAL_KEY);
@@ -2607,9 +3547,112 @@ function restorePitchMemoryTrial() {
     schedulePitchMemoryResponse();
 }
 
-// Pick target
+// Pitch: identification
 
-function defaultPickTypeStats() {
+const pitchIdentification = { trial: null };
+
+function renderPitchIdentificationAnswers(selected = null) {
+    const trial = pitchIdentification.trial;
+    const buttons = NOTE_NAMES.map((name, pitchClass) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'answer-option';
+        button.dataset.pitchIdentificationAnswer = String(pitchClass);
+        button.textContent = name;
+        button.disabled = !trial?.played || trial.committed;
+        setAnswerOptionState(button, pitchClass, selected, trial?.midi % 12);
+        return button;
+    });
+    document
+        .querySelector('[data-pitch-identification-answers]')
+        .replaceChildren(...buttons);
+}
+
+function newPitchIdentificationTrial(playImmediately = false) {
+    cancelPitchAdvance();
+    stopAllAudio();
+    const octaveValue = getControl('pitch-identification-octave').value;
+    const octave =
+        octaveValue === 'random'
+            ? 3 + Math.floor(Math.random() * 3)
+            : Number(octaveValue);
+    pitchIdentification.trial = {
+        midi: (octave + 1) * 12 + Math.floor(Math.random() * 12),
+        played: false,
+        committed: false,
+    };
+    clearPracticeResult('pitch-identification-result');
+    renderPitchIdentificationAnswers();
+    if (playImmediately) {
+        playPitchIdentificationTrial();
+    }
+}
+
+function playPitchIdentificationTrial() {
+    if (!pitchIdentification.trial) {
+        newPitchIdentificationTrial();
+    }
+    stopAllAudio();
+    const trial = pitchIdentification.trial;
+    audio.playTransient(
+        midiFrequency(trial.midi),
+        getWaveform('pitch-identification').value,
+        readNumber(getControl('pitch-identification-duration'), 1)
+    );
+    trial.played = true;
+    if (!trial.committed) {
+        renderPitchIdentificationAnswers();
+    }
+}
+
+function renderPitchIdentificationStats() {
+    const { streak, trials, correct, best } = stats.pitch.identification;
+    const accuracy = trials > 0 ? (correct / trials) * 100 : 0;
+    getOutput('pitch-identification-streak').textContent = String(streak);
+    getOutput('pitch-identification-accuracy').textContent =
+        `${accuracy.toFixed(0)}%`;
+    getOutput('pitch-identification-best').textContent =
+        best === null ? '--' : String(best);
+}
+
+function commitPitchIdentification(pitchClass) {
+    const trial = pitchIdentification.trial;
+    if (
+        !trial?.played ||
+        trial.committed ||
+        !Number.isInteger(pitchClass) ||
+        pitchClass < 0 ||
+        pitchClass >= NOTE_NAMES.length
+    ) {
+        return;
+    }
+    audio.stopTransient();
+    trial.committed = true;
+    const correct = pitchClass === trial.midi % 12;
+    const typeStats = stats.pitch.identification;
+    typeStats.trials += 1;
+    typeStats.correct += correct ? 1 : 0;
+    typeStats.streak = correct ? typeStats.streak + 1 : 0;
+    if (
+        correct &&
+        (typeStats.best === null || typeStats.streak > typeStats.best)
+    ) {
+        typeStats.best = typeStats.streak;
+    }
+    savePitchStats();
+    renderPitchIdentificationStats();
+    renderPitchIdentificationAnswers(pitchClass);
+    renderPracticeResult(
+        'pitch-identification-result',
+        correct,
+        midiToNoteName(trial.midi)
+    );
+    schedulePitchAdvance();
+}
+
+// Pick: target
+
+function defaultPickTargetStats() {
     return {
         streak: 0,
         trials: 0,
@@ -2621,13 +3664,13 @@ function defaultPickTypeStats() {
 
 function defaultPickStats() {
     return {
-        recognition: defaultPickTypeStats(),
+        target: defaultPickTargetStats(),
     };
 }
 
-function loadPickTypeStats(stored) {
+function loadPickTargetStats(stored) {
     if (!stored || typeof stored !== 'object' || Array.isArray(stored)) {
-        return defaultPickTypeStats();
+        return defaultPickTargetStats();
     }
 
     return {
@@ -2647,7 +3690,7 @@ function loadPickStats() {
     }
 
     return {
-        recognition: loadPickTypeStats(stored.recognition),
+        target: loadPickTargetStats(stored.target ?? stored.recognition),
     };
 }
 
@@ -2658,20 +3701,23 @@ function savePickStats() {
 stats.pick = loadPickStats();
 
 const pick = {
-    candidates: [],
+    answers: [],
     committed: false,
-    selectedIndex: null,
+    selectedAnswerIndex: null,
     adaptiveResults: [],
 };
 
-const pickAdvance = createAutoAdvance('.pick-refresh', newPickSet);
+const pickTargetAdvance = createAutoAdvance(
+    '[data-action="new-pick"]',
+    newPickTargetTrial
+);
 
 function cancelPickAdvance() {
-    pickAdvance.cancel();
+    pickTargetAdvance.cancel();
 }
 
 function schedulePickAdvance() {
-    pickAdvance.schedule();
+    pickTargetAdvance.schedule();
 }
 
 function shuffle(items) {
@@ -2707,7 +3753,7 @@ function spreadMagnitudes(count, minimum, maximum) {
     });
 }
 
-function candidateOffsets(count, minimum, maximum) {
+function pickTargetAnswerOffsets(count, minimum, maximum) {
     const nonTargetCount = count - 1;
 
     let negativeCount = Math.floor(nonTargetCount / 2);
@@ -2716,7 +3762,7 @@ function candidateOffsets(count, minimum, maximum) {
 
     /*
      * When there's an odd number of
-     * non-target candidates, randomly
+     * non-target answers, randomly
      * choose which side gets the extra.
      */
     if (Math.random() < 0.5) {
@@ -2734,7 +3780,7 @@ function candidateOffsets(count, minimum, maximum) {
     return [0, ...negativeOffsets, ...positiveOffsets];
 }
 
-function newPickSet() {
+function newPickTargetTrial() {
     cancelPickAdvance();
     stopAllAudio();
 
@@ -2749,80 +3795,73 @@ function newPickSet() {
 
     const count = Math.round(readNumber(getControl('pick-count'), 7));
 
-    pick.candidates = shuffle(
-        candidateOffsets(count, minimumCents, maximumCents).map((cents) => ({
-            cents,
+    pick.answers = shuffle(
+        pickTargetAnswerOffsets(count, minimumCents, maximumCents).map(
+            (cents) => ({
+                cents,
 
-            frequencyHz: frequencyFromCents(targetHz, cents),
+                frequencyHz: frequencyFromCents(targetHz, cents),
 
-            isTarget: Math.abs(cents) < 0.000001,
+                isTarget: Math.abs(cents) < 0.000001,
 
-            played: false,
-        }))
+                played: false,
+            })
+        )
     );
 
     pick.committed = false;
-    pick.selectedIndex = null;
+    pick.selectedAnswerIndex = null;
 
     getOutput('pick-status').textContent = '';
 
-    renderCandidates();
+    renderPickTargetAnswers();
 }
 
-function getCandidateResult(candidate, index) {
+function getPickTargetAnswerResult(index) {
     if (!pick.committed) {
         return null;
     }
 
-    if (candidate.isTarget && index === pick.selectedIndex) {
-        return {
-            icon: '✓',
-            className: 'is-correct',
-        };
-    }
-
-    if (index === pick.selectedIndex) {
-        return {
-            icon: '✕',
-            className: 'is-incorrect',
-        };
-    }
-
-    if (candidate.isTarget) {
-        return {
-            icon: '◎',
-            className: 'is-target',
-        };
-    }
+    const targetIndex = pick.answers.findIndex((answer) => answer.isTarget);
+    const className = answerStateClass(
+        index,
+        pick.selectedAnswerIndex,
+        targetIndex
+    );
 
     return {
-        icon: '',
-        className: '',
+        icon:
+            {
+                'is-correct': '✓',
+                'is-incorrect': '✕',
+                'is-target': '◎',
+            }[className] ?? '',
+        className,
     };
 }
 
-function createCandidateRow(candidate, index) {
+function createPickTargetAnswerRow(answer, index) {
     const row = document.createElement('div');
 
-    row.className = 'pick-target-candidate-row';
+    row.className = 'practice-row';
 
-    row.dataset.index = String(index);
+    row.dataset.pickTargetAnswer = String(index);
 
-    const actions = document.createElement('div');
+    const buttons = document.createElement('div');
 
-    actions.className = 'pick-target-candidate-actions';
+    buttons.className = 'button-row';
 
     const playButton = document.createElement('button');
 
     playButton.type = 'button';
 
-    playButton.className = 'icon-button pick-target-candidate-play';
+    playButton.className = 'icon-button answer-play';
 
-    playButton.dataset.action = 'play-candidate';
+    playButton.dataset.action = 'play-pick-answer';
 
-    playButton.setAttribute('aria-label', `Play candidate ${index + 1}`);
+    playButton.setAttribute('aria-label', `Play answer ${index + 1}`);
 
-    playButton.title = `Play candidate ${index + 1}`;
+    playButton.title = `Play answer ${index + 1}`;
 
     playButton.textContent = '▶';
 
@@ -2830,36 +3869,37 @@ function createCandidateRow(candidate, index) {
 
     chooseButton.type = 'button';
 
-    chooseButton.className = 'pick-target-candidate-choose';
+    chooseButton.className = 'answer-option answer-select';
 
-    chooseButton.dataset.action = 'choose-candidate';
+    chooseButton.dataset.action = 'select-pick-answer';
 
     chooseButton.textContent = `Choose #${index + 1}`;
 
-    chooseButton.disabled = pick.committed || !candidate.played;
+    chooseButton.disabled = pick.committed || !answer.played;
 
-    actions.append(playButton, chooseButton);
+    buttons.append(playButton, chooseButton);
 
-    row.append(actions);
+    row.append(buttons);
 
-    const result = getCandidateResult(candidate, index);
+    const result = getPickTargetAnswerResult(index);
 
     if (!result) {
         return row;
     }
 
-    if (result.className) {
-        row.classList.add(result.className);
-    }
-
     const details = document.createElement('span');
 
-    details.className = 'pick-target-candidate-details';
+    details.className = 'practice-result';
+
+    if (result.className) {
+        chooseButton.classList.add(result.className);
+        details.classList.add(result.className);
+    }
 
     if (result.icon) {
         const icon = document.createElement('span');
 
-        icon.className = 'pick-target-candidate-result-icon';
+        icon.className = 'result-icon';
 
         icon.textContent = result.icon;
 
@@ -2868,8 +3908,8 @@ function createCandidateRow(candidate, index) {
 
     details.append(
         document.createTextNode(
-            `${candidate.frequencyHz.toFixed(3)} Hz, ` +
-                `${signed(candidate.cents, 2)} cents`
+            `${answer.frequencyHz.toFixed(3)} Hz, ` +
+                `${signed(answer.cents, 2)} cents`
         )
     );
 
@@ -2878,27 +3918,27 @@ function createCandidateRow(candidate, index) {
     return row;
 }
 
-function renderCandidates() {
-    const rows = pick.candidates.map(createCandidateRow);
+function renderPickTargetAnswers() {
+    const rows = pick.answers.map(createPickTargetAnswerRow);
 
     document
-        .querySelector('.pick-target-candidate-list')
+        .querySelector('[data-pick-target-answers]')
         .replaceChildren(...rows);
 }
 
-function playCandidate(index) {
-    const candidate = pick.candidates[index];
+function playPickTargetAnswer(index) {
+    const answer = pick.answers[index];
 
-    if (!candidate) {
+    if (!answer) {
         return;
     }
 
     stopAllAudio();
 
-    candidate.played = true;
+    answer.played = true;
 
     audio.playTransient(
-        candidate.frequencyHz,
+        answer.frequencyHz,
 
         getWaveform('pick').value,
 
@@ -2909,19 +3949,17 @@ function playCandidate(index) {
         return;
     }
 
-    const row = document.querySelector(
-        `.pick-target-candidate-row[data-index="${index}"]`
-    );
+    const row = document.querySelector(`[data-pick-target-answer="${index}"]`);
 
-    const chooseButton = row ? getAction('choose-candidate', row) : null;
+    const chooseButton = row ? getAction('select-pick-answer', row) : null;
 
     if (chooseButton) {
         chooseButton.disabled = false;
     }
 }
 
-function renderPickStats() {
-    const { streak, trials, errorTotal, best } = stats.pick.recognition;
+function renderPickTargetStats() {
+    const { streak, trials, errorTotal, best } = stats.pick.target;
     const meanError = trials > 0 ? errorTotal / trials : 0;
 
     getOutput('pick-streak').textContent = String(streak);
@@ -2931,22 +3969,22 @@ function renderPickStats() {
     getOutput('pick-best').textContent = best === null ? '--' : String(best);
 }
 
-function clearPickStats() {
-    stats.pick.recognition = defaultPickTypeStats();
+function clearPickTargetStats() {
+    stats.pick.target = defaultPickTargetStats();
 
     clearStats('pick');
 
-    renderPickStats();
+    renderPickTargetStats();
 }
 
-function commitPick(index) {
+function commitPickTargetAnswer(index) {
     if (pick.committed) {
         return;
     }
 
-    const selected = pick.candidates[index];
+    const selected = pick.answers[index];
 
-    const target = pick.candidates.find((candidate) => candidate.isTarget);
+    const target = pick.answers.find((answer) => answer.isTarget);
 
     if (!selected || !target) {
         return;
@@ -2955,44 +3993,42 @@ function commitPick(index) {
     audio.stopTransient();
 
     pick.committed = true;
-    pick.selectedIndex = index;
+    pick.selectedAnswerIndex = index;
 
     const correct = selected.isTarget;
     const errorCents = Math.abs(
         centsBetween(selected.frequencyHz, target.frequencyHz)
     );
 
-    stats.pick.recognition.trials += 1;
-    stats.pick.recognition.correct += correct ? 1 : 0;
-    stats.pick.recognition.errorTotal += errorCents;
-    stats.pick.recognition.streak = correct
-        ? stats.pick.recognition.streak + 1
-        : 0;
+    stats.pick.target.trials += 1;
+    stats.pick.target.correct += correct ? 1 : 0;
+    stats.pick.target.errorTotal += errorCents;
+    stats.pick.target.streak = correct ? stats.pick.target.streak + 1 : 0;
 
     if (
         correct &&
-        (stats.pick.recognition.best === null ||
-            stats.pick.recognition.streak > stats.pick.recognition.best)
+        (stats.pick.target.best === null ||
+            stats.pick.target.streak > stats.pick.target.best)
     ) {
-        stats.pick.recognition.best = stats.pick.recognition.streak;
+        stats.pick.target.best = stats.pick.target.streak;
     }
 
     savePickStats();
 
-    renderCandidates();
-    renderPickStats();
+    renderPickTargetAnswers();
+    renderPickTargetStats();
     updateAdaptiveDifficulty('pick', correct);
 
-    const targetIndex = pick.candidates.indexOf(target);
+    const targetIndex = pick.answers.indexOf(target);
     const status = getOutput('pick-status');
     const newPickButton = getAction('new-pick');
 
     newPickButton?.focus();
 
     status.textContent = selected.isTarget
-        ? `Correct. Candidate ${index + 1} matched the target.`
-        : `Incorrect. Candidate ${index + 1} selected; ` +
-          `candidate ${targetIndex + 1} was the target.`;
+        ? `Correct. Answer ${index + 1} matched the target.`
+        : `Incorrect. Answer ${index + 1} selected; ` +
+          `answer ${targetIndex + 1} was the target.`;
 
     schedulePickAdvance();
 }
@@ -3051,9 +4087,12 @@ const interval = {
     trial: null,
 };
 
-const intervalAdvance = createAutoAdvance('.interval-refresh', () => {
-    newIntervalTrial(true);
-});
+const intervalAdvance = createAutoAdvance(
+    '[data-action="new-interval"]',
+    () => {
+        newIntervalTrial(true);
+    }
+);
 
 function cancelIntervalAdvance() {
     intervalAdvance.cancel();
@@ -3123,15 +4162,12 @@ function renderIntervalAnswers(selected = null, enabled = false) {
         );
         button.disabled = interval.trial?.committed || !enabled;
 
-        if (selected !== null) {
-            if (answer.semitones === interval.trial.semitones) {
-                button.classList.add(
-                    answer.semitones === selected ? 'is-correct' : 'is-target'
-                );
-            } else if (answer.semitones === selected) {
-                button.classList.add('is-incorrect');
-            }
-        }
+        setAnswerOptionState(
+            button,
+            answer.semitones,
+            selected,
+            interval.trial.semitones
+        );
 
         return button;
     });
@@ -3148,7 +4184,7 @@ function renderIntervalAnswers(selected = null, enabled = false) {
                 ? ''
                 : ` ${interval.trial.direction > 0 ? 'ascending' : 'descending'}`;
 
-        prompt.className = 'interval-prompt';
+        prompt.className = 'answer-prompt';
         prompt.replaceChildren(
             document.createTextNode(
                 `Start: ${midiToNoteName(interval.trial.rootMidi)}.`
@@ -3301,7 +4337,7 @@ function commitInterval(semitones) {
 
     const playedNotes = document.createElement('div');
 
-    playedNotes.className = 'interval-played-notes';
+    playedNotes.className = 'played-notes';
     playedNotes.textContent =
         `${midiToNoteName(trial.rootMidi)} → ` +
         midiToNoteName(trial.targetMidi);
@@ -3310,9 +4346,9 @@ function commitInterval(semitones) {
     scheduleIntervalAdvance();
 }
 
-// Chord quality
+// Chords: quality
 
-function defaultChordTypeStats() {
+function defaultChordQualityStats() {
     return {
         streak: 0,
         trials: 0,
@@ -3323,13 +4359,13 @@ function defaultChordTypeStats() {
 
 function defaultChordStats() {
     return {
-        recognition: defaultChordTypeStats(),
+        quality: defaultChordQualityStats(),
     };
 }
 
-function loadChordTypeStats(stored) {
+function loadChordQualityStats(stored) {
     if (!stored || typeof stored !== 'object') {
-        return defaultChordTypeStats();
+        return defaultChordQualityStats();
     }
 
     return {
@@ -3348,7 +4384,7 @@ function loadChordStats() {
     }
 
     return {
-        recognition: loadChordTypeStats(stored.recognition),
+        quality: loadChordQualityStats(stored.quality ?? stored.recognition),
     };
 }
 
@@ -3365,8 +4401,8 @@ const chord = {
     playedNotes: [],
 };
 
-const chordAdvance = createAutoAdvance('.chord-refresh', () => {
-    newChordTrial(true);
+const chordAdvance = createAutoAdvance('[data-action="new-chord"]', () => {
+    newChordQualityTrial(true);
 });
 
 function cancelChordAdvance() {
@@ -3377,7 +4413,7 @@ function scheduleChordAdvance() {
     chordAdvance.schedule();
 }
 
-function renderChordAnswers(selected = null, answersEnabled = false) {
+function renderChordQualityAnswers(selected = null, answersEnabled = false) {
     const buttons = Object.keys(CHORD_QUALITIES).map((quality) => {
         const button = document.createElement('button');
 
@@ -3387,15 +4423,7 @@ function renderChordAnswers(selected = null, answersEnabled = false) {
         button.textContent = quality[0].toUpperCase() + quality.slice(1);
         button.disabled = chord.committed || !answersEnabled;
 
-        if (selected !== null) {
-            if (quality === chord.quality) {
-                button.classList.add(
-                    quality === selected ? 'is-correct' : 'is-target'
-                );
-            } else if (quality === selected) {
-                button.classList.add('is-incorrect');
-            }
-        }
+        setAnswerOptionState(button, quality, selected, chord.quality);
 
         return button;
     });
@@ -3403,11 +4431,11 @@ function renderChordAnswers(selected = null, answersEnabled = false) {
     document.querySelector('[data-chord-answers]').replaceChildren(...buttons);
 }
 
-function clearChordResult() {
+function clearChordQualityResult() {
     clearPracticeResult('chord-result');
 }
 
-function newChordTrial(playImmediately = false) {
+function newChordQualityTrial(playImmediately = false) {
     cancelChordAdvance();
     stopAllAudio();
 
@@ -3418,17 +4446,17 @@ function newChordTrial(playImmediately = false) {
     chord.committed = false;
     chord.playedNotes = [];
 
-    clearChordResult();
-    renderChordAnswers();
+    clearChordQualityResult();
+    renderChordQualityAnswers();
 
     if (playImmediately) {
-        playChordTrial();
+        playChordQualityTrial();
     }
 }
 
-function playChordTrial() {
+function playChordQualityTrial() {
     if (!chord.quality) {
-        newChordTrial();
+        newChordQualityTrial();
 
         if (!chord.quality) {
             return;
@@ -3461,12 +4489,12 @@ function playChordTrial() {
     });
 
     if (!chord.committed) {
-        renderChordAnswers(null, true);
+        renderChordQualityAnswers(null, true);
     }
 }
 
-function renderChordStats() {
-    const { streak, trials, correct, best } = stats.chord.recognition;
+function renderChordQualityStats() {
+    const { streak, trials, correct, best } = stats.chord.quality;
 
     const accuracy = trials > 0 ? (correct / trials) * 100 : 0;
 
@@ -3477,15 +4505,15 @@ function renderChordStats() {
     getOutput('chord-best').textContent = best === null ? '--' : String(best);
 }
 
-function clearChordStats() {
-    stats.chord.recognition = defaultChordTypeStats();
+function clearChordQualityStats() {
+    stats.chord.quality = defaultChordQualityStats();
 
     clearStats('chord');
 
-    renderChordStats();
+    renderChordQualityStats();
 }
 
-function commitChord(quality) {
+function commitChordQuality(quality) {
     if (chord.committed || !CHORD_QUALITIES[quality]) {
         return;
     }
@@ -3495,23 +4523,21 @@ function commitChord(quality) {
 
     const correct = quality === chord.quality;
 
-    stats.chord.recognition.trials += 1;
-    stats.chord.recognition.correct += correct ? 1 : 0;
-    stats.chord.recognition.streak = correct
-        ? stats.chord.recognition.streak + 1
-        : 0;
+    stats.chord.quality.trials += 1;
+    stats.chord.quality.correct += correct ? 1 : 0;
+    stats.chord.quality.streak = correct ? stats.chord.quality.streak + 1 : 0;
 
     if (
         correct &&
-        (stats.chord.recognition.best === null ||
-            stats.chord.recognition.streak > stats.chord.recognition.best)
+        (stats.chord.quality.best === null ||
+            stats.chord.quality.streak > stats.chord.quality.best)
     ) {
-        stats.chord.recognition.best = stats.chord.recognition.streak;
+        stats.chord.quality.best = stats.chord.quality.streak;
     }
 
     saveChordStats();
-    renderChordStats();
-    renderChordAnswers(quality, true);
+    renderChordQualityStats();
+    renderChordQualityAnswers(quality, true);
 
     renderPracticeResult(
         'chord-result',
@@ -3521,7 +4547,7 @@ function commitChord(quality) {
 
     const playedNotes = document.createElement('div');
 
-    playedNotes.className = 'chord-played-notes';
+    playedNotes.className = 'played-notes';
     playedNotes.textContent = `Notes: ${chord.playedNotes
         .map(midiToNoteName)
         .join(', ')}`;
@@ -3541,9 +4567,14 @@ function resetForReferenceChange() {
 
     updateNoteReadouts();
 
+    if (tunerTargetMidi !== null) {
+        renderTunerString();
+    }
+
     newPitchPlacementTrial();
-    newPickSet();
+    newPickTargetTrial();
     newIntervalTrial();
+    newPitchIdentificationTrial();
 }
 
 function initializeEvents() {
@@ -3559,23 +4590,143 @@ function initializeEvents() {
 
     getNote('tuner').addEventListener('change', (event) => {
         updateNoteReadout(event.currentTarget);
+        if (tunerTargetMidi !== null) {
+            stopTuner();
+            clearTunerTarget();
+        }
 
         if (tunerVoice) {
             tunerVoice.setFrequency(selectedNoteFrequency(event.currentTarget));
         }
     });
 
-    getControl('metronome-time-signature').addEventListener('change', () => {
-        metronome.beatIndex = 0;
-
-        if (metronome.running) {
-            audio.stopTransient();
-            metronome.nextBeatTime = audio.currentTime() + 0.05;
+    for (const control of getControls(
+        'rhythm-time-signature',
+        'rhythm-bars',
+        'rhythm-note-values'
+    )) {
+        control.addEventListener('change', () => {
+            if (rhythmReadingEnabled()) {
+                const wasRunning = rhythm.running;
+                newRhythmPhrase();
+                if (wasRunning) {
+                    startRhythm();
+                }
+            } else {
+                restartRhythm();
+            }
+        });
+    }
+    getControl('rhythm-bpm').addEventListener('change', restartRhythm);
+    getControl('rhythm-mode').addEventListener('change', () => {
+        updateModeHash('rhythm');
+        updateRhythmMode();
+    });
+    const rhythmHold = document.getElementById('rhythm-hold');
+    getAction('new-rhythm').addEventListener('click', () => {
+        newRhythmPhrase();
+        startRhythm();
+    });
+    const rhythmLane = document.getElementById('rhythm-score');
+    for (const target of [rhythmHold, rhythmLane]) {
+        target.addEventListener('pointerdown', (event) => {
+            if (
+                event.button !== 0 ||
+                event.pointerType !== 'mouse' ||
+                !event.isPrimary ||
+                !rhythmReading.active
+            ) {
+                return;
+            }
+            event.preventDefault();
+            target.setPointerCapture(event.pointerId);
+            pressRhythm(event.pointerId);
+        });
+        target.addEventListener('pointerup', (event) => {
+            releaseRhythm(event.pointerId);
+        });
+        target.addEventListener('pointercancel', (event) => {
+            if (
+                rhythmReading.active &&
+                rhythmReading.input === event.pointerId
+            ) {
+                stopGeneratedAudio();
+            }
+        });
+        target.addEventListener('lostpointercapture', (event) => {
+            releaseRhythm(event.pointerId);
+        });
+    }
+    document.addEventListener('keydown', (event) => {
+        if (
+            event.code !== 'Space' ||
+            !rhythmReadingEnabled() ||
+            !rhythmReading.active ||
+            document.getElementById('panel-rhythm').hidden ||
+            event.target.closest(
+                'input, select, textarea, [contenteditable="true"]'
+            ) ||
+            (event.target.closest('button, a') && event.target !== rhythmHold)
+        ) {
+            return;
+        }
+        event.preventDefault();
+        if (!event.repeat) {
+            pressRhythm('keyboard');
+        }
+    });
+    document.addEventListener('keyup', (event) => {
+        if (event.code === 'Space' && rhythmReading.input === 'keyboard') {
+            event.preventDefault();
+            releaseRhythm('keyboard');
+        }
+    });
+    window.addEventListener('blur', () => {
+        if (rhythmReading.active) {
+            stopGeneratedAudio();
+        }
+    });
+    const rhythmTimingTap = document.getElementById('rhythm-timing-tap');
+    rhythmTimingTap.addEventListener('pointerdown', (event) => {
+        if (event.button !== 0 || !event.isPrimary) {
+            return;
+        }
+        event.preventDefault();
+        recordRhythmTimingTap();
+    });
+    rhythmTimingTap.addEventListener('click', (event) => {
+        if (event.detail === 0) {
+            recordRhythmTimingTap();
+        }
+    });
+    document.addEventListener('keydown', (event) => {
+        if (
+            event.code !== 'Space' ||
+            !rhythmTimingEnabled() ||
+            !rhythm.running ||
+            document.getElementById('panel-rhythm').hidden ||
+            event.target.closest(
+                'input, select, textarea, [contenteditable="true"]'
+            ) ||
+            (event.target.closest('button, a') &&
+                event.target !== rhythmTimingTap)
+        ) {
+            return;
+        }
+        event.preventDefault();
+        if (!event.repeat) {
+            recordRhythmTimingTap();
+        }
+    });
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden && rhythm.running) {
+            stopGeneratedAudio();
         }
     });
 
-    getAction('play-metronome').addEventListener('click', startMetronome);
-
+    for (const button of getActions('play-rhythm')) {
+        button.addEventListener('click', startRhythm);
+    }
     getAction('tap-tempo').addEventListener('click', tapTempo);
 
     getNote('pitch').addEventListener('change', (event) => {
@@ -3587,7 +4738,7 @@ function initializeEvents() {
     getNote('pick').addEventListener('change', (event) => {
         updateNoteReadout(event.currentTarget);
 
-        newPickSet();
+        newPickTargetTrial();
     });
 
     for (const control of getControls('interval-level', 'interval-direction')) {
@@ -3614,7 +4765,7 @@ function initializeEvents() {
     )) {
         control.addEventListener('change', () => {
             resetAdaptiveProgress('pick');
-            newPickSet();
+            newPickTargetTrial();
         });
     }
 
@@ -3652,17 +4803,62 @@ function initializeEvents() {
         resetForReferenceChange();
     });
 
+    getControl('tuner-instrument').addEventListener(
+        'change',
+        updateTunerInstrument
+    );
+    getControl('tuner-variation').addEventListener(
+        'change',
+        updateTunerStrings
+    );
+
     getAction('play-tuner').addEventListener('click', playTuner);
 
     getAction('toggle-tuner-mic').addEventListener('click', toggleMicTuner);
 
-    getAction('play-pitch').addEventListener('click', playPitchPlacementTrial);
-
-    getAction('new-pitch').addEventListener('click', () => {
-        newPitchPlacementTrial(true);
+    getControl('pitch-identification-octave').addEventListener('change', () => {
+        newPitchIdentificationTrial();
     });
+    getControl('pitch-identification-duration').addEventListener(
+        'change',
+        (event) => {
+            normalizeNumberInput(event.currentTarget, 1);
+        }
+    );
+    document
+        .querySelector('[data-pitch-identification-answers]')
+        .addEventListener('click', (event) => {
+            const button = event.target.closest(
+                'button[data-pitch-identification-answer]'
+            );
+            if (button && !button.disabled) {
+                commitPitchIdentification(
+                    Number(button.dataset.pitchIdentificationAnswer)
+                );
+            }
+        });
 
-    getAction('new-pick').addEventListener('click', newPickSet);
+    for (const button of getActions('play-pitch')) {
+        button.addEventListener('click', () => {
+            if (getControl('pitch-mode').value === 'identification') {
+                playPitchIdentificationTrial();
+            } else {
+                playPitchPlacementTrial();
+            }
+        });
+    }
+
+    for (const button of getActions('new-pitch')) {
+        button.addEventListener('click', () => {
+            if (getControl('pitch-mode').value === 'identification') {
+                newPitchIdentificationTrial(true);
+            } else {
+                newPitchPlacementTrial(true);
+            }
+        });
+    }
+
+    getAction('new-pick').addEventListener('click', newPickTargetTrial);
 
     getAction('play-interval').addEventListener('click', playIntervalTrial);
 
@@ -3670,10 +4866,10 @@ function initializeEvents() {
         newIntervalTrial(true);
     });
 
-    getAction('play-chord').addEventListener('click', playChordTrial);
+    getAction('play-chord').addEventListener('click', playChordQualityTrial);
 
     getAction('new-chord').addEventListener('click', () => {
-        newChordTrial(true);
+        newChordQualityTrial(true);
     });
 
     document
@@ -3692,7 +4888,7 @@ function initializeEvents() {
             const button = event.target.closest('[data-chord-answer]');
 
             if (button) {
-                commitChord(button.dataset.chordAnswer);
+                commitChordQuality(button.dataset.chordAnswer);
             }
         });
 
@@ -3756,7 +4952,7 @@ function initializeEvents() {
     }
 
     for (const button of document.querySelectorAll(
-        '.pitch-judgment .answer-option'
+        '[data-pitch-placement-answers] [data-answer]'
     )) {
         button.addEventListener('click', () => {
             commitPitchPlacement(button.dataset.answer);
@@ -3773,30 +4969,30 @@ function initializeEvents() {
         });
     }
 
-    for (const waveform of document.querySelectorAll('.waveform-select')) {
+    for (const waveform of document.querySelectorAll('[data-waveform]')) {
         waveform.addEventListener('change', stopGeneratedAudio);
     }
 
     document
-        .querySelector('.pick-target-candidate-list')
+        .querySelector('[data-pick-target-answers]')
         .addEventListener('click', (event) => {
             const button = event.target.closest('button[data-action]');
 
-            const row = button?.closest('.pick-target-candidate-row');
+            const row = button?.closest('[data-pick-target-answer]');
 
             if (!button || !row) {
                 return;
             }
 
-            const index = Number(row.dataset.index);
+            const index = Number(row.dataset.pickTargetAnswer);
 
-            if (button.dataset.action === 'play-candidate') {
-                playCandidate(index);
+            if (button.dataset.action === 'play-pick-answer') {
+                playPickTargetAnswer(index);
                 return;
             }
 
-            if (button.dataset.action === 'choose-candidate') {
-                commitPick(index);
+            if (button.dataset.action === 'select-pick-answer') {
+                commitPickTargetAnswer(index);
             }
         });
 
@@ -3804,22 +5000,31 @@ function initializeEvents() {
         button.addEventListener('click', clearPitchStats);
     }
 
-    getAction('clear-pick-stats').addEventListener('click', clearPickStats);
+    getAction('clear-pick-stats').addEventListener(
+        'click',
+        clearPickTargetStats
+    );
 
     for (const button of getActions('clear-interval-stats')) {
         button.addEventListener('click', clearIntervalStats);
     }
 
-    getAction('clear-chord-stats').addEventListener('click', clearChordStats);
+    getAction('clear-chord-stats').addEventListener(
+        'click',
+        clearChordQualityStats
+    );
 }
 
 // Initialization
 
 function initialize() {
+    initializePitchMemoryFrequencySlider();
     initializeModePanels('pitch');
     initializeTooltips();
     initializeNotes();
+    initializeTunerInstruments();
     initializeEvents();
+    updateRhythmMode();
     updateNoteReadouts();
     initializeTabs();
 
@@ -3829,12 +5034,12 @@ function initialize() {
     renderPitchStats();
     updatePitchMode();
 
-    newPickSet();
+    newPickTargetTrial();
     updateIntervalMode();
-    newChordTrial();
+    newChordQualityTrial();
 
-    renderPickStats();
-    renderChordStats();
+    renderPickTargetStats();
+    renderChordQualityStats();
     restorePitchMemoryTrial();
     renderPitchMemoryResponseFrequency();
 }
