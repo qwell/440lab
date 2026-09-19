@@ -8,7 +8,7 @@
         <meta name="robots" content="index,follow" />
         <meta
             name="description"
-            content="Free online tuner, metronome, timing practice, rhythm and sheet-music reading, reference tones, and ear training for pitch, intervals, and chords."
+            content="Free online tuner, metronome, timing and rhythm-reading practice, reference tones, and ear training for absolute pitch, intonation, intervals, and chords."
         />
         <link rel="canonical" href="https://440lab.com/" />
 
@@ -21,7 +21,7 @@
         />
         <meta
             property="og:description"
-            content="Free tools for tuning, metronome practice, rhythm reading with sheet music, and pitch, interval, and chord ear training."
+            content="Free tools for tuning, metronome and rhythm practice, and ear training for absolute pitch, intonation, intervals, and chords."
         />
         <meta property="og:url" content="https://440lab.com/" />
         <meta property="og:type" content="website" />
@@ -104,19 +104,19 @@
                         "@id": "https://440lab.com/#website",
                         "url": "https://440lab.com/",
                         "name": "440 Lab",
-                        "description": "Free online tuner, metronome, timing practice, rhythm and sheet-music reading, reference tones, and ear training for pitch, intervals, and chords.",
+                        "description": "Free online tuner, metronome, timing and rhythm-reading practice, reference tones, and ear training for absolute pitch, intonation, intervals, and chords.",
                         "publisher": {
                             "@id": "https://440lab.com/#jeltz"
                         },
                         "datePublished": "2026-08-25",
-                        "dateModified": "2026-09-16"
+                        "dateModified": "2026-09-19"
                     },
                     {
                         "@type": "WebPage",
                         "@id": "https://440lab.com/#webpage",
                         "url": "https://440lab.com/",
                         "name": "440 Lab",
-                        "description": "Free online tuner, metronome, timing practice, rhythm and sheet-music reading, reference tones, and ear training for pitch, intervals, and chords.",
+                        "description": "Free online tuner, metronome, timing and rhythm-reading practice, reference tones, and ear training for absolute pitch, intonation, intervals, and chords.",
                         "isPartOf": {
                             "@id": "https://440lab.com/#website"
                         },
@@ -150,7 +150,7 @@
                             "@id": "https://440lab.com/#jeltz"
                         },
                         "datePublished": "2026-08-25",
-                        "dateModified": "2026-09-16"
+                        "dateModified": "2026-09-19"
                     },
                     {
                         "@type": "WebPageElement",
@@ -183,7 +183,7 @@
                         "@type": "WebPageElement",
                         "@id": "https://440lab.com/#pitch",
                         "name": "Pitch",
-                        "description": "Ear-training exercises for pitch placement and absolute-frequency memory.",
+                        "description": "Ear-training exercises for pitch placement, chromatic note identification without a reference, and absolute-frequency memory.",
                         "isPartOf": {
                             "@id": "https://440lab.com/#webpage"
                         }
@@ -220,7 +220,7 @@
                         "@id": "https://440lab.com/#app",
                         "url": "https://440lab.com/",
                         "name": "440 Lab",
-                        "description": "Free online tuner, metronome, timing practice, rhythm and sheet-music reading, reference tones, and ear training for pitch, intervals, and chords.",
+                        "description": "Free online tuner, metronome, timing and rhythm-reading practice, reference tones, and ear training for absolute pitch, intonation, intervals, and chords.",
                         "softwareVersion": "1.1.5",
                         "mainEntityOfPage": {
                             "@id": "https://440lab.com/#webpage"
@@ -265,15 +265,20 @@
                             {
                                 "@type": "DefinedTerm",
                                 "name": "Absolute pitch memory"
+                            },
+                            {
+                                "@type": "DefinedTerm",
+                                "name": "Absolute pitch"
                             }
                         ],
                         "inLanguage": "en",
                         "applicationCategory": "EducationalApplication",
-                        "applicationSubCategory": "Music tuner, metronome, rhythm reading, timing practice, pitch and interval training, chord ear training, and pitch-memory testing",
+                        "applicationSubCategory": "Music tuner, metronome, rhythm reading, timing practice, absolute-pitch identification, pitch and interval training, chord ear training, and pitch-memory testing",
                         "learningResourceType": "Interactive music training application",
                         "teaches": [
                             "Pitch matching",
                             "Pitch discrimination",
+                            "Identifying chromatic note names without a reference",
                             "Recognizing flat and sharp intonation",
                             "Intonation",
                             "Relative pitch",
@@ -288,6 +293,7 @@
                         "assesses": [
                             "Pitch discrimination",
                             "Recognizing flat and sharp intonation",
+                            "Absolute-pitch note identification",
                             "Target-pitch identification",
                             "Intonation accuracy",
                             "Rhythm attack and release timing",
@@ -338,7 +344,7 @@
                         "runtimePlatform": "Web browser",
                         "browserRequirements": "Requires a modern web browser with Web Audio API support. Microphone tuning and vocal pitch-memory responses require MediaDevices support and microphone permission.",
                         "datePublished": "2026-08-25",
-                        "dateModified": "2026-09-16",
+                        "dateModified": "2026-09-19",
                         "screenshot": [
                             {
                                 "@type": "ImageObject",
@@ -398,6 +404,8 @@
                             "intonation training",
                             "pitch placement",
                             "relative pitch",
+                            "absolute pitch",
+                            "note identification",
                             "musical intervals",
                             "chord ear training",
                             "chord quality",
@@ -430,6 +438,7 @@
                             "Reference-tone playback",
                             "Rhythm: metronome, timing practice, and generated sheet-music reading with note durations and timing feedback",
                             "Flat and sharp pitch ear training",
+                            "Absolute-pitch note-identification exercises without a reference",
                             "Target-pitch identification exercises",
                             "Melodic interval ear training",
                             "Major, minor, diminished, and augmented chord-quality identification",
@@ -457,7 +466,7 @@
                         "codeRepository": "https://github.com/qwell/440-lab",
                         "programmingLanguage": ["JavaScript", "HTML", "CSS"],
                         "datePublished": "2026-08-25",
-                        "dateModified": "2026-09-16",
+                        "dateModified": "2026-09-19",
                         "license": "https://spdx.org/licenses/GPL-3.0-or-later.html",
                         "author": {
                             "@id": "https://440lab.com/#jason-parker"
@@ -679,11 +688,11 @@
                     <h4>Pitch and intonation ear training</h4>
                     <p>
                         Practice hearing small differences in pitch and
-                        recognizing whether a note is sharp or flat, or learn to
-                        identify the distance between two notes. The exercises
-                        are intended to develop pitch discrimination, interval
-                        recognition, and a more accurate sense of intonation
-                        without requiring perfect pitch.
+                        recognizing whether a note is sharp or flat, identifying
+                        a chromatic note without a reference, or identifying the
+                        distance between two notes. The exercises develop pitch
+                        discrimination, absolute and relative pitch recognition,
+                        and a more accurate sense of intonation.
                     </p>
 
                     <h4>Metronome and rhythm practice</h4>
@@ -1354,6 +1363,11 @@
                     whether the target landed flat or sharp.
                 </h3>
 
+                <h3 class="blurb" data-mode-panel="identification" hidden>
+                    Hear a note without a reference and identify its note name.
+                    Octave does not affect your answer.
+                </h3>
+
                 <h3 class="blurb" data-mode-panel="memory" hidden>
                     Recall an unfamiliar melody's exact opening frequency after
                     a delay, or recall a target after interfering tones. No note
@@ -1367,6 +1381,9 @@
                             <select id="pitch-mode" data-control="pitch-mode">
                                 <option value="placement" selected>
                                     placement
+                                </option>
+                                <option value="identification">
+                                    absolute identification
                                 </option>
                                 <option value="memory">memory</option>
                             </select>
@@ -1669,6 +1686,145 @@
                             <div>
                                 <dt>Best</dt>
                                 <dd data-output="pitch-placement-best">--</dd>
+                            </div>
+                        </dl>
+                    </div>
+                </div>
+
+                <div data-mode-panel="identification" hidden>
+                    <div class="form-grid">
+                        <div class="field">
+                            <label for="pitch-identification-octave"
+                                >Octave</label
+                            >
+                            <div class="control-row">
+                                <select
+                                    id="pitch-identification-octave"
+                                    data-control="pitch-identification-octave"
+                                >
+                                    <option value="random">random (3–5)</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                    <option value="5">5</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="pitch-identification-waveform"
+                                >Wave type
+                                <span
+                                    class="info-tip"
+                                    tabindex="0"
+                                    aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
+                                    data-tooltip="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
+                                    >ⓘ</span
+                                >
+                            </label>
+                            <div class="control-row">
+                                <select
+                                    id="pitch-identification-waveform"
+                                    class="waveform-select"
+                                    data-waveform="pitch-identification"
+                                >
+                                    <option value="sine" selected>sine</option>
+                                    <option value="triangle">triangle</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="pitch-identification-duration"
+                                >Duration (seconds)</label
+                            >
+                            <div class="control-row">
+                                <input
+                                    id="pitch-identification-duration"
+                                    data-control="pitch-identification-duration"
+                                    type="number"
+                                    min="0.1"
+                                    max="10"
+                                    step="0.1"
+                                    value="1.0"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="practice pitch-practice">
+                        <div class="action-button-grid">
+                            <button
+                                class="icon-button"
+                                data-action="play-pitch"
+                                type="button"
+                                aria-label="Play note"
+                                title="Play"
+                            >
+                                <span aria-hidden="true">▶</span>
+                            </button>
+
+                            <button
+                                class="icon-button"
+                                data-action="stop-audio"
+                                type="button"
+                                aria-label="Stop note"
+                                title="Stop"
+                            >
+                                <span aria-hidden="true">■</span>
+                            </button>
+
+                            <button
+                                class="icon-button pitch-refresh auto-refresh"
+                                data-action="new-pitch"
+                                type="button"
+                                aria-label="New note and play"
+                                title="New note and play"
+                            >
+                                <span aria-hidden="true">↻</span>
+                            </button>
+                        </div>
+
+                        <div
+                            class="pitch-answers"
+                            data-pitch-identification-answers
+                            role="group"
+                            aria-label="Note name"
+                        ></div>
+
+                        <div
+                            class="practice-result pitch-result"
+                            data-output="pitch-identification-result"
+                            aria-live="polite"
+                        ></div>
+
+                        <dl class="stats practice-stats">
+                            <div class="stats-with-action">
+                                <dt>Streak</dt>
+                                <dd>
+                                    <strong
+                                        data-output="pitch-identification-streak"
+                                        >0</strong
+                                    >
+                                    <button
+                                        class="link-button"
+                                        data-action="clear-pitch-stats"
+                                        type="button"
+                                        title="Clear absolute pitch identification statistics"
+                                    >
+                                        Clear
+                                    </button>
+                                </dd>
+                            </div>
+
+                            <div>
+                                <dt>Accuracy</dt>
+                                <dd data-output="pitch-identification-accuracy">
+                                    0%
+                                </dd>
+                            </div>
+                            <div>
+                                <dt>Best</dt>
+                                <dd data-output="pitch-identification-best">
+                                    --
+                                </dd>
                             </div>
                         </dl>
                     </div>

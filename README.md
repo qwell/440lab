@@ -1,6 +1,6 @@
 # 440 Lab
 
-A small browser-based music and ear-training tool for practicing pitch, intervals, intonation, tuning, rhythm, chord quality, and pitch memory using the Web Audio API.
+A small browser-based music and ear-training tool for practicing absolute and relative pitch, intervals, intonation, tuning, rhythm, chord quality, and pitch memory using the Web Audio API.
 
 Live demo: [https://440lab.com/](https://440lab.com/)
 
@@ -24,6 +24,7 @@ Live demo: [https://440lab.com/](https://440lab.com/)
 - Metronome with adjustable BPM and time signature
 - Tap tempo
 - Practice identifying flat vs. sharp pitch
+- Identify chromatic notes by name without a reference
 - Pick the correctly tuned target from multiple candidates
 - Identify melodic intervals in ascending or descending note pairs
 - Identify major, minor, diminished, and augmented chord qualities

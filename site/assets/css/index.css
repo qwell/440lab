@@ -548,7 +548,7 @@ main {
 .pitch-practice {
     grid-template-areas:
         'actions .'
-        'pitch-judgment result'
+        'answers result'
         'stats stats';
 }
 
@@ -1362,7 +1362,7 @@ main {
 /* Pitch placement */
 
 .pitch-judgment {
-    grid-area: pitch-judgment;
+    grid-area: answers;
 
     width: var(--control-width);
     max-width: 100%;
@@ -1567,6 +1567,7 @@ main {
     white-space: nowrap;
 }
 
+.pitch-answers,
 .interval-answers,
 .chord-answers {
     grid-area: answers;

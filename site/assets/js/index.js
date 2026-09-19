@@ -425,15 +425,20 @@ function createAutoAdvance(refreshSelector, advance) {
             timer = null;
         }
 
-        document
-            .querySelector(refreshSelector)
-            .classList.remove('is-counting-down');
+        for (const button of document.querySelectorAll(refreshSelector)) {
+            button.classList.remove('is-counting-down');
+        }
     }
 
     function schedule() {
         cancel();
 
-        const refreshButton = document.querySelector(refreshSelector);
+        const refreshButton = [
+            ...document.querySelectorAll(refreshSelector),
+        ].find((button) => !button.closest('[hidden]'));
+        if (!refreshButton) {
+            return;
+        }
 
         void refreshButton.offsetWidth;
         refreshButton.classList.add('is-counting-down');
@@ -1077,7 +1082,7 @@ function initializeTabs() {
                 hash === 'pitch-memory' ? 'memory' : 'placement';
         } else if (
             hashTab === 'pitch' &&
-            ['placement', 'memory'].includes(hashMode)
+            ['placement', 'identification', 'memory'].includes(hashMode)
         ) {
             getControl('pitch-mode').value = hashMode;
         } else if (
@@ -2386,6 +2391,7 @@ function defaultPitchTypeStats() {
 function defaultPitchStats() {
     return {
         placement: defaultPitchTypeStats(),
+        identification: defaultPitchTypeStats(),
         'memory|novel': defaultPitchTypeStats(),
         'memory|interference': defaultPitchTypeStats(),
     };
@@ -2414,6 +2420,7 @@ function loadPitchStats() {
 
     return {
         placement: loadPitchTypeStats(stored.placement),
+        identification: loadPitchTypeStats(stored.identification),
         'memory|novel': loadPitchTypeStats(stored['memory|novel']),
         'memory|interference': loadPitchTypeStats(
             stored['memory|interference']
@@ -2433,7 +2440,11 @@ const pitch = {
 };
 
 const pitchAdvance = createAutoAdvance('.pitch-refresh', () => {
-    newPitchPlacementTrial(true);
+    if (getControl('pitch-mode').value === 'identification') {
+        newPitchIdentificationTrial(true);
+    } else {
+        newPitchPlacementTrial(true);
+    }
 });
 
 function cancelPitchAdvance() {
@@ -2450,6 +2461,10 @@ function pitchStatsType(mode, type = null) {
 
 function renderPitchStats() {
     const mode = getControl('pitch-mode').value;
+    if (mode === 'identification') {
+        renderPitchIdentificationStats();
+        return;
+    }
     const type =
         mode === 'memory' ? getControl('pitch-memory-type').value : null;
     const { streak, trials, errorTotal, best } =
@@ -3474,7 +3489,11 @@ function updatePitchMode() {
     }
 
     stopPitchMemoryMic();
-    newPitchPlacementTrial();
+    if (mode === 'identification') {
+        newPitchIdentificationTrial();
+    } else {
+        newPitchPlacementTrial();
+    }
     renderPitchStats();
 }
 
@@ -3524,6 +3543,117 @@ function restorePitchMemoryTrial() {
     setPitchMemoryReplayEnabled(!trial.stimulusPlayed);
     getAction('stop-pitch-memory').disabled = true;
     schedulePitchMemoryResponse();
+}
+
+// Absolute pitch identification
+
+const pitchIdentification = { trial: null };
+
+function renderPitchIdentificationAnswers(selected = null) {
+    const trial = pitchIdentification.trial;
+    const buttons = NOTE_NAMES.map((name, pitchClass) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'answer-option';
+        button.dataset.pitchIdentificationAnswer = String(pitchClass);
+        button.textContent = name;
+        button.disabled = !trial?.played || trial.committed;
+        if (selected !== null) {
+            if (pitchClass === trial.midi % 12) {
+                button.classList.add(
+                    pitchClass === selected ? 'is-correct' : 'is-target'
+                );
+            } else if (pitchClass === selected) {
+                button.classList.add('is-incorrect');
+            }
+        }
+        return button;
+    });
+    document
+        .querySelector('[data-pitch-identification-answers]')
+        .replaceChildren(...buttons);
+}
+
+function newPitchIdentificationTrial(playImmediately = false) {
+    cancelPitchAdvance();
+    stopAllAudio();
+    const octaveValue = getControl('pitch-identification-octave').value;
+    const octave =
+        octaveValue === 'random'
+            ? 3 + Math.floor(Math.random() * 3)
+            : Number(octaveValue);
+    pitchIdentification.trial = {
+        midi: (octave + 1) * 12 + Math.floor(Math.random() * 12),
+        played: false,
+        committed: false,
+    };
+    clearPracticeResult('pitch-identification-result');
+    renderPitchIdentificationAnswers();
+    if (playImmediately) {
+        playPitchIdentificationTrial();
+    }
+}
+
+function playPitchIdentificationTrial() {
+    if (!pitchIdentification.trial) {
+        newPitchIdentificationTrial();
+    }
+    stopAllAudio();
+    const trial = pitchIdentification.trial;
+    audio.playTransient(
+        midiFrequency(trial.midi),
+        getWaveform('pitch-identification').value,
+        readNumber(getControl('pitch-identification-duration'), 1)
+    );
+    trial.played = true;
+    if (!trial.committed) {
+        renderPitchIdentificationAnswers();
+    }
+}
+
+function renderPitchIdentificationStats() {
+    const { streak, trials, correct, best } = stats.pitch.identification;
+    const accuracy = trials > 0 ? (correct / trials) * 100 : 0;
+    getOutput('pitch-identification-streak').textContent = String(streak);
+    getOutput('pitch-identification-accuracy').textContent =
+        `${accuracy.toFixed(0)}%`;
+    getOutput('pitch-identification-best').textContent =
+        best === null ? '--' : String(best);
+}
+
+function commitPitchIdentification(pitchClass) {
+    const trial = pitchIdentification.trial;
+    if (
+        !trial?.played ||
+        trial.committed ||
+        !Number.isInteger(pitchClass) ||
+        pitchClass < 0 ||
+        pitchClass >= NOTE_NAMES.length
+    ) {
+        return;
+    }
+    audio.stopTransient();
+    trial.committed = true;
+    const correct = pitchClass === trial.midi % 12;
+    const typeStats = stats.pitch.identification;
+    typeStats.trials += 1;
+    typeStats.correct += correct ? 1 : 0;
+    typeStats.streak = correct ? typeStats.streak + 1 : 0;
+    if (
+        correct &&
+        (typeStats.best === null || typeStats.streak > typeStats.best)
+    ) {
+        typeStats.best = typeStats.streak;
+    }
+    savePitchStats();
+    renderPitchIdentificationStats();
+    renderPitchIdentificationAnswers(pitchClass);
+    renderPracticeResult(
+        'pitch-identification-result',
+        correct,
+        midiToNoteName(trial.midi)
+    );
+    schedulePitchAdvance();
 }
 
 // Pick target
@@ -4467,6 +4597,7 @@ function resetForReferenceChange() {
     newPitchPlacementTrial();
     newPickSet();
     newIntervalTrial();
+    newPitchIdentificationTrial();
 }
 
 function initializeEvents() {
@@ -4708,11 +4839,47 @@ function initializeEvents() {
 
     getAction('toggle-tuner-mic').addEventListener('click', toggleMicTuner);
 
-    getAction('play-pitch').addEventListener('click', playPitchPlacementTrial);
-
-    getAction('new-pitch').addEventListener('click', () => {
-        newPitchPlacementTrial(true);
+    getControl('pitch-identification-octave').addEventListener('change', () => {
+        newPitchIdentificationTrial();
     });
+    getControl('pitch-identification-duration').addEventListener(
+        'change',
+        (event) => {
+            normalizeNumberInput(event.currentTarget, 1);
+        }
+    );
+    document
+        .querySelector('[data-pitch-identification-answers]')
+        .addEventListener('click', (event) => {
+            const button = event.target.closest(
+                'button[data-pitch-identification-answer]'
+            );
+            if (button && !button.disabled) {
+                commitPitchIdentification(
+                    Number(button.dataset.pitchIdentificationAnswer)
+                );
+            }
+        });
+
+    for (const button of getActions('play-pitch')) {
+        button.addEventListener('click', () => {
+            if (getControl('pitch-mode').value === 'identification') {
+                playPitchIdentificationTrial();
+            } else {
+                playPitchPlacementTrial();
+            }
+        });
+    }
+
+    for (const button of getActions('new-pitch')) {
+        button.addEventListener('click', () => {
+            if (getControl('pitch-mode').value === 'identification') {
+                newPitchIdentificationTrial(true);
+            } else {
+                newPitchPlacementTrial(true);
+            }
+        });
+    }
 
     getAction('new-pick').addEventListener('click', newPickSet);
 
