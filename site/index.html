@@ -134,13 +134,13 @@
                                 "@id": "https://440lab.com/#pitch"
                             },
                             {
-                                "@id": "https://440lab.com/#pick-target"
+                                "@id": "https://440lab.com/#pick"
                             },
                             {
                                 "@id": "https://440lab.com/#intervals"
                             },
                             {
-                                "@id": "https://440lab.com/#chord-quality"
+                                "@id": "https://440lab.com/#chords"
                             }
                         ],
                         "mainEntity": {
@@ -190,8 +190,8 @@
                     },
                     {
                         "@type": "WebPageElement",
-                        "@id": "https://440lab.com/#pick-target",
-                        "name": "Pick Target",
+                        "@id": "https://440lab.com/#pick",
+                        "name": "Pick",
                         "description": "Ear-training exercise for identifying a target pitch.",
                         "isPartOf": {
                             "@id": "https://440lab.com/#webpage"
@@ -208,8 +208,8 @@
                     },
                     {
                         "@type": "WebPageElement",
-                        "@id": "https://440lab.com/#chord-quality",
-                        "name": "Chord Quality",
+                        "@id": "https://440lab.com/#chords",
+                        "name": "Chords",
                         "description": "Ear-training exercise for identifying major, minor, diminished, and augmented triad qualities.",
                         "isPartOf": {
                             "@id": "https://440lab.com/#webpage"
@@ -608,16 +608,16 @@
                 </button>
 
                 <button
-                    id="tab-pick-target"
+                    id="tab-pick"
                     class="tab"
-                    data-tab="pick-target"
+                    data-tab="pick"
                     type="button"
                     role="tab"
                     aria-selected="false"
-                    aria-controls="panel-pick-target"
+                    aria-controls="panel-pick"
                     tabindex="-1"
                 >
-                    Pick Target
+                    Pick
                 </button>
 
                 <button
@@ -634,16 +634,16 @@
                 </button>
 
                 <button
-                    id="tab-chord-quality"
+                    id="tab-chords"
                     class="tab"
-                    data-tab="chord-quality"
+                    data-tab="chords"
                     type="button"
                     role="tab"
                     aria-selected="false"
-                    aria-controls="panel-chord-quality"
+                    aria-controls="panel-chords"
                     tabindex="-1"
                 >
-                    Chord Quality
+                    Chords
                 </button>
             </div>
 
@@ -654,9 +654,9 @@
                     <option value="tuner">Tuning</option>
                     <option value="rhythm">Rhythm</option>
                     <option value="pitch">Pitch</option>
-                    <option value="pick-target">Pick Target</option>
+                    <option value="pick">Pick</option>
                     <option value="intervals">Intervals</option>
-                    <option value="chord-quality">Chord Quality</option>
+                    <option value="chords">Chords</option>
                 </select>
             </div>
         </nav>
@@ -793,11 +793,7 @@
                         </label>
 
                         <div class="control-row">
-                            <select
-                                id="tuner-note"
-                                class="note-select"
-                                data-note="tuner"
-                            ></select>
+                            <select id="tuner-note" data-note="tuner"></select>
                         </div>
                     </div>
 
@@ -816,11 +812,7 @@
                         </label>
 
                         <div class="control-row">
-                            <select
-                                id="tuner-waveform"
-                                class="waveform-select"
-                                data-waveform="tuner"
-                            >
+                            <select id="tuner-waveform" data-waveform="tuner">
                                 <option value="triangle" selected>
                                     triangle
                                 </option>
@@ -852,8 +844,8 @@
                     </div>
                 </div>
 
-                <div class="practice practice-wide tuner-practice">
-                    <div class="action-button-grid">
+                <div class="practice practice-wide">
+                    <div class="button-row">
                         <button
                             class="icon-button"
                             data-action="play-tuner"
@@ -875,7 +867,7 @@
                         </button>
 
                         <button
-                            class="icon-button tuner-mic-button"
+                            class="icon-button mic-button"
                             data-action="toggle-tuner-mic"
                             type="button"
                             aria-label="Start microphone tuner"
@@ -886,7 +878,7 @@
                         </button>
                     </div>
 
-                    <div class="tuner-meter practice-wide-content">
+                    <div class="practice-body practice-wide-content">
                         <div class="tuner-header">
                             <strong
                                 class="tuner-note"
@@ -983,7 +975,7 @@
                     </div>
 
                     <div
-                        class="tuner-strings practice-wide-content"
+                        class="practice-wide-content tuner-strings"
                         data-output="tuner-strings"
                         role="group"
                         aria-label="String reference tones, highest string number first. Press a note to start or stop."
@@ -1093,7 +1085,7 @@
                             </span>
                         </label>
 
-                        <div class="control-row rhythm-bpm-row">
+                        <div class="control-row input-button-row">
                             <input
                                 id="rhythm-bpm"
                                 data-control="rhythm-bpm"
@@ -1131,6 +1123,7 @@
                         <div class="control-row">
                             <select
                                 id="rhythm-time-signature"
+                                class="rhythm-time-signature"
                                 data-control="rhythm-time-signature"
                             >
                                 <option value="2/4">2/4 - 𝅘𝅥</option>
@@ -1184,8 +1177,8 @@
                 </div>
 
                 <div data-mode-panel="metronome">
-                    <div class="practice rhythm-practice">
-                        <div class="action-button-grid">
+                    <div class="practice">
+                        <div class="button-row">
                             <button
                                 class="icon-button"
                                 data-action="play-rhythm"
@@ -1209,8 +1202,8 @@
                     </div>
                 </div>
                 <div data-mode-panel="timing" hidden>
-                    <div class="practice practice-wide rhythm-practice">
-                        <div class="action-button-grid">
+                    <div class="practice practice-wide">
+                        <div class="button-row">
                             <button
                                 class="icon-button"
                                 data-action="play-rhythm"
@@ -1256,21 +1249,31 @@
                             </div>
                             <button
                                 id="rhythm-timing-tap"
+                                class="rhythm-timing-tap"
                                 type="button"
                                 disabled
                             >
                                 Press
                             </button>
-                            <p id="rhythm-timing-result" role="status">
+                            <p
+                                id="rhythm-timing-result"
+                                class="tabular-numbers"
+                                role="status"
+                            >
                                 Press Play to begin.
                             </p>
-                            <p id="rhythm-timing-stats">No taps yet.</p>
+                            <p
+                                id="rhythm-timing-stats"
+                                class="tabular-numbers"
+                            >
+                                No taps yet.
+                            </p>
                         </div>
                     </div>
                 </div>
                 <div data-mode-panel="reading" hidden>
-                    <div class="practice practice-wide rhythm-practice">
-                        <div class="action-button-grid">
+                    <div class="practice practice-wide">
+                        <div class="button-row">
                             <button
                                 class="icon-button"
                                 data-action="play-rhythm"
@@ -1290,11 +1293,22 @@
                             >
                                 <span aria-hidden="true">■</span>
                             </button>
+
+                            <button
+                                class="icon-button"
+                                data-action="new-rhythm"
+                                type="button"
+                                title="New phrase and play"
+                                aria-label="New phrase and play"
+                            >
+                                <span aria-hidden="true">↻</span>
+                            </button>
                         </div>
                         <div class="practice-body practice-wide-content">
-                            <div class="action-button-grid rhythm-response">
+                            <div class="response-row">
                                 <button
                                     id="rhythm-hold"
+                                    class="rhythm-hold"
                                     type="button"
                                     aria-label="Hold note (Space)"
                                     aria-keyshortcuts="Space"
@@ -1302,15 +1316,6 @@
                                     disabled
                                 >
                                     Hold
-                                </button>
-                                <button
-                                    id="rhythm-new"
-                                    class="icon-button"
-                                    type="button"
-                                    title="New phrase and play"
-                                    aria-label="New phrase and play"
-                                >
-                                    <span aria-hidden="true">↻</span>
                                 </button>
                             </div>
                             <div class="rhythm-count-in">
@@ -1320,7 +1325,7 @@
                             </div>
                             <p
                                 id="rhythm-result"
-                                class="practice-status"
+                                class="practice-status tabular-numbers"
                                 role="status"
                             >
                                 Press Play for a count-in.
@@ -1333,8 +1338,16 @@
                                 aria-label="Hold the rhythm using Space or the mouse"
                                 aria-describedby="rhythm-description"
                             ></div>
-                            <div id="rhythm-report" hidden>
-                                <dl id="rhythm-stats" role="status"></dl>
+                            <div
+                                id="rhythm-report"
+                                class="tabular-numbers"
+                                hidden
+                            >
+                                <dl
+                                    id="rhythm-stats"
+                                    class="inline-stats"
+                                    role="status"
+                                ></dl>
                                 <p>Per-note timing</p>
                                 <ul
                                     id="rhythm-results"
@@ -1400,11 +1413,7 @@
                         </label>
 
                         <div class="control-row">
-                            <select
-                                id="pitch-note"
-                                class="note-select"
-                                data-note="pitch"
-                            ></select>
+                            <select id="pitch-note" data-note="pitch"></select>
                         </div>
                     </div>
 
@@ -1453,7 +1462,6 @@
                             <div class="control-row">
                                 <select
                                     id="pitch-waveform"
-                                    class="waveform-select"
                                     data-waveform="pitch"
                                 >
                                     <option value="sine" selected>sine</option>
@@ -1585,8 +1593,8 @@
                         </div>
                     </div>
 
-                    <div class="practice pitch-practice">
-                        <div class="action-button-grid">
+                    <div class="practice">
+                        <div class="button-row">
                             <button
                                 class="icon-button"
                                 data-action="play-pitch"
@@ -1608,7 +1616,7 @@
                             </button>
 
                             <button
-                                class="icon-button pitch-refresh auto-refresh"
+                                class="icon-button auto-refresh"
                                 data-action="new-pitch"
                                 type="button"
                                 aria-label="New trial and play"
@@ -1618,35 +1626,38 @@
                             </button>
                         </div>
 
-                        <div
-                            class="pitch-judgment"
-                            role="group"
-                            aria-label="Pitch judgment"
-                        >
-                            <button
-                                class="answer-option"
-                                type="button"
-                                data-answer="flat"
-                                disabled
+                        <div class="practice-row">
+                            <div
+                                class="answer-options segmented-answers"
+                                data-pitch-placement-answers
+                                role="group"
+                                aria-label="Pitch placement answer"
                             >
-                                Flat
-                            </button>
+                                <button
+                                    class="answer-option"
+                                    type="button"
+                                    data-answer="flat"
+                                    disabled
+                                >
+                                    Flat
+                                </button>
 
-                            <button
-                                class="answer-option"
-                                type="button"
-                                data-answer="sharp"
-                                disabled
-                            >
-                                Sharp
-                            </button>
+                                <button
+                                    class="answer-option"
+                                    type="button"
+                                    data-answer="sharp"
+                                    disabled
+                                >
+                                    Sharp
+                                </button>
+                            </div>
+
+                            <div
+                                class="practice-result"
+                                data-output="pitch-placement-result"
+                                aria-live="polite"
+                            ></div>
                         </div>
-
-                        <div
-                            class="practice-result pitch-result"
-                            data-output="pitch-result"
-                            aria-live="polite"
-                        ></div>
 
                         <dl class="stats practice-stats">
                             <div class="adaptive-status-row">
@@ -1723,7 +1734,6 @@
                             <div class="control-row">
                                 <select
                                     id="pitch-identification-waveform"
-                                    class="waveform-select"
                                     data-waveform="pitch-identification"
                                 >
                                     <option value="sine" selected>sine</option>
@@ -1749,8 +1759,8 @@
                         </div>
                     </div>
 
-                    <div class="practice pitch-practice">
-                        <div class="action-button-grid">
+                    <div class="practice">
+                        <div class="button-row">
                             <button
                                 class="icon-button"
                                 data-action="play-pitch"
@@ -1772,7 +1782,7 @@
                             </button>
 
                             <button
-                                class="icon-button pitch-refresh auto-refresh"
+                                class="icon-button auto-refresh"
                                 data-action="new-pitch"
                                 type="button"
                                 aria-label="New note and play"
@@ -1782,18 +1792,20 @@
                             </button>
                         </div>
 
-                        <div
-                            class="pitch-answers"
-                            data-pitch-identification-answers
-                            role="group"
-                            aria-label="Note name"
-                        ></div>
+                        <div class="practice-row">
+                            <div
+                                class="answer-options answer-grid"
+                                data-pitch-identification-answers
+                                role="group"
+                                aria-label="Note name"
+                            ></div>
 
-                        <div
-                            class="practice-result pitch-result"
-                            data-output="pitch-identification-result"
-                            aria-live="polite"
-                        ></div>
+                            <div
+                                class="practice-result"
+                                data-output="pitch-identification-result"
+                                aria-live="polite"
+                            ></div>
+                        </div>
 
                         <dl class="stats practice-stats">
                             <div class="stats-with-action">
@@ -1860,7 +1872,7 @@
                             </div>
                         </div>
 
-                        <div class="field pitch-memory-novel-control">
+                        <div class="field" data-pitch-memory-type="novel">
                             <label for="pitch-memory-delay">
                                 Recall after
                                 <span
@@ -1887,7 +1899,8 @@
                         </div>
 
                         <div
-                            class="field pitch-memory-interference-control"
+                            class="field"
+                            data-pitch-memory-type="interference"
                             hidden
                         >
                             <label for="pitch-memory-distractors">
@@ -1915,8 +1928,8 @@
                         </div>
                     </div>
 
-                    <div class="practice practice-wide pitch-memory-practice">
-                        <div class="action-button-grid">
+                    <div class="practice practice-wide">
+                        <div class="button-row">
                             <button
                                 class="icon-button"
                                 data-action="start-pitch-memory"
@@ -1957,7 +1970,7 @@
                                 Ready for a new trial.
                             </p>
 
-                            <div class="pitch-memory-frequency-response" hidden>
+                            <div data-pitch-memory-response="frequency" hidden>
                                 <label for="pitch-memory-frequency">
                                     Response frequency (<span
                                         class="frequency-value"
@@ -1999,10 +2012,7 @@
                                 </div>
                             </div>
 
-                            <div
-                                class="pitch-memory-oscillator-response"
-                                hidden
-                            >
+                            <div data-pitch-memory-response="oscillator" hidden>
                                 <div class="response-actions">
                                     <button
                                         data-action="play-pitch-memory-response"
@@ -2030,10 +2040,7 @@
                                 </div>
                             </div>
 
-                            <div
-                                class="pitch-memory-microphone-response"
-                                hidden
-                            >
+                            <div data-pitch-memory-response="microphone" hidden>
                                 <div class="response-actions">
                                     <button
                                         data-action="submit-pitch-memory"
@@ -2047,7 +2054,7 @@
                             </div>
 
                             <div
-                                class="practice-result pitch-memory-result"
+                                class="practice-result"
                                 data-output="pitch-memory-result"
                                 aria-live="polite"
                             ></div>
@@ -2088,18 +2095,18 @@
                 </div>
             </section>
 
-            <!-- Pick Target -->
+            <!-- Pick: target -->
             <section
-                id="panel-pick-target"
+                id="panel-pick"
                 class="tab-panel"
-                data-panel="pick-target"
+                data-panel="pick"
                 role="tabpanel"
-                aria-labelledby="tab-pick-target"
+                aria-labelledby="tab-pick"
                 hidden
             >
-                <h2 class="sr-only">Pick Target</h2>
+                <h2 class="sr-only">Pick</h2>
                 <h3 class="blurb">
-                    Listen to candidates and choose the tone that matches the
+                    Listen to the answers and choose the tone that matches the
                     selected note.
                 </h3>
 
@@ -2114,11 +2121,7 @@
                         </label>
 
                         <div class="control-row">
-                            <select
-                                id="pick-note"
-                                class="note-select"
-                                data-note="pick"
-                            ></select>
+                            <select id="pick-note" data-note="pick"></select>
                         </div>
                     </div>
 
@@ -2137,11 +2140,7 @@
                         </label>
 
                         <div class="control-row">
-                            <select
-                                id="pick-waveform"
-                                class="waveform-select"
-                                data-waveform="pick"
-                            >
+                            <select id="pick-waveform" data-waveform="pick">
                                 <option value="sine" selected>sine</option>
 
                                 <option value="triangle">triangle</option>
@@ -2156,8 +2155,8 @@
                             <span
                                 class="info-tip"
                                 tabindex="0"
-                                aria-label="Minimum and maximum distance from the target to candidate tones."
-                                data-tooltip="Minimum and maximum distance from the target to candidate tones."
+                                aria-label="Minimum and maximum distance from the target to answer tones."
+                                data-tooltip="Minimum and maximum distance from the target to answer tones."
                             >
                                 ⓘ
                             </span>
@@ -2208,13 +2207,13 @@
 
                     <div class="field">
                         <label for="pick-count">
-                            Candidates
+                            Answers
 
                             <span
                                 class="info-tip"
                                 tabindex="0"
-                                aria-label="Number of choices. Exactly one candidate is the selected target note."
-                                data-tooltip="Number of choices. Exactly one candidate is the selected target note."
+                                aria-label="Number of choices. Exactly one answer is the selected target note."
+                                data-tooltip="Number of choices. Exactly one answer is the selected target note."
                             >
                                 ⓘ
                             </span>
@@ -2262,8 +2261,8 @@
                     </div>
                 </div>
 
-                <div class="practice pick-target-practice">
-                    <div class="action-button-grid">
+                <div class="practice">
+                    <div class="button-row">
                         <button
                             class="icon-button"
                             data-action="stop-audio"
@@ -2275,17 +2274,17 @@
                         </button>
 
                         <button
-                            class="icon-button pick-refresh auto-refresh"
+                            class="icon-button auto-refresh"
                             data-action="new-pick"
                             type="button"
-                            aria-label="New candidate set"
-                            title="New candidate set"
+                            aria-label="New answer set"
+                            title="New answer set"
                         >
                             <span aria-hidden="true">↻</span>
                         </button>
                     </div>
 
-                    <div class="pick-target-candidate-list"></div>
+                    <div class="answer-list" data-pick-target-answers></div>
 
                     <div
                         class="sr-only"
@@ -2513,7 +2512,6 @@
                         <div class="control-row">
                             <select
                                 id="interval-waveform"
-                                class="waveform-select"
                                 data-waveform="interval"
                             >
                                 <option value="sine" selected>sine</option>
@@ -2540,8 +2538,8 @@
                     </div>
                 </div>
 
-                <div class="practice intervals-practice">
-                    <div class="action-button-grid">
+                <div class="practice">
+                    <div class="button-row">
                         <button
                             class="icon-button"
                             data-action="play-interval"
@@ -2561,7 +2559,7 @@
                             <span aria-hidden="true">■</span>
                         </button>
                         <button
-                            class="icon-button interval-refresh auto-refresh"
+                            class="icon-button auto-refresh"
                             data-action="new-interval"
                             type="button"
                             aria-label="New interval and play"
@@ -2571,18 +2569,20 @@
                         </button>
                     </div>
 
-                    <div
-                        class="interval-answers"
-                        data-interval-answers
-                        role="group"
-                        aria-label="Interval"
-                    ></div>
+                    <div class="practice-row">
+                        <div
+                            class="answer-options answer-grid"
+                            data-interval-answers
+                            role="group"
+                            aria-label="Interval"
+                        ></div>
 
-                    <div
-                        class="practice-result interval-result"
-                        data-output="interval-result"
-                        aria-live="polite"
-                    ></div>
+                        <div
+                            class="practice-result"
+                            data-output="interval-result"
+                            aria-live="polite"
+                        ></div>
+                    </div>
 
                     <dl
                         class="stats practice-stats"
@@ -2655,11 +2655,11 @@
 
             <!-- Chords -->
             <section
-                id="panel-chord-quality"
+                id="panel-chords"
                 class="tab-panel"
-                data-panel="chord-quality"
+                data-panel="chords"
                 role="tabpanel"
-                aria-labelledby="tab-chord-quality"
+                aria-labelledby="tab-chords"
                 hidden
             >
                 <h2 class="sr-only">Chords</h2>
@@ -2683,11 +2683,7 @@
                         </label>
 
                         <div class="control-row">
-                            <select
-                                id="chord-waveform"
-                                class="waveform-select"
-                                data-waveform="chords"
-                            >
+                            <select id="chord-waveform" data-waveform="chords">
                                 <option value="sine" selected>sine</option>
                                 <option value="triangle">triangle</option>
                             </select>
@@ -2723,8 +2719,8 @@
                     </div>
                 </div>
 
-                <div class="practice chord-quality-practice">
-                    <div class="action-button-grid">
+                <div class="practice">
+                    <div class="button-row">
                         <button
                             class="icon-button"
                             data-action="play-chord"
@@ -2746,7 +2742,7 @@
                         </button>
 
                         <button
-                            class="icon-button chord-refresh auto-refresh"
+                            class="icon-button auto-refresh"
                             data-action="new-chord"
                             type="button"
                             aria-label="New chord and play"
@@ -2756,18 +2752,20 @@
                         </button>
                     </div>
 
-                    <div
-                        class="chord-answers"
-                        data-chord-answers
-                        role="group"
-                        aria-label="Chord quality"
-                    ></div>
+                    <div class="practice-row">
+                        <div
+                            class="answer-options answer-grid"
+                            data-chord-answers
+                            role="group"
+                            aria-label="Chord quality"
+                        ></div>
 
-                    <div
-                        class="practice-result chord-result"
-                        data-output="chord-result"
-                        aria-live="polite"
-                    ></div>
+                        <div
+                            class="practice-result"
+                            data-output="chord-result"
+                            aria-live="polite"
+                        ></div>
+                    </div>
 
                     <dl class="stats practice-stats">
                         <div class="stats-with-action">

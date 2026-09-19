@@ -25,13 +25,13 @@
     --button-gap: 6px;
     --practice-detail-gap: 10px;
     --practice-row-gap: 8px;
-    --stats-spacing: 8px;
+    --practice-stats-spacing: 8px;
     --footer-height: 1.7rem;
 
     --background: #111;
     --surface: #1b1b1b;
-    --button: #272727;
-    --button-hover: #333;
+    --button-background: #272727;
+    --button-hover-background: #333;
     --border: #444;
     --border-radius: 4px;
     --muted: #999;
@@ -89,7 +89,7 @@ button {
     border: 1px solid var(--border);
     border-radius: var(--border-radius);
 
-    background: var(--button);
+    background: var(--button-background);
     color: var(--text);
 
     cursor: pointer;
@@ -278,7 +278,7 @@ select {
 /* Main */
 
 main {
-    padding-block: 8px 8px;
+    padding-block: 8px;
 }
 
 .tab-panel[hidden] {
@@ -345,7 +345,7 @@ main {
     min-width: 0;
 }
 
-.rhythm-bpm-row {
+.input-button-row {
     width: var(--control-width);
     max-width: 100%;
 
@@ -355,7 +355,7 @@ main {
     gap: var(--button-gap);
 }
 
-.rhythm-bpm-row input[type='number'] {
+.input-button-row input[type='number'] {
     width: 100%;
 }
 
@@ -395,8 +395,11 @@ main {
     font-variant-numeric: tabular-nums;
 }
 
+.tabular-numbers {
+    font-variant-numeric: tabular-nums;
+}
+
 .stats,
-.pick-target-candidate-details,
 .practice-result {
     font-variant-numeric: tabular-nums;
 }
@@ -473,26 +476,13 @@ main {
     margin-top: 17px;
 
     display: grid;
-
-    grid-template-columns:
-        var(--control-width)
-        max-content;
-
-    column-gap: var(--practice-detail-gap);
     row-gap: var(--practice-row-gap);
 
-    align-items: center;
+    align-items: start;
 }
 
 .practice-wide {
     width: auto;
-
-    grid-template-columns: repeat(2, var(--field-width));
-
-    column-gap: var(--column-gap);
-    row-gap: var(--practice-row-gap);
-
-    align-items: start;
 }
 
 .practice-wide-content {
@@ -522,66 +512,7 @@ main {
     line-height: 1.4;
 }
 
-.tuner-practice {
-    grid-template-areas:
-        'actions .'
-        'meter meter';
-}
-
-.tuner-practice:has(.tuner-strings:not([hidden])) {
-    grid-template-areas:
-        'actions .'
-        'meter meter'
-        'strings strings';
-}
-
-.rhythm-practice {
-    grid-template-areas: 'actions .';
-}
-
-.rhythm-practice.practice-wide {
-    grid-template-areas:
-        'actions .'
-        'body body';
-}
-
-.pitch-practice {
-    grid-template-areas:
-        'actions .'
-        'answers result'
-        'stats stats';
-}
-
-.pick-target-practice {
-    grid-template-areas:
-        'actions .'
-        'candidates candidates'
-        'stats stats';
-}
-
-.intervals-practice {
-    grid-template-areas:
-        'actions .'
-        'answers result'
-        'stats stats';
-}
-
-.chord-quality-practice {
-    grid-template-areas:
-        'actions .'
-        'answers result'
-        'stats stats';
-}
-
-.pitch-memory-practice {
-    grid-template-areas:
-        'actions .'
-        'body body'
-        'report report';
-}
-
 .practice-body {
-    grid-area: body;
     min-width: 0;
 }
 
@@ -666,25 +597,17 @@ main {
 }
 
 .practice-report {
-    grid-area: report;
-
     display: flex;
     align-items: flex-end;
     gap: 12px;
 }
 
 .practice-report .practice-stats {
-    margin-top: var(--stats-spacing);
-}
-
-.practice > .action-button-grid {
-    grid-area: actions;
+    margin-top: var(--practice-stats-spacing);
 }
 
 .practice-stats {
-    grid-area: stats;
-
-    margin-top: calc(var(--stats-spacing) - var(--practice-row-gap));
+    margin-top: calc(var(--practice-stats-spacing) - var(--practice-row-gap));
 }
 
 .practice-result {
@@ -697,6 +620,10 @@ main {
 
 .practice-result.is-incorrect {
     color: var(--incorrect);
+}
+
+.practice-result.is-target {
+    color: var(--target);
 }
 
 .answer-option.is-correct {
@@ -723,10 +650,9 @@ main {
     opacity: 1;
 }
 
-/* Action buttons */
+/* Button rows */
 
-.action-button-grid,
-.pick-target-candidate-actions {
+.button-row {
     width: var(--control-width);
     max-width: 100%;
 
@@ -739,28 +665,28 @@ main {
     align-items: center;
 }
 
-.action-button-grid [data-action='play-tuner'],
-.action-button-grid [data-action='play-rhythm'],
-.action-button-grid [data-action='play-pitch'],
-.action-button-grid [data-action='play-interval'],
-.action-button-grid [data-action='play-chord'] {
+.practice > .button-row [data-action='play-tuner'],
+.practice > .button-row [data-action='play-rhythm'],
+.practice > .button-row [data-action='play-pitch'],
+.practice > .button-row [data-action='play-interval'],
+.practice > .button-row [data-action='play-chord'] {
     grid-column: 1;
 }
 
-.action-button-grid [data-action='stop-audio'] {
+.practice > .button-row [data-action='stop-audio'] {
     grid-column: 2;
 }
 
-.action-button-grid [data-action='toggle-tuner-mic'],
-.action-button-grid [data-action='new-pitch'],
-.action-button-grid [data-action='new-pick'],
-.action-button-grid [data-action='new-interval'],
-.action-button-grid [data-action='new-chord'] {
+.practice > .button-row [data-action='toggle-tuner-mic'],
+.practice > .button-row [data-action='new-rhythm'],
+.practice > .button-row [data-action='new-pitch'],
+.practice > .button-row [data-action='new-pick'],
+.practice > .button-row [data-action='new-interval'],
+.practice > .button-row [data-action='new-chord'] {
     grid-column: 3;
 }
 
-.action-button-grid .icon-button,
-.pick-target-candidate-actions .icon-button {
+.button-row .icon-button {
     width: 100%;
     min-width: 0;
 }
@@ -781,7 +707,6 @@ main {
 /* Tuner */
 
 .tuner-strings {
-    grid-area: strings;
     display: grid;
     grid-auto-flow: column;
     grid-auto-columns: minmax(0, 1fr);
@@ -810,17 +735,13 @@ main {
     text-align: center;
 }
 
-.tuner-mic-button {
+.mic-button {
     font-size: 12px;
 }
 
-.tuner-mic-button.is-active {
+.mic-button.is-active {
     border-color: var(--mic-accent);
     color: var(--mic-accent);
-}
-
-.tuner-meter {
-    grid-area: meter;
 }
 
 .tuner-header {
@@ -835,7 +756,8 @@ main {
     font-variant-numeric: tabular-nums;
 }
 
-.tuner-target-frequency {
+.tuner-target-frequency,
+.tuner-detected-frequency {
     margin-top: 6px;
 
     color: var(--muted);
@@ -972,18 +894,9 @@ main {
     font-variant-numeric: tabular-nums;
 }
 
-.tuner-detected-frequency {
-    margin-top: 6px;
-
-    color: var(--muted);
-
-    font-size: 12px;
-    line-height: 1.2;
-}
-
 /* Rhythm */
 
-#rhythm-time-signature {
+.rhythm-time-signature {
     font-family: 'Noto Music', serif;
 }
 
@@ -1049,26 +962,27 @@ main {
     font-size: 10px;
 }
 
-#rhythm-timing-tap {
+.rhythm-timing-tap {
     width: var(--control-width);
     max-width: 100%;
 
     touch-action: none;
 }
 
-.rhythm-response {
+.response-row {
+    width: var(--control-width);
+    max-width: 100%;
+
     margin-bottom: var(--practice-row-gap);
 }
 
-#rhythm-hold {
-    grid-column: span 2;
-
+.rhythm-hold {
     width: 100%;
 
     touch-action: none;
 }
 
-#rhythm-hold.is-held {
+.rhythm-hold.is-held {
     border-color: var(--target);
 
     background: var(--target-background);
@@ -1266,25 +1180,18 @@ main {
     color: var(--muted);
 }
 
-#rhythm-timing-result,
-#rhythm-timing-stats,
-#rhythm-result,
-#rhythm-report {
-    font-variant-numeric: tabular-nums;
-}
-
-#rhythm-stats > div {
+.inline-stats > div {
     display: flex;
     flex-wrap: wrap;
 
     gap: 0.5rem;
 }
 
-#rhythm-stats dt::after {
+.inline-stats dt::after {
     content: ':';
 }
 
-#rhythm-stats dd {
+.inline-stats dd {
     margin: 0;
 }
 
@@ -1359,14 +1266,14 @@ main {
     text-decoration: underline;
 }
 
-/* Pitch placement */
+/* Answers */
 
-.pitch-judgment {
-    grid-area: answers;
-
+.answer-options {
     width: var(--control-width);
     max-width: 100%;
+}
 
+.segmented-answers {
     display: flex;
 
     border: 1px solid var(--border);
@@ -1375,7 +1282,7 @@ main {
     overflow: hidden;
 }
 
-.pitch-judgment button {
+.segmented-answers button {
     flex: 1;
 
     min-width: 0;
@@ -1390,17 +1297,11 @@ main {
     background: #222;
 }
 
-.pitch-judgment button + button {
+.segmented-answers button + button {
     border-left: 1px solid var(--border);
 }
 
-.pitch-result {
-    grid-area: result;
-
-    white-space: nowrap;
-}
-
-/* Placement refresh countdown */
+/* Automatic refresh countdown */
 
 .auto-refresh {
     position: relative;
@@ -1439,58 +1340,40 @@ main {
     }
 }
 
-/* Pitch memory */
+/* Practice results */
 
-.pitch-memory-detected-frequency {
-    min-height: 32px;
-    margin-bottom: 6px;
-
-    line-height: 32px;
-}
-
-.pitch-memory-result {
+.practice-body > .practice-result {
     min-height: 20px;
     margin-top: 8px;
 }
 
-.pitch-memory-result:empty {
+.practice-result:empty {
     display: none;
 }
 
-/* Pick target */
+/* Answer lists */
 
-.pick-target-candidate-list {
-    grid-area: candidates;
-
+.answer-list {
     display: grid;
-
-    grid-template-columns: subgrid;
-
     row-gap: 5px;
 }
 
-.pick-target-candidate-row {
-    grid-column: 1 / -1;
-
+.practice-row {
     min-width: 0;
     min-height: 32px;
 
     display: grid;
-
-    grid-template-columns: subgrid;
+    grid-template-columns: var(--control-width) max-content;
+    column-gap: var(--practice-detail-gap);
 
     align-items: center;
 }
 
-.pick-target-candidate-actions {
+.answer-play {
     grid-column: 1;
 }
 
-.pick-target-candidate-play {
-    grid-column: 1;
-}
-
-.pick-target-candidate-choose {
+.answer-select {
     grid-column: 2 / 4;
 
     width: 100%;
@@ -1502,17 +1385,11 @@ main {
     white-space: nowrap;
 }
 
-.pick-target-candidate-details {
-    grid-column: 2;
-
+.practice-row > .practice-result {
     min-width: 0;
-
-    white-space: nowrap;
-
-    color: #aaa;
 }
 
-.pick-target-candidate-result-icon {
+.result-icon {
     display: inline-block;
 
     width: 1.4em;
@@ -1521,21 +1398,6 @@ main {
 
     font-weight: 700;
     text-align: center;
-}
-
-.pick-target-candidate-row.is-incorrect,
-.pick-target-candidate-row.is-incorrect .pick-target-candidate-details {
-    color: var(--incorrect);
-}
-
-.pick-target-candidate-row.is-target,
-.pick-target-candidate-row.is-target .pick-target-candidate-details {
-    color: var(--target);
-}
-
-.pick-target-candidate-row.is-correct,
-.pick-target-candidate-row.is-correct .pick-target-candidate-details {
-    color: var(--correct);
 }
 
 /* Intervals */
@@ -1567,54 +1429,34 @@ main {
     white-space: nowrap;
 }
 
-.pitch-answers,
-.interval-answers,
-.chord-answers {
-    grid-area: answers;
-
-    width: var(--control-width);
-    max-width: 100%;
-
+.answer-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
 
     gap: var(--button-gap);
 }
 
-.interval-answers button {
+.answer-grid button {
     min-width: 0;
 
     padding-inline: 7px;
 }
 
-.interval-prompt {
+.answer-prompt {
     grid-column: 1 / -1;
 
     line-height: 1.4;
 }
 
-.interval-result,
-.chord-result {
-    grid-area: result;
-
+.practice-result {
     font-size: 13px;
+    white-space: nowrap;
 }
 
-.interval-result {
-    align-self: start;
-}
-
-.interval-played-notes,
-.chord-played-notes {
+.played-notes {
     margin-top: 4px;
 
     color: var(--text);
-}
-
-/* Chord quality */
-
-.chord-result {
-    white-space: nowrap;
 }
 
 /* Footer */
@@ -1663,7 +1505,7 @@ footer a:hover {
 
 @media (hover: hover) {
     button:hover:not(:disabled) {
-        background: var(--button-hover);
+        background: var(--button-hover-background);
     }
 
     .tab:hover:not(:disabled) {
@@ -1738,13 +1580,6 @@ footer a:hover {
         width: calc(100% - 16px);
     }
 
-    .topbar-inner {
-        grid-template-columns: repeat(2, var(--field-width));
-
-        column-gap: var(--column-gap);
-        row-gap: 8px;
-    }
-
     .brand-name {
         min-width: 0;
 
@@ -1768,41 +1603,18 @@ footer a:hover {
 
     .practice {
         width: 100%;
-
-        grid-template-columns:
-            var(--control-width)
-            minmax(0, 1fr);
     }
 
-    .pitch-memory-practice {
-        grid-template-columns: minmax(0, 1fr);
-        grid-template-areas:
-            'actions'
-            'body'
-            'report';
-
+    .practice-wide {
         row-gap: 14px;
+    }
+
+    .practice-row {
+        grid-template-columns: var(--control-width) minmax(0, 1fr);
     }
 
     .practice-wide-content {
         width: 100%;
-    }
-
-    .tuner-practice {
-        grid-template-columns: minmax(0, 1fr);
-
-        grid-template-areas:
-            'actions'
-            'meter';
-
-        row-gap: 14px;
-    }
-
-    .tuner-practice:has(.tuner-strings:not([hidden])) {
-        grid-template-areas:
-            'actions'
-            'meter'
-            'strings';
     }
 
     .tuner-note {
@@ -1813,16 +1625,7 @@ footer a:hover {
         font-size: 19px;
     }
 
-    .action-button-grid,
-    .pick-target-candidate-actions,
-    .pitch-judgment {
-        width: var(--control-width);
-    }
-
-    .pitch-result,
-    .chord-result,
-    .practice-body,
-    .pick-target-candidate-details {
+    .practice-result {
         white-space: normal;
 
         overflow-wrap: anywhere;
@@ -1842,9 +1645,6 @@ footer a:hover {
     }
 
     footer {
-        flex-direction: row;
-        align-items: center;
-
         gap: 12px;
 
         white-space: nowrap;

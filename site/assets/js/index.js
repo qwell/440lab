@@ -469,6 +469,28 @@ function renderPracticeResult(outputName, correct, text) {
     result.replaceChildren(icon, document.createTextNode(` ${text}`));
 }
 
+function answerStateClass(answer, selected, correct) {
+    if (selected === null) {
+        return null;
+    }
+
+    if (answer === correct) {
+        return answer === selected ? 'is-correct' : 'is-target';
+    }
+
+    return answer === selected ? 'is-incorrect' : null;
+}
+
+function setAnswerOptionState(button, answer, selected, correct) {
+    button.classList.remove('is-correct', 'is-incorrect', 'is-target');
+
+    const stateClass = answerStateClass(answer, selected, correct);
+
+    if (stateClass) {
+        button.classList.add(stateClass);
+    }
+}
+
 // Audio
 
 const audio = (() => {
@@ -942,7 +964,7 @@ function populateNoteSelector(select) {
 }
 
 function initializeNotes() {
-    for (const select of document.querySelectorAll('.note-select')) {
+    for (const select of document.querySelectorAll('[data-note]')) {
         populateNoteSelector(select);
     }
 }
@@ -956,7 +978,7 @@ function updateNoteReadout(select) {
 }
 
 function updateNoteReadouts() {
-    for (const select of document.querySelectorAll('.note-select')) {
+    for (const select of document.querySelectorAll('[data-note]')) {
         updateNoteReadout(select);
     }
 }
@@ -2376,7 +2398,7 @@ function tapTempo() {
     restartRhythm();
 }
 
-// Pitch placement
+// Pitch
 
 function defaultPitchTypeStats() {
     return {
@@ -2439,7 +2461,7 @@ const pitch = {
     adaptiveResults: [],
 };
 
-const pitchAdvance = createAutoAdvance('.pitch-refresh', () => {
+const pitchAdvance = createAutoAdvance('[data-action="new-pitch"]', () => {
     if (getControl('pitch-mode').value === 'identification') {
         newPitchIdentificationTrial(true);
     } else {
@@ -2489,33 +2511,16 @@ function clearPitchStats() {
     renderPitchStats();
 }
 
-function setJudgmentState({ disabled, selected = null, correct = null }) {
+function setPitchPlacementAnswerState({
+    disabled,
+    selected = null,
+    correct = null,
+}) {
     for (const button of document.querySelectorAll(
-        '.pitch-judgment .answer-option'
+        '[data-pitch-placement-answers] [data-answer]'
     )) {
         button.disabled = disabled;
-
-        button.classList.remove('is-correct', 'is-incorrect', 'is-target');
-
-        if (selected === null) {
-            continue;
-        }
-
-        const judgment = button.dataset.answer;
-
-        if (selected === correct && judgment === selected) {
-            button.classList.add('is-correct');
-
-            continue;
-        }
-
-        if (judgment === selected) {
-            button.classList.add('is-incorrect');
-        }
-
-        if (selected !== correct && judgment === correct) {
-            button.classList.add('is-target');
-        }
+        setAnswerOptionState(button, button.dataset.answer, selected, correct);
     }
 }
 
@@ -2620,8 +2625,10 @@ function resetAdaptiveProgress(exercise) {
         : '';
 }
 
+// Pitch: placement
+
 function clearPitchPlacementResult() {
-    clearPracticeResult('pitch-result');
+    clearPracticeResult('pitch-placement-result');
 }
 
 function createPitchPlacementTrial() {
@@ -2657,7 +2664,7 @@ function newPitchPlacementTrial(playImmediately = false) {
 
     pitch.trial = createPitchPlacementTrial();
 
-    setJudgmentState({
+    setPitchPlacementAnswerState({
         disabled: true,
     });
 
@@ -2678,7 +2685,7 @@ function playPitchPlacementTrial() {
     stopAllAudio();
 
     if (!pitch.trial.committed) {
-        setJudgmentState({
+        setPitchPlacementAnswerState({
             disabled: false,
         });
     }
@@ -2696,7 +2703,7 @@ function playPitchPlacementTrial() {
     audio.playTransient(targetHz, waveform, duration, 1, duration + 0.1);
 }
 
-function commitPitchPlacement(judgment) {
+function commitPitchPlacement(answer) {
     const trial = pitch.trial;
 
     if (!trial || trial.committed) {
@@ -2711,7 +2718,7 @@ function commitPitchPlacement(judgment) {
 
     const direction = trial.mistuneCents < 0 ? 'flat' : 'sharp';
 
-    const correct = judgment === direction;
+    const correct = answer === direction;
 
     const mistunedHz = frequencyFromCents(
         trial.correctTargetHz,
@@ -2720,9 +2727,9 @@ function commitPitchPlacement(judgment) {
 
     const errorHz = mistunedHz - trial.correctTargetHz;
 
-    setJudgmentState({
+    setPitchPlacementAnswerState({
         disabled: true,
-        selected: judgment,
+        selected: answer,
         correct: direction,
     });
 
@@ -2748,7 +2755,7 @@ function commitPitchPlacement(judgment) {
     updateAdaptiveDifficulty('pitch', correct);
 
     renderPracticeResult(
-        'pitch-result',
+        'pitch-placement-result',
         correct,
         `${direction} - ` +
             `${signed(trial.mistuneCents, 2)} cents ` +
@@ -2758,7 +2765,7 @@ function commitPitchPlacement(judgment) {
     schedulePitchAdvance();
 }
 
-// Pitch memory
+// Pitch: memory
 
 const pitchMemory = {
     trial: storage.load(PITCH_MEMORY_TRIAL_KEY, null),
@@ -2826,6 +2833,18 @@ function getPitchMemoryFrequencyFromSlider() {
     const cents = Number(getControl('pitch-memory-frequency').value);
 
     return PITCH_MEMORY_MIN_HZ * 2 ** (cents / 1200);
+}
+
+function getPitchMemoryResponse(name) {
+    return document.querySelector(`[data-pitch-memory-response="${name}"]`);
+}
+
+function hidePitchMemoryResponses() {
+    for (const response of document.querySelectorAll(
+        '[data-pitch-memory-response]'
+    )) {
+        response.hidden = true;
+    }
 }
 
 function pitchMemoryFrequencyToSliderValue(frequencyHz) {
@@ -2977,9 +2996,7 @@ function analyzePitchMemoryMic(time) {
             getControl('pitch-memory-frequency').value = String(
                 pitchMemoryFrequencyToSliderValue(mic.detectedHz)
             );
-            const response = document.querySelector(
-                '.pitch-memory-microphone-response'
-            );
+            const response = getPitchMemoryResponse('microphone');
 
             getAction('submit-pitch-memory', response).disabled =
                 mic.frequencies.length < 5;
@@ -3050,15 +3067,11 @@ function showPitchMemoryResponse() {
     pitchMemory.trial.state = 'responding';
     pitchMemory.trial.responseStartedAt = Date.now();
 
-    const oscillator =
-        pitchMemory.trial.method === 'oscillator'
-            ? document.querySelector('.pitch-memory-oscillator-response')
-            : document.querySelector('.pitch-memory-microphone-response');
+    const response = getPitchMemoryResponse(pitchMemory.trial.method);
 
-    document.querySelector('.pitch-memory-oscillator-response').hidden = true;
-    document.querySelector('.pitch-memory-microphone-response').hidden = true;
-    document.querySelector('.pitch-memory-frequency-response').hidden = false;
-    oscillator.hidden = false;
+    hidePitchMemoryResponses();
+    getPitchMemoryResponse('frequency').hidden = false;
+    response.hidden = false;
 
     if (pitchMemory.trial.method === 'oscillator') {
         const random = seededRandom(pitchMemory.trial.seed ^ 0xa55a5aa5);
@@ -3076,7 +3089,7 @@ function showPitchMemoryResponse() {
         getControl('pitch-memory-frequency').disabled = false;
         getAction('play-pitch-memory-response').disabled = false;
         getAction('stop-pitch-memory-response').disabled = false;
-        getAction('submit-pitch-memory', oscillator).disabled = false;
+        getAction('submit-pitch-memory', response).disabled = false;
         setPitchMemoryStatus(
             'Adjust the tone to the frequency you remember, then submit.'
         );
@@ -3089,10 +3102,7 @@ function showPitchMemoryResponse() {
         );
         clearPitchMemoryFrequencyMarkers();
         getControl('pitch-memory-frequency').disabled = true;
-        getAction(
-            'submit-pitch-memory',
-            document.querySelector('.pitch-memory-microphone-response')
-        ).disabled = true;
+        getAction('submit-pitch-memory', response).disabled = true;
         setPitchMemoryStatus('Produce the remembered pitch, then submit.');
     }
 
@@ -3281,9 +3291,7 @@ function startPitchMemoryTrial() {
         stimulusPlayed: false,
     };
 
-    document.querySelector('.pitch-memory-oscillator-response').hidden = true;
-    document.querySelector('.pitch-memory-microphone-response').hidden = true;
-    document.querySelector('.pitch-memory-frequency-response').hidden = true;
+    hidePitchMemoryResponses();
     clearPitchMemoryFrequencyMarkers();
     getOutput('pitch-memory-result').textContent = '';
     setPitchMemoryReplayEnabled(true);
@@ -3313,9 +3321,7 @@ function cancelPitchMemoryTrial(showStatus = true) {
 
     startButton.disabled = true;
     getAction('stop-pitch-memory').disabled = true;
-    document.querySelector('.pitch-memory-oscillator-response').hidden = true;
-    document.querySelector('.pitch-memory-microphone-response').hidden = true;
-    document.querySelector('.pitch-memory-frequency-response').hidden = true;
+    hidePitchMemoryResponses();
 
     if (showStatus) {
         setPitchMemoryStatus('Trial cancelled.');
@@ -3337,12 +3343,7 @@ function stopPitchMemoryAudio() {
     if (pitchMemory.trial?.state !== 'complete') {
         pitchMemory.trial.state = 'stopped';
         getAction('stop-pitch-memory').disabled = true;
-        document.querySelector('.pitch-memory-oscillator-response').hidden =
-            true;
-        document.querySelector('.pitch-memory-microphone-response').hidden =
-            true;
-        document.querySelector('.pitch-memory-frequency-response').hidden =
-            true;
+        hidePitchMemoryResponses();
         setPitchMemoryStatus('Trial paused.');
         savePitchMemoryState();
     }
@@ -3350,7 +3351,7 @@ function stopPitchMemoryAudio() {
 
 function playPitchMemoryResponse() {
     if (
-        document.querySelector('.pitch-memory-oscillator-response').hidden ||
+        getPitchMemoryResponse('oscillator').hidden ||
         !pitchMemory.trial ||
         pitchMemory.trial.state !== 'responding'
     ) {
@@ -3438,12 +3439,12 @@ function submitPitchMemoryResponse() {
         getAction('stop-pitch-memory-response').disabled = true;
         getAction(
             'submit-pitch-memory',
-            document.querySelector('.pitch-memory-oscillator-response')
+            getPitchMemoryResponse('oscillator')
         ).disabled = true;
     } else {
         getAction(
             'submit-pitch-memory',
-            document.querySelector('.pitch-memory-microphone-response')
+            getPitchMemoryResponse('microphone')
         ).disabled = true;
     }
 
@@ -3459,8 +3460,9 @@ function submitPitchMemoryResponse() {
 function updatePitchMemoryControls() {
     const novel = getControl('pitch-memory-type').value === 'novel';
 
-    document.querySelector('.pitch-memory-novel-control').hidden = !novel;
-    document.querySelector('.pitch-memory-interference-control').hidden = novel;
+    document.querySelector('[data-pitch-memory-type="novel"]').hidden = !novel;
+    document.querySelector('[data-pitch-memory-type="interference"]').hidden =
+        novel;
     renderPitchStats();
 }
 
@@ -3545,7 +3547,7 @@ function restorePitchMemoryTrial() {
     schedulePitchMemoryResponse();
 }
 
-// Absolute pitch identification
+// Pitch: identification
 
 const pitchIdentification = { trial: null };
 
@@ -3558,15 +3560,7 @@ function renderPitchIdentificationAnswers(selected = null) {
         button.dataset.pitchIdentificationAnswer = String(pitchClass);
         button.textContent = name;
         button.disabled = !trial?.played || trial.committed;
-        if (selected !== null) {
-            if (pitchClass === trial.midi % 12) {
-                button.classList.add(
-                    pitchClass === selected ? 'is-correct' : 'is-target'
-                );
-            } else if (pitchClass === selected) {
-                button.classList.add('is-incorrect');
-            }
-        }
+        setAnswerOptionState(button, pitchClass, selected, trial?.midi % 12);
         return button;
     });
     document
@@ -3656,9 +3650,9 @@ function commitPitchIdentification(pitchClass) {
     schedulePitchAdvance();
 }
 
-// Pick target
+// Pick: target
 
-function defaultPickTypeStats() {
+function defaultPickTargetStats() {
     return {
         streak: 0,
         trials: 0,
@@ -3670,13 +3664,13 @@ function defaultPickTypeStats() {
 
 function defaultPickStats() {
     return {
-        recognition: defaultPickTypeStats(),
+        target: defaultPickTargetStats(),
     };
 }
 
-function loadPickTypeStats(stored) {
+function loadPickTargetStats(stored) {
     if (!stored || typeof stored !== 'object' || Array.isArray(stored)) {
-        return defaultPickTypeStats();
+        return defaultPickTargetStats();
     }
 
     return {
@@ -3696,7 +3690,7 @@ function loadPickStats() {
     }
 
     return {
-        recognition: loadPickTypeStats(stored.recognition),
+        target: loadPickTargetStats(stored.target ?? stored.recognition),
     };
 }
 
@@ -3707,20 +3701,23 @@ function savePickStats() {
 stats.pick = loadPickStats();
 
 const pick = {
-    candidates: [],
+    answers: [],
     committed: false,
-    selectedIndex: null,
+    selectedAnswerIndex: null,
     adaptiveResults: [],
 };
 
-const pickAdvance = createAutoAdvance('.pick-refresh', newPickSet);
+const pickTargetAdvance = createAutoAdvance(
+    '[data-action="new-pick"]',
+    newPickTargetTrial
+);
 
 function cancelPickAdvance() {
-    pickAdvance.cancel();
+    pickTargetAdvance.cancel();
 }
 
 function schedulePickAdvance() {
-    pickAdvance.schedule();
+    pickTargetAdvance.schedule();
 }
 
 function shuffle(items) {
@@ -3756,7 +3753,7 @@ function spreadMagnitudes(count, minimum, maximum) {
     });
 }
 
-function candidateOffsets(count, minimum, maximum) {
+function pickTargetAnswerOffsets(count, minimum, maximum) {
     const nonTargetCount = count - 1;
 
     let negativeCount = Math.floor(nonTargetCount / 2);
@@ -3765,7 +3762,7 @@ function candidateOffsets(count, minimum, maximum) {
 
     /*
      * When there's an odd number of
-     * non-target candidates, randomly
+     * non-target answers, randomly
      * choose which side gets the extra.
      */
     if (Math.random() < 0.5) {
@@ -3783,7 +3780,7 @@ function candidateOffsets(count, minimum, maximum) {
     return [0, ...negativeOffsets, ...positiveOffsets];
 }
 
-function newPickSet() {
+function newPickTargetTrial() {
     cancelPickAdvance();
     stopAllAudio();
 
@@ -3798,80 +3795,73 @@ function newPickSet() {
 
     const count = Math.round(readNumber(getControl('pick-count'), 7));
 
-    pick.candidates = shuffle(
-        candidateOffsets(count, minimumCents, maximumCents).map((cents) => ({
-            cents,
+    pick.answers = shuffle(
+        pickTargetAnswerOffsets(count, minimumCents, maximumCents).map(
+            (cents) => ({
+                cents,
 
-            frequencyHz: frequencyFromCents(targetHz, cents),
+                frequencyHz: frequencyFromCents(targetHz, cents),
 
-            isTarget: Math.abs(cents) < 0.000001,
+                isTarget: Math.abs(cents) < 0.000001,
 
-            played: false,
-        }))
+                played: false,
+            })
+        )
     );
 
     pick.committed = false;
-    pick.selectedIndex = null;
+    pick.selectedAnswerIndex = null;
 
     getOutput('pick-status').textContent = '';
 
-    renderCandidates();
+    renderPickTargetAnswers();
 }
 
-function getCandidateResult(candidate, index) {
+function getPickTargetAnswerResult(index) {
     if (!pick.committed) {
         return null;
     }
 
-    if (candidate.isTarget && index === pick.selectedIndex) {
-        return {
-            icon: '✓',
-            className: 'is-correct',
-        };
-    }
-
-    if (index === pick.selectedIndex) {
-        return {
-            icon: '✕',
-            className: 'is-incorrect',
-        };
-    }
-
-    if (candidate.isTarget) {
-        return {
-            icon: '◎',
-            className: 'is-target',
-        };
-    }
+    const targetIndex = pick.answers.findIndex((answer) => answer.isTarget);
+    const className = answerStateClass(
+        index,
+        pick.selectedAnswerIndex,
+        targetIndex
+    );
 
     return {
-        icon: '',
-        className: '',
+        icon:
+            {
+                'is-correct': '✓',
+                'is-incorrect': '✕',
+                'is-target': '◎',
+            }[className] ?? '',
+        className,
     };
 }
 
-function createCandidateRow(candidate, index) {
+function createPickTargetAnswerRow(answer, index) {
     const row = document.createElement('div');
 
-    row.className = 'pick-target-candidate-row';
+    row.className = 'practice-row';
 
-    row.dataset.index = String(index);
+    row.dataset.pickTargetAnswer = String(index);
 
-    const actions = document.createElement('div');
+    const buttons = document.createElement('div');
 
-    actions.className = 'pick-target-candidate-actions';
+    buttons.className = 'button-row';
 
     const playButton = document.createElement('button');
 
     playButton.type = 'button';
 
-    playButton.className = 'icon-button pick-target-candidate-play';
+    playButton.className = 'icon-button answer-play';
 
-    playButton.dataset.action = 'play-candidate';
+    playButton.dataset.action = 'play-pick-answer';
 
-    playButton.setAttribute('aria-label', `Play candidate ${index + 1}`);
+    playButton.setAttribute('aria-label', `Play answer ${index + 1}`);
 
-    playButton.title = `Play candidate ${index + 1}`;
+    playButton.title = `Play answer ${index + 1}`;
 
     playButton.textContent = '▶';
 
@@ -3879,36 +3869,37 @@ function createCandidateRow(candidate, index) {
 
     chooseButton.type = 'button';
 
-    chooseButton.className = 'pick-target-candidate-choose';
+    chooseButton.className = 'answer-option answer-select';
 
-    chooseButton.dataset.action = 'choose-candidate';
+    chooseButton.dataset.action = 'select-pick-answer';
 
     chooseButton.textContent = `Choose #${index + 1}`;
 
-    chooseButton.disabled = pick.committed || !candidate.played;
+    chooseButton.disabled = pick.committed || !answer.played;
 
-    actions.append(playButton, chooseButton);
+    buttons.append(playButton, chooseButton);
 
-    row.append(actions);
+    row.append(buttons);
 
-    const result = getCandidateResult(candidate, index);
+    const result = getPickTargetAnswerResult(index);
 
     if (!result) {
         return row;
     }
 
-    if (result.className) {
-        row.classList.add(result.className);
-    }
-
     const details = document.createElement('span');
 
-    details.className = 'pick-target-candidate-details';
+    details.className = 'practice-result';
+
+    if (result.className) {
+        chooseButton.classList.add(result.className);
+        details.classList.add(result.className);
+    }
 
     if (result.icon) {
         const icon = document.createElement('span');
 
-        icon.className = 'pick-target-candidate-result-icon';
+        icon.className = 'result-icon';
 
         icon.textContent = result.icon;
 
@@ -3917,8 +3908,8 @@ function createCandidateRow(candidate, index) {
 
     details.append(
         document.createTextNode(
-            `${candidate.frequencyHz.toFixed(3)} Hz, ` +
-                `${signed(candidate.cents, 2)} cents`
+            `${answer.frequencyHz.toFixed(3)} Hz, ` +
+                `${signed(answer.cents, 2)} cents`
         )
     );
 
@@ -3927,27 +3918,27 @@ function createCandidateRow(candidate, index) {
     return row;
 }
 
-function renderCandidates() {
-    const rows = pick.candidates.map(createCandidateRow);
+function renderPickTargetAnswers() {
+    const rows = pick.answers.map(createPickTargetAnswerRow);
 
     document
-        .querySelector('.pick-target-candidate-list')
+        .querySelector('[data-pick-target-answers]')
         .replaceChildren(...rows);
 }
 
-function playCandidate(index) {
-    const candidate = pick.candidates[index];
+function playPickTargetAnswer(index) {
+    const answer = pick.answers[index];
 
-    if (!candidate) {
+    if (!answer) {
         return;
     }
 
     stopAllAudio();
 
-    candidate.played = true;
+    answer.played = true;
 
     audio.playTransient(
-        candidate.frequencyHz,
+        answer.frequencyHz,
 
         getWaveform('pick').value,
 
@@ -3958,19 +3949,17 @@ function playCandidate(index) {
         return;
     }
 
-    const row = document.querySelector(
-        `.pick-target-candidate-row[data-index="${index}"]`
-    );
+    const row = document.querySelector(`[data-pick-target-answer="${index}"]`);
 
-    const chooseButton = row ? getAction('choose-candidate', row) : null;
+    const chooseButton = row ? getAction('select-pick-answer', row) : null;
 
     if (chooseButton) {
         chooseButton.disabled = false;
     }
 }
 
-function renderPickStats() {
-    const { streak, trials, errorTotal, best } = stats.pick.recognition;
+function renderPickTargetStats() {
+    const { streak, trials, errorTotal, best } = stats.pick.target;
     const meanError = trials > 0 ? errorTotal / trials : 0;
 
     getOutput('pick-streak').textContent = String(streak);
@@ -3980,22 +3969,22 @@ function renderPickStats() {
     getOutput('pick-best').textContent = best === null ? '--' : String(best);
 }
 
-function clearPickStats() {
-    stats.pick.recognition = defaultPickTypeStats();
+function clearPickTargetStats() {
+    stats.pick.target = defaultPickTargetStats();
 
     clearStats('pick');
 
-    renderPickStats();
+    renderPickTargetStats();
 }
 
-function commitPick(index) {
+function commitPickTargetAnswer(index) {
     if (pick.committed) {
         return;
     }
 
-    const selected = pick.candidates[index];
+    const selected = pick.answers[index];
 
-    const target = pick.candidates.find((candidate) => candidate.isTarget);
+    const target = pick.answers.find((answer) => answer.isTarget);
 
     if (!selected || !target) {
         return;
@@ -4004,44 +3993,42 @@ function commitPick(index) {
     audio.stopTransient();
 
     pick.committed = true;
-    pick.selectedIndex = index;
+    pick.selectedAnswerIndex = index;
 
     const correct = selected.isTarget;
     const errorCents = Math.abs(
         centsBetween(selected.frequencyHz, target.frequencyHz)
     );
 
-    stats.pick.recognition.trials += 1;
-    stats.pick.recognition.correct += correct ? 1 : 0;
-    stats.pick.recognition.errorTotal += errorCents;
-    stats.pick.recognition.streak = correct
-        ? stats.pick.recognition.streak + 1
-        : 0;
+    stats.pick.target.trials += 1;
+    stats.pick.target.correct += correct ? 1 : 0;
+    stats.pick.target.errorTotal += errorCents;
+    stats.pick.target.streak = correct ? stats.pick.target.streak + 1 : 0;
 
     if (
         correct &&
-        (stats.pick.recognition.best === null ||
-            stats.pick.recognition.streak > stats.pick.recognition.best)
+        (stats.pick.target.best === null ||
+            stats.pick.target.streak > stats.pick.target.best)
     ) {
-        stats.pick.recognition.best = stats.pick.recognition.streak;
+        stats.pick.target.best = stats.pick.target.streak;
     }
 
     savePickStats();
 
-    renderCandidates();
-    renderPickStats();
+    renderPickTargetAnswers();
+    renderPickTargetStats();
     updateAdaptiveDifficulty('pick', correct);
 
-    const targetIndex = pick.candidates.indexOf(target);
+    const targetIndex = pick.answers.indexOf(target);
     const status = getOutput('pick-status');
     const newPickButton = getAction('new-pick');
 
     newPickButton?.focus();
 
     status.textContent = selected.isTarget
-        ? `Correct. Candidate ${index + 1} matched the target.`
-        : `Incorrect. Candidate ${index + 1} selected; ` +
-          `candidate ${targetIndex + 1} was the target.`;
+        ? `Correct. Answer ${index + 1} matched the target.`
+        : `Incorrect. Answer ${index + 1} selected; ` +
+          `answer ${targetIndex + 1} was the target.`;
 
     schedulePickAdvance();
 }
@@ -4100,9 +4087,12 @@ const interval = {
     trial: null,
 };
 
-const intervalAdvance = createAutoAdvance('.interval-refresh', () => {
-    newIntervalTrial(true);
-});
+const intervalAdvance = createAutoAdvance(
+    '[data-action="new-interval"]',
+    () => {
+        newIntervalTrial(true);
+    }
+);
 
 function cancelIntervalAdvance() {
     intervalAdvance.cancel();
@@ -4172,15 +4162,12 @@ function renderIntervalAnswers(selected = null, enabled = false) {
         );
         button.disabled = interval.trial?.committed || !enabled;
 
-        if (selected !== null) {
-            if (answer.semitones === interval.trial.semitones) {
-                button.classList.add(
-                    answer.semitones === selected ? 'is-correct' : 'is-target'
-                );
-            } else if (answer.semitones === selected) {
-                button.classList.add('is-incorrect');
-            }
-        }
+        setAnswerOptionState(
+            button,
+            answer.semitones,
+            selected,
+            interval.trial.semitones
+        );
 
         return button;
     });
@@ -4197,7 +4184,7 @@ function renderIntervalAnswers(selected = null, enabled = false) {
                 ? ''
                 : ` ${interval.trial.direction > 0 ? 'ascending' : 'descending'}`;
 
-        prompt.className = 'interval-prompt';
+        prompt.className = 'answer-prompt';
         prompt.replaceChildren(
             document.createTextNode(
                 `Start: ${midiToNoteName(interval.trial.rootMidi)}.`
@@ -4350,7 +4337,7 @@ function commitInterval(semitones) {
 
     const playedNotes = document.createElement('div');
 
-    playedNotes.className = 'interval-played-notes';
+    playedNotes.className = 'played-notes';
     playedNotes.textContent =
         `${midiToNoteName(trial.rootMidi)} → ` +
         midiToNoteName(trial.targetMidi);
@@ -4359,9 +4346,9 @@ function commitInterval(semitones) {
     scheduleIntervalAdvance();
 }
 
-// Chord quality
+// Chords: quality
 
-function defaultChordTypeStats() {
+function defaultChordQualityStats() {
     return {
         streak: 0,
         trials: 0,
@@ -4372,13 +4359,13 @@ function defaultChordTypeStats() {
 
 function defaultChordStats() {
     return {
-        recognition: defaultChordTypeStats(),
+        quality: defaultChordQualityStats(),
     };
 }
 
-function loadChordTypeStats(stored) {
+function loadChordQualityStats(stored) {
     if (!stored || typeof stored !== 'object') {
-        return defaultChordTypeStats();
+        return defaultChordQualityStats();
     }
 
     return {
@@ -4397,7 +4384,7 @@ function loadChordStats() {
     }
 
     return {
-        recognition: loadChordTypeStats(stored.recognition),
+        quality: loadChordQualityStats(stored.quality ?? stored.recognition),
     };
 }
 
@@ -4414,8 +4401,8 @@ const chord = {
     playedNotes: [],
 };
 
-const chordAdvance = createAutoAdvance('.chord-refresh', () => {
-    newChordTrial(true);
+const chordAdvance = createAutoAdvance('[data-action="new-chord"]', () => {
+    newChordQualityTrial(true);
 });
 
 function cancelChordAdvance() {
@@ -4426,7 +4413,7 @@ function scheduleChordAdvance() {
     chordAdvance.schedule();
 }
 
-function renderChordAnswers(selected = null, answersEnabled = false) {
+function renderChordQualityAnswers(selected = null, answersEnabled = false) {
     const buttons = Object.keys(CHORD_QUALITIES).map((quality) => {
         const button = document.createElement('button');
 
@@ -4436,15 +4423,7 @@ function renderChordAnswers(selected = null, answersEnabled = false) {
         button.textContent = quality[0].toUpperCase() + quality.slice(1);
         button.disabled = chord.committed || !answersEnabled;
 
-        if (selected !== null) {
-            if (quality === chord.quality) {
-                button.classList.add(
-                    quality === selected ? 'is-correct' : 'is-target'
-                );
-            } else if (quality === selected) {
-                button.classList.add('is-incorrect');
-            }
-        }
+        setAnswerOptionState(button, quality, selected, chord.quality);
 
         return button;
     });
@@ -4452,11 +4431,11 @@ function renderChordAnswers(selected = null, answersEnabled = false) {
     document.querySelector('[data-chord-answers]').replaceChildren(...buttons);
 }
 
-function clearChordResult() {
+function clearChordQualityResult() {
     clearPracticeResult('chord-result');
 }
 
-function newChordTrial(playImmediately = false) {
+function newChordQualityTrial(playImmediately = false) {
     cancelChordAdvance();
     stopAllAudio();
 
@@ -4467,17 +4446,17 @@ function newChordTrial(playImmediately = false) {
     chord.committed = false;
     chord.playedNotes = [];
 
-    clearChordResult();
-    renderChordAnswers();
+    clearChordQualityResult();
+    renderChordQualityAnswers();
 
     if (playImmediately) {
-        playChordTrial();
+        playChordQualityTrial();
     }
 }
 
-function playChordTrial() {
+function playChordQualityTrial() {
     if (!chord.quality) {
-        newChordTrial();
+        newChordQualityTrial();
 
         if (!chord.quality) {
             return;
@@ -4510,12 +4489,12 @@ function playChordTrial() {
     });
 
     if (!chord.committed) {
-        renderChordAnswers(null, true);
+        renderChordQualityAnswers(null, true);
     }
 }
 
-function renderChordStats() {
-    const { streak, trials, correct, best } = stats.chord.recognition;
+function renderChordQualityStats() {
+    const { streak, trials, correct, best } = stats.chord.quality;
 
     const accuracy = trials > 0 ? (correct / trials) * 100 : 0;
 
@@ -4526,15 +4505,15 @@ function renderChordStats() {
     getOutput('chord-best').textContent = best === null ? '--' : String(best);
 }
 
-function clearChordStats() {
-    stats.chord.recognition = defaultChordTypeStats();
+function clearChordQualityStats() {
+    stats.chord.quality = defaultChordQualityStats();
 
     clearStats('chord');
 
-    renderChordStats();
+    renderChordQualityStats();
 }
 
-function commitChord(quality) {
+function commitChordQuality(quality) {
     if (chord.committed || !CHORD_QUALITIES[quality]) {
         return;
     }
@@ -4544,23 +4523,21 @@ function commitChord(quality) {
 
     const correct = quality === chord.quality;
 
-    stats.chord.recognition.trials += 1;
-    stats.chord.recognition.correct += correct ? 1 : 0;
-    stats.chord.recognition.streak = correct
-        ? stats.chord.recognition.streak + 1
-        : 0;
+    stats.chord.quality.trials += 1;
+    stats.chord.quality.correct += correct ? 1 : 0;
+    stats.chord.quality.streak = correct ? stats.chord.quality.streak + 1 : 0;
 
     if (
         correct &&
-        (stats.chord.recognition.best === null ||
-            stats.chord.recognition.streak > stats.chord.recognition.best)
+        (stats.chord.quality.best === null ||
+            stats.chord.quality.streak > stats.chord.quality.best)
     ) {
-        stats.chord.recognition.best = stats.chord.recognition.streak;
+        stats.chord.quality.best = stats.chord.quality.streak;
     }
 
     saveChordStats();
-    renderChordStats();
-    renderChordAnswers(quality, true);
+    renderChordQualityStats();
+    renderChordQualityAnswers(quality, true);
 
     renderPracticeResult(
         'chord-result',
@@ -4570,7 +4547,7 @@ function commitChord(quality) {
 
     const playedNotes = document.createElement('div');
 
-    playedNotes.className = 'chord-played-notes';
+    playedNotes.className = 'played-notes';
     playedNotes.textContent = `Notes: ${chord.playedNotes
         .map(midiToNoteName)
         .join(', ')}`;
@@ -4595,7 +4572,7 @@ function resetForReferenceChange() {
     }
 
     newPitchPlacementTrial();
-    newPickSet();
+    newPickTargetTrial();
     newIntervalTrial();
     newPitchIdentificationTrial();
 }
@@ -4646,7 +4623,7 @@ function initializeEvents() {
         updateRhythmMode();
     });
     const rhythmHold = document.getElementById('rhythm-hold');
-    document.getElementById('rhythm-new').addEventListener('click', () => {
+    getAction('new-rhythm').addEventListener('click', () => {
         newRhythmPhrase();
         startRhythm();
     });
@@ -4761,7 +4738,7 @@ function initializeEvents() {
     getNote('pick').addEventListener('change', (event) => {
         updateNoteReadout(event.currentTarget);
 
-        newPickSet();
+        newPickTargetTrial();
     });
 
     for (const control of getControls('interval-level', 'interval-direction')) {
@@ -4788,7 +4765,7 @@ function initializeEvents() {
     )) {
         control.addEventListener('change', () => {
             resetAdaptiveProgress('pick');
-            newPickSet();
+            newPickTargetTrial();
         });
     }
 
@@ -4881,7 +4858,7 @@ function initializeEvents() {
         });
     }
 
-    getAction('new-pick').addEventListener('click', newPickSet);
+    getAction('new-pick').addEventListener('click', newPickTargetTrial);
 
     getAction('play-interval').addEventListener('click', playIntervalTrial);
 
@@ -4889,10 +4866,10 @@ function initializeEvents() {
         newIntervalTrial(true);
     });
 
-    getAction('play-chord').addEventListener('click', playChordTrial);
+    getAction('play-chord').addEventListener('click', playChordQualityTrial);
 
     getAction('new-chord').addEventListener('click', () => {
-        newChordTrial(true);
+        newChordQualityTrial(true);
     });
 
     document
@@ -4911,7 +4888,7 @@ function initializeEvents() {
             const button = event.target.closest('[data-chord-answer]');
 
             if (button) {
-                commitChord(button.dataset.chordAnswer);
+                commitChordQuality(button.dataset.chordAnswer);
             }
         });
 
@@ -4975,7 +4952,7 @@ function initializeEvents() {
     }
 
     for (const button of document.querySelectorAll(
-        '.pitch-judgment .answer-option'
+        '[data-pitch-placement-answers] [data-answer]'
     )) {
         button.addEventListener('click', () => {
             commitPitchPlacement(button.dataset.answer);
@@ -4992,30 +4969,30 @@ function initializeEvents() {
         });
     }
 
-    for (const waveform of document.querySelectorAll('.waveform-select')) {
+    for (const waveform of document.querySelectorAll('[data-waveform]')) {
         waveform.addEventListener('change', stopGeneratedAudio);
     }
 
     document
-        .querySelector('.pick-target-candidate-list')
+        .querySelector('[data-pick-target-answers]')
         .addEventListener('click', (event) => {
             const button = event.target.closest('button[data-action]');
 
-            const row = button?.closest('.pick-target-candidate-row');
+            const row = button?.closest('[data-pick-target-answer]');
 
             if (!button || !row) {
                 return;
             }
 
-            const index = Number(row.dataset.index);
+            const index = Number(row.dataset.pickTargetAnswer);
 
-            if (button.dataset.action === 'play-candidate') {
-                playCandidate(index);
+            if (button.dataset.action === 'play-pick-answer') {
+                playPickTargetAnswer(index);
                 return;
             }
 
-            if (button.dataset.action === 'choose-candidate') {
-                commitPick(index);
+            if (button.dataset.action === 'select-pick-answer') {
+                commitPickTargetAnswer(index);
             }
         });
 
@@ -5023,13 +5000,19 @@ function initializeEvents() {
         button.addEventListener('click', clearPitchStats);
     }
 
-    getAction('clear-pick-stats').addEventListener('click', clearPickStats);
+    getAction('clear-pick-stats').addEventListener(
+        'click',
+        clearPickTargetStats
+    );
 
     for (const button of getActions('clear-interval-stats')) {
         button.addEventListener('click', clearIntervalStats);
     }
 
-    getAction('clear-chord-stats').addEventListener('click', clearChordStats);
+    getAction('clear-chord-stats').addEventListener(
+        'click',
+        clearChordQualityStats
+    );
 }
 
 // Initialization
@@ -5051,12 +5034,12 @@ function initialize() {
     renderPitchStats();
     updatePitchMode();
 
-    newPickSet();
+    newPickTargetTrial();
     updateIntervalMode();
-    newChordTrial();
+    newChordQualityTrial();
 
-    renderPickStats();
-    renderChordStats();
+    renderPickTargetStats();
+    renderChordQualityStats();
     restorePitchMemoryTrial();
     renderPitchMemoryResponseFrequency();
 }
