@@ -2,6 +2,7 @@
 
 const DEFAULT_A4 = 440;
 const DEFAULT_MIDI = 69;
+const SEMITONES_PER_OCTAVE = 12;
 
 const TUNER_ANALYSIS_INTERVAL_MS = 50;
 const TUNER_SMOOTHING = 0.18;
@@ -9,10 +10,13 @@ const TUNER_MIN_RMS = 0.006;
 const TUNER_STABLE_FRAMES = 3;
 const TUNER_YIN_THRESHOLD = 0.15;
 const TUNER_HISTORY_LENGTH = 5;
-const TUNER_ANALYSIS_FFT_SIZE = 4096;
+const TUNER_ANALYSIS_FFT_SIZE = 8192;
+const TUNER_ANALYSIS_SAMPLE_STRIDE = 2;
+const TUNER_PLOT_SECONDS = 8;
+const TUNER_PLOT_PADDING_SEMITONES = 7;
 
-const TUNER_MIN_HZ = 25;
-const TUNER_MAX_HZ = 4200;
+const TUNER_MIN_HZ = 12;
+const TUNER_MAX_HZ = 5000;
 
 const RHYTHM_LOOKAHEAD_MS = 25;
 const RHYTHM_SCHEDULE_AHEAD_SECONDS = 0.1;
@@ -251,21 +255,31 @@ function getA4() {
 }
 
 function midiFrequency(midi) {
-    return getA4() * 2 ** ((midi - 69) / 12);
+    return getA4() * 2 ** ((midi - DEFAULT_MIDI) / SEMITONES_PER_OCTAVE);
+}
+
+function midiFromFrequency(frequencyHz) {
+    return (
+        DEFAULT_MIDI + SEMITONES_PER_OCTAVE * Math.log2(frequencyHz / getA4())
+    );
 }
 
 function midiToNoteName(midi) {
     const roundedMidi = Math.round(midi);
-    const pitchClass = ((roundedMidi % 12) + 12) % 12;
-    const octave = Math.floor(roundedMidi / 12) - 1;
+    const pitchClass =
+        ((roundedMidi % SEMITONES_PER_OCTAVE) + SEMITONES_PER_OCTAVE) %
+        SEMITONES_PER_OCTAVE;
+    const octave = Math.floor(roundedMidi / SEMITONES_PER_OCTAVE) - 1;
 
     return `${NOTE_NAMES[pitchClass]}${octave}`;
 }
 
 function midiToTunerNoteName(midi, accidental = 'sharp') {
     const roundedMidi = Math.round(midi);
-    const pitchClass = ((roundedMidi % 12) + 12) % 12;
-    const octave = Math.floor(roundedMidi / 12) - 1;
+    const pitchClass =
+        ((roundedMidi % SEMITONES_PER_OCTAVE) + SEMITONES_PER_OCTAVE) %
+        SEMITONES_PER_OCTAVE;
+    const octave = Math.floor(roundedMidi / SEMITONES_PER_OCTAVE) - 1;
     const noteName =
         TUNER_ACCIDENTAL_NAMES[accidental][pitchClass] ??
         NOTE_NAMES[pitchClass];
@@ -527,11 +541,6 @@ const audio = (() => {
     }
 
     function cancelAndHold(parameter, time) {
-        if (typeof parameter.cancelAndHoldAtTime === 'function') {
-            parameter.cancelAndHoldAtTime(time);
-            return;
-        }
-
         const currentValue = parameter.value;
 
         parameter.cancelScheduledValues(time);
@@ -678,15 +687,9 @@ const audio = (() => {
 
                 const now = audioContext.currentTime;
 
-                cancelAndHold(gain.gain, now);
-
+                gain.gain.cancelScheduledValues(now);
+                gain.gain.setValueAtTime(gain.gain.value, now);
                 gain.gain.linearRampToValueAtTime(0, now + 0.015);
-
-                try {
-                    oscillator.stop(Math.max(now + 0.02, startTime));
-                } catch {
-                    // move on
-                }
             },
         };
 
@@ -1251,6 +1254,8 @@ const tunerMic = {
     lastValidTime: 0,
 
     history: [],
+    plot: [],
+    plotCenterMidi: DEFAULT_MIDI,
 };
 
 function setTunerStatus(text) {
@@ -1303,6 +1308,126 @@ function resetTunerDetection(status = 'Microphone off') {
     setTunerStatus(status);
 }
 
+function renderTunerHistory(time = performance.now()) {
+    const canvas = getOutput('tuner-history');
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+
+    if (width === 0 || height === 0) {
+        return;
+    }
+
+    const scale = window.devicePixelRatio || 1;
+    const pixelWidth = Math.round(width * scale);
+    const pixelHeight = Math.round(height * scale);
+    if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+        canvas.width = pixelWidth;
+        canvas.height = pixelHeight;
+    }
+
+    const context = canvas.getContext('2d');
+    const styles = getComputedStyle(document.documentElement);
+    const mutedColor = styles.getPropertyValue('--muted');
+    const gridColor = styles.getPropertyValue('--border');
+    const pitchColor = styles.getPropertyValue('--target');
+    context.setTransform(scale, 0, 0, scale, 0, 0);
+    context.clearRect(0, 0, width, height);
+
+    const cutoff = time - TUNER_PLOT_SECONDS * 1000;
+    tunerMic.plot = tunerMic.plot.filter((sample) => sample.time >= cutoff);
+    const visibleMidis = tunerMic.plot.map((sample) =>
+        midiFromFrequency(sample.frequencyHz)
+    );
+    const minimumMidi =
+        Math.floor(
+            visibleMidis.length
+                ? Math.min(...visibleMidis)
+                : tunerMic.plotCenterMidi
+        ) - TUNER_PLOT_PADDING_SEMITONES;
+    const maximumMidi =
+        Math.ceil(
+            visibleMidis.length
+                ? Math.max(...visibleMidis)
+                : tunerMic.plotCenterMidi
+        ) + TUNER_PLOT_PADDING_SEMITONES;
+    const midiRange = maximumMidi - minimumMidi;
+    const labelWidth = 34;
+    const plotWidth = width - labelWidth;
+    const plotTop = 8;
+    const plotHeight = height - plotTop * 2;
+    canvas.setAttribute(
+        'aria-label',
+        'Detected pitch history over the last eight seconds'
+    );
+    const yForMidi = (midi) =>
+        plotTop + (1 - (midi - minimumMidi) / midiRange) * plotHeight;
+
+    context.font = '10px system-ui, sans-serif';
+    context.textBaseline = 'middle';
+    context.textAlign = 'right';
+    for (
+        let midi = Math.ceil(minimumMidi);
+        midi <= Math.floor(maximumMidi);
+        midi += 1
+    ) {
+        const y = yForMidi(midi);
+        const octaveBoundary =
+            ((midi % SEMITONES_PER_OCTAVE) + SEMITONES_PER_OCTAVE) %
+                SEMITONES_PER_OCTAVE ===
+            0;
+        if (octaveBoundary) {
+            context.fillStyle = mutedColor;
+            context.fillText(midiToNoteName(midi), labelWidth - 6, y);
+        }
+        context.globalAlpha = octaveBoundary ? 1 : 0.3;
+        context.strokeStyle = gridColor;
+        context.lineWidth = 1;
+        context.beginPath();
+        context.moveTo(labelWidth, Math.round(y) + 0.5);
+        context.lineTo(width - 1, Math.round(y) + 0.5);
+        context.stroke();
+    }
+    context.globalAlpha = 1;
+
+    context.save();
+    context.beginPath();
+    context.rect(labelWidth, 0, plotWidth, height);
+    context.clip();
+    context.strokeStyle = pitchColor;
+    context.lineWidth = 2;
+    context.lineJoin = 'round';
+    context.beginPath();
+    let previousTime = null;
+    let previousInRange = false;
+    for (const sample of tunerMic.plot) {
+        const exactMidi = midiFromFrequency(sample.frequencyHz);
+        const x =
+            labelWidth +
+            ((sample.time - cutoff) / (TUNER_PLOT_SECONDS * 1000)) * plotWidth;
+        const y = yForMidi(exactMidi);
+        const inRange = exactMidi >= minimumMidi && exactMidi <= maximumMidi;
+        if (
+            !inRange ||
+            !previousInRange ||
+            sample.time - previousTime > TUNER_ANALYSIS_INTERVAL_MS * 3
+        ) {
+            context.moveTo(x, y);
+        } else {
+            context.lineTo(x, y);
+        }
+        previousTime = sample.time;
+        previousInRange = inRange;
+    }
+    context.stroke();
+    context.restore();
+}
+
+function initializeTunerHistory() {
+    const canvas = getOutput('tuner-history');
+    const observer = new ResizeObserver(() => renderTunerHistory());
+    observer.observe(canvas);
+}
+
 function stopMicTuner() {
     if (tunerMic.frame !== null) {
         cancelAnimationFrame(tunerMic.frame);
@@ -1340,25 +1465,32 @@ function detectPitchYin(
     sampleRate,
     minimumHz,
     maximumHz,
-    threshold = TUNER_YIN_THRESHOLD
+    threshold = TUNER_YIN_THRESHOLD,
+    sampleStride = 1
 ) {
     let squareTotal = 0;
+    const sampleLength = Math.floor(samples.length / sampleStride);
+    const analysisSampleRate = sampleRate / sampleStride;
 
-    for (const sample of samples) {
+    for (let index = 0; index < sampleLength; index += 1) {
+        const sample = samples[index * sampleStride];
         squareTotal += sample * sample;
     }
 
-    const rms = Math.sqrt(squareTotal / samples.length);
+    const rms = Math.sqrt(squareTotal / sampleLength);
 
     if (rms < TUNER_MIN_RMS) {
         return null;
     }
 
-    const minimumPeriod = Math.max(2, Math.floor(sampleRate / maximumHz));
+    const minimumPeriod = Math.max(
+        2,
+        Math.floor(analysisSampleRate / maximumHz)
+    );
 
     const maximumPeriod = Math.min(
-        Math.floor(sampleRate / minimumHz),
-        Math.floor(samples.length / 2)
+        Math.floor(analysisSampleRate / minimumHz),
+        Math.floor(sampleLength / 2)
     );
 
     if (maximumPeriod <= minimumPeriod + 2) {
@@ -1367,13 +1499,15 @@ function detectPitchYin(
 
     const difference = new Float32Array(maximumPeriod + 1);
 
-    const windowLength = samples.length - maximumPeriod;
+    const windowLength = sampleLength - maximumPeriod;
 
     for (let period = 1; period <= maximumPeriod; period += 1) {
         let total = 0;
 
         for (let index = 0; index < windowLength; index += 1) {
-            const delta = samples[index] - samples[index + period];
+            const delta =
+                samples[index * sampleStride] -
+                samples[(index + period) * sampleStride];
 
             total += delta * delta;
         }
@@ -1449,7 +1583,7 @@ function detectPitchYin(
         return null;
     }
 
-    return sampleRate / refinedPeriod;
+    return analysisSampleRate / refinedPeriod;
 }
 
 function nearestMusicalNote(frequencyHz) {
@@ -1458,7 +1592,7 @@ function nearestMusicalNote(frequencyHz) {
      * The user's global A4 reference is
      * respected here.
      */
-    const exactMidi = 69 + 12 * Math.log2(frequencyHz / getA4());
+    const exactMidi = midiFromFrequency(frequencyHz);
 
     const midi = Math.round(exactMidi);
 
@@ -1543,7 +1677,9 @@ function analyzeTunerMic(time) {
             tunerMic.buffer,
             tunerMic.sampleRate,
             TUNER_MIN_HZ,
-            TUNER_MAX_HZ
+            TUNER_MAX_HZ,
+            TUNER_YIN_THRESHOLD,
+            TUNER_ANALYSIS_SAMPLE_STRIDE
         );
 
         if (frequencyHz !== null) {
@@ -1568,7 +1704,11 @@ function analyzeTunerMic(time) {
                     tunerMic.history.shift();
                 }
 
-                renderTunerDetection(median(tunerMic.history));
+                const detectedHz = median(tunerMic.history);
+                const exactMidi = midiFromFrequency(detectedHz);
+                tunerMic.plotCenterMidi = exactMidi;
+                tunerMic.plot.push({ time, frequencyHz: detectedHz });
+                renderTunerDetection(detectedHz);
             }
         }
 
@@ -1578,6 +1718,8 @@ function analyzeTunerMic(time) {
             resetTunerDetection('No stable pitch');
         }
     }
+
+    renderTunerHistory(time);
 
     tunerMic.frame = requestAnimationFrame(analyzeTunerMic);
 }
@@ -1603,6 +1745,9 @@ async function startMicTuner() {
         tunerMic.lastAnalysisTime = 0;
 
         tunerMic.lastValidTime = performance.now();
+
+        tunerMic.plot = [];
+        renderTunerHistory();
 
         resetTunerTracking(true);
 
@@ -1644,10 +1789,11 @@ const rhythm = {
 };
 
 const rhythmTiming = {
-    origin: 0,
+    originMs: 0,
     interval: 0.6,
     frame: null,
     lastBeat: -1,
+    markBeat: null,
     errors: [],
 };
 
@@ -2200,21 +2346,38 @@ function rhythmTimingEnabled() {
 function drawRhythmTiming() {
     const phase = Math.max(
         -0.5,
-        (audio.currentTime() - rhythmTiming.origin) / rhythmTiming.interval
+        (performance.now() - rhythmTiming.originMs) /
+            (rhythmTiming.interval * 1000)
     );
     const position = (((phase + 0.5) % 1) + 1) % 1;
     document.getElementById('rhythm-timing-dot').style.left =
         `${position * 100}%`;
+    if (
+        rhythmTiming.markBeat !== null &&
+        phase >= rhythmTiming.markBeat + 0.5
+    ) {
+        clearRhythmTimingMark();
+    }
     rhythmTiming.frame = requestAnimationFrame(drawRhythmTiming);
+}
+
+function clearRhythmTimingMark() {
+    const mark = document.getElementById('rhythm-timing-mark');
+    document
+        .getElementById('rhythm-timing-feedback')
+        .classList.remove('is-correct', 'is-incorrect');
+    mark.hidden = true;
+    delete mark.dataset.label;
+    rhythmTiming.markBeat = null;
 }
 
 function recordRhythmTimingTap() {
     if (!rhythm.running || !rhythmTimingEnabled()) {
         return;
     }
-    const now = audio.currentTime();
+    const now = performance.now();
     const beat = Math.round(
-        (now - rhythmTiming.origin) / rhythmTiming.interval
+        (now - rhythmTiming.originMs) / (rhythmTiming.interval * 1000)
     );
     if (beat < 0 || beat <= rhythmTiming.lastBeat) {
         return;
@@ -2222,12 +2385,12 @@ function recordRhythmTimingTap() {
     rhythmTiming.lastBeat = beat;
     playRhythmInputSound();
     const error =
-        (now - (rhythmTiming.origin + beat * rhythmTiming.interval)) * 1000;
+        now - (rhythmTiming.originMs + beat * rhythmTiming.interval * 1000);
     rhythmTiming.errors.push(error);
     rhythmTiming.errors = rhythmTiming.errors.slice(-20);
     const signed = (value) => `${value > 0 ? '+' : ''}${Math.round(value)}`;
     document.getElementById('rhythm-timing-result').textContent =
-        `${signed(error)} ms - ${Math.abs(error) < 15 ? 'On beat' : error < 0 ? 'Early' : 'Late'}`;
+        `${signed(error)} ms - ${Math.abs(error) <= 20 ? 'On beat' : error < 0 ? 'Early' : 'Late'}`;
     const count = rhythmTiming.errors.length;
     const average =
         rhythmTiming.errors.reduce((sum, value) => sum + Math.abs(value), 0) /
@@ -2237,8 +2400,13 @@ function recordRhythmTimingTap() {
     document.getElementById('rhythm-timing-stats').textContent =
         `${count} tap${count === 1 ? '' : 's'} - Average error: ${Math.round(average)} ms - Bias: ${signed(bias)} ms`;
     const mark = document.getElementById('rhythm-timing-mark');
+    const feedback = document.getElementById('rhythm-timing-feedback');
     mark.hidden = false;
+    mark.dataset.label = `${signed(error)} ms`;
+    feedback.classList.toggle('is-correct', Math.abs(error) <= 20);
+    feedback.classList.toggle('is-incorrect', Math.abs(error) > 20);
     mark.style.left = `${50 + (error / (rhythmTiming.interval * 1000)) * 100}%`;
+    rhythmTiming.markBeat = beat;
 }
 
 function restartRhythm() {
@@ -2325,10 +2493,11 @@ function startRhythm() {
     rhythm.nextBeatTime =
         audio.currentTime() +
         (rhythmTimingEnabled() || rhythmReadingEnabled() ? 1 : 0.05);
-    rhythmTiming.origin = rhythm.nextBeatTime;
+    rhythmTiming.originMs =
+        performance.now() + (rhythm.nextBeatTime - audio.currentTime()) * 1000;
     rhythmTiming.lastBeat = -1;
     rhythmTiming.errors = [];
-    document.getElementById('rhythm-timing-mark').hidden = true;
+    clearRhythmTimingMark();
     document.getElementById('rhythm-timing-result').textContent =
         'Get ready... Match the center line.';
     document.getElementById('rhythm-timing-stats').textContent = 'No taps yet.';
@@ -2461,13 +2630,20 @@ const pitch = {
     adaptiveResults: [],
 };
 
-const pitchAdvance = createAutoAdvance('[data-action="new-pitch"]', () => {
-    if (getControl('pitch-mode').value === 'identification') {
+function newPitchTrial() {
+    if (getControl('pitch-mode').value === 'memory') {
+        newPitchMemoryTrial();
+    } else if (getControl('pitch-mode').value === 'identification') {
         newPitchIdentificationTrial(true);
     } else {
         newPitchPlacementTrial(true);
     }
-});
+}
+
+const pitchAdvance = createAutoAdvance(
+    '[data-action="new-pitch"]',
+    newPitchTrial
+);
 
 function cancelPitchAdvance() {
     pitchAdvance.cancel();
@@ -2839,6 +3015,12 @@ function getPitchMemoryResponse(name) {
     return document.querySelector(`[data-pitch-memory-response="${name}"]`);
 }
 
+function getPitchMemoryRefreshButton() {
+    return document.querySelector(
+        '[data-mode-panel="memory"] [data-action="new-pitch"]'
+    );
+}
+
 function hidePitchMemoryResponses() {
     for (const response of document.querySelectorAll(
         '[data-pitch-memory-response]'
@@ -2877,7 +3059,7 @@ function clearPitchMemoryFrequencyMarkers() {
         const marker = getOutput(name);
 
         marker.hidden = true;
-        marker.classList.remove('is-correct');
+        marker.classList.remove('is-correct', 'is-incorrect');
     }
 }
 
@@ -2898,10 +3080,9 @@ function showPitchMemoryFrequencyMarkers(result) {
 
     targetMarker.style.left = `${position(result.targetHz) * 100}%`;
     responseMarker.style.left = `${position(responseHz) * 100}%`;
-    responseMarker.classList.toggle(
-        'is-correct',
-        result.absoluteErrorCents < PITCH_MEMORY_CORRECT_CENTS
-    );
+    const correct = result.absoluteErrorCents < PITCH_MEMORY_CORRECT_CENTS;
+    responseMarker.classList.toggle('is-correct', correct);
+    responseMarker.classList.toggle('is-incorrect', !correct);
     getControl('pitch-memory-frequency').classList.add('has-result');
     targetMarker.hidden = false;
     responseMarker.hidden = false;
@@ -2956,7 +3137,7 @@ function updatePitchMemoryResponseMethod() {
         void startPitchMemoryMic();
     } else {
         stopPitchMemoryMic();
-        getAction('new-pitch-memory').disabled = false;
+        getPitchMemoryRefreshButton().disabled = false;
     }
 }
 
@@ -3007,7 +3188,7 @@ function analyzePitchMemoryMic(time) {
 }
 
 async function startPitchMemoryMic() {
-    const refreshButton = getAction('new-pitch-memory');
+    const refreshButton = getPitchMemoryRefreshButton();
 
     if (!navigator.mediaDevices?.getUserMedia) {
         refreshButton.disabled = true;
@@ -3198,6 +3379,8 @@ function setPitchMemoryReplayEnabled(enabled) {
 }
 
 function playPitchMemoryStimulus() {
+    cancelPitchAdvance();
+
     if (
         !pitchMemory.trial ||
         pitchMemory.trial.state === 'complete' ||
@@ -3262,7 +3445,8 @@ function playPitchMemoryStimulus() {
     schedulePitchMemoryResponse();
 }
 
-function startPitchMemoryTrial() {
+function newPitchMemoryTrial() {
+    cancelPitchAdvance();
     cancelPitchMemoryTrial(false);
 
     const type = getControl('pitch-memory-type').value;
@@ -3301,6 +3485,7 @@ function startPitchMemoryTrial() {
 }
 
 function cancelPitchMemoryTrial(showStatus = true) {
+    cancelPitchAdvance();
     clearPitchMemoryTimers();
 
     if (pitchMemory.replayTimer !== null) {
@@ -3331,6 +3516,7 @@ function cancelPitchMemoryTrial(showStatus = true) {
 }
 
 function stopPitchMemoryAudio() {
+    cancelPitchAdvance();
     clearPitchMemoryTimers();
     audio.stopTransient();
     stopPitchMemoryResponseTone();
@@ -3449,12 +3635,14 @@ function submitPitchMemoryResponse() {
     }
 
     pitchMemory.trial.state = 'complete';
-    setPitchMemoryReplayEnabled(false);
-    getAction('stop-pitch-memory').disabled = true;
+
+    setPitchMemoryReplayEnabled(true);
+    getAction('stop-pitch-memory').disabled = false;
 
     savePitchMemoryState();
     renderPitchStats();
     setPitchMemoryStatus('Trial complete.');
+    schedulePitchAdvance();
 }
 
 function updatePitchMemoryControls() {
@@ -3589,6 +3777,8 @@ function newPitchIdentificationTrial(playImmediately = false) {
 }
 
 function playPitchIdentificationTrial() {
+    cancelPitchAdvance();
+
     if (!pitchIdentification.trial) {
         newPitchIdentificationTrial();
     }
@@ -3707,17 +3897,18 @@ const pick = {
     adaptiveResults: [],
 };
 
-const pickTargetAdvance = createAutoAdvance(
-    '[data-action="new-pick"]',
-    newPickTargetTrial
-);
+function newPickTrial() {
+    newPickTargetTrial();
+}
+
+const pickAdvance = createAutoAdvance('[data-action="new-pick"]', newPickTrial);
 
 function cancelPickAdvance() {
-    pickTargetAdvance.cancel();
+    pickAdvance.cancel();
 }
 
 function schedulePickAdvance() {
-    pickTargetAdvance.schedule();
+    pickAdvance.schedule();
 }
 
 function shuffle(items) {
@@ -3933,6 +4124,7 @@ function playPickTargetAnswer(index) {
         return;
     }
 
+    cancelPickAdvance();
     stopAllAudio();
 
     answer.played = true;
@@ -4206,10 +4398,25 @@ function clearIntervalResult() {
 }
 
 function newIntervalTrial(playImmediately = false) {
+    if (getControl('interval-mode').value === 'construction') {
+        newIntervalConstructionTrial(playImmediately);
+    } else {
+        newIntervalRecognitionTrial(playImmediately);
+    }
+}
+
+function newIntervalRecognitionTrial(playImmediately = false) {
+    createIntervalTrial('recognition', playImmediately);
+}
+
+function newIntervalConstructionTrial(playImmediately = false) {
+    createIntervalTrial('construction', playImmediately);
+}
+
+function createIntervalTrial(mode, playImmediately) {
     cancelIntervalAdvance();
     stopAllAudio();
 
-    const mode = getControl('interval-mode').value;
     const choices = enabledIntervals();
     const target = choices[Math.floor(Math.random() * choices.length)];
     const directionControl = getControl('interval-direction').value;
@@ -4401,8 +4608,12 @@ const chord = {
     playedNotes: [],
 };
 
+function newChordTrial(playImmediately = false) {
+    newChordQualityTrial(playImmediately);
+}
+
 const chordAdvance = createAutoAdvance('[data-action="new-chord"]', () => {
-    newChordQualityTrial(true);
+    newChordTrial(true);
 });
 
 function cancelChordAdvance() {
@@ -4463,6 +4674,7 @@ function playChordQualityTrial() {
         }
     }
 
+    cancelChordAdvance();
     stopAllAudio();
 
     const waveform = getWaveform('chords').value;
@@ -4572,7 +4784,7 @@ function resetForReferenceChange() {
     }
 
     newPitchPlacementTrial();
-    newPickTargetTrial();
+    newPickTrial();
     newIntervalTrial();
     newPitchIdentificationTrial();
 }
@@ -4738,7 +4950,7 @@ function initializeEvents() {
     getNote('pick').addEventListener('change', (event) => {
         updateNoteReadout(event.currentTarget);
 
-        newPickTargetTrial();
+        newPickTrial();
     });
 
     for (const control of getControls('interval-level', 'interval-direction')) {
@@ -4765,7 +4977,7 @@ function initializeEvents() {
     )) {
         control.addEventListener('change', () => {
             resetAdaptiveProgress('pick');
-            newPickTargetTrial();
+            newPickTrial();
         });
     }
 
@@ -4849,16 +5061,10 @@ function initializeEvents() {
     }
 
     for (const button of getActions('new-pitch')) {
-        button.addEventListener('click', () => {
-            if (getControl('pitch-mode').value === 'identification') {
-                newPitchIdentificationTrial(true);
-            } else {
-                newPitchPlacementTrial(true);
-            }
-        });
+        button.addEventListener('click', newPitchTrial);
     }
 
-    getAction('new-pick').addEventListener('click', newPickTargetTrial);
+    getAction('new-pick').addEventListener('click', newPickTrial);
 
     getAction('play-interval').addEventListener('click', playIntervalTrial);
 
@@ -4869,7 +5075,7 @@ function initializeEvents() {
     getAction('play-chord').addEventListener('click', playChordQualityTrial);
 
     getAction('new-chord').addEventListener('click', () => {
-        newChordQualityTrial(true);
+        newChordTrial(true);
     });
 
     document
@@ -4925,11 +5131,6 @@ function initializeEvents() {
     getAction('stop-pitch-memory').addEventListener(
         'click',
         stopPitchMemoryAudio
-    );
-
-    getAction('new-pitch-memory').addEventListener(
-        'click',
-        startPitchMemoryTrial
     );
 
     getAction('play-pitch-memory-response').addEventListener(
@@ -5023,6 +5224,7 @@ function initialize() {
     initializeTooltips();
     initializeNotes();
     initializeTunerInstruments();
+    initializeTunerHistory();
     initializeEvents();
     updateRhythmMode();
     updateNoteReadouts();
@@ -5034,9 +5236,9 @@ function initialize() {
     renderPitchStats();
     updatePitchMode();
 
-    newPickTargetTrial();
+    newPickTrial();
     updateIntervalMode();
-    newChordQualityTrial();
+    newChordTrial();
 
     renderPickTargetStats();
     renderChordQualityStats();

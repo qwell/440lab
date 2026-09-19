@@ -165,7 +165,7 @@
                         "@type": "WebPageElement",
                         "@id": "https://440lab.com/#tuner",
                         "name": "Tuning",
-                        "description": "Interactive tuner and reference-tone generator with live microphone pitch detection.",
+                        "description": "Interactive tuner and reference-tone generator with live microphone pitch detection and pitch-over-time history.",
                         "isPartOf": {
                             "@id": "https://440lab.com/#webpage"
                         }
@@ -434,7 +434,7 @@
                             "string instruments"
                         ],
                         "featureList": [
-                            "Music tuner with adjustable A4 reference pitch",
+                            "Music tuner with adjustable A4 reference pitch and live pitch history",
                             "Reference-tone playback",
                             "Rhythm: metronome, timing practice, and generated sheet-music reading with note durations and timing feedback",
                             "Flat and sharp pitch ear training",
@@ -505,7 +505,11 @@
     <body>
         <header class="topbar">
             <div class="page-width topbar-inner">
-                <h1 class="brand-name">440 Lab</h1>
+                <h1 class="brand-name">
+                    <a href="https://440lab.com/" title="Visit 440lab.com">
+                        440 Lab
+                    </a>
+                </h1>
 
                 <div class="global-volume">
                     <label for="global-volume">
@@ -779,7 +783,8 @@
                 <h3 class="blurb">
                     Play a known note or string as a reference, or use the
                     microphone to identify a live pitch and compare it with the
-                    selected string or nearest note.
+                    selected string or nearest note. The history graph shows the
+                    detected pitch over the last eight seconds.
                 </h3>
 
                 <div class="form-grid">
@@ -981,6 +986,12 @@
                         aria-label="String reference tones, highest string number first. Press a note to start or stop."
                         hidden
                     ></div>
+
+                    <canvas
+                        class="practice-wide-content tuner-history"
+                        data-output="tuner-history"
+                        role="img"
+                    ></canvas>
                 </div>
             </section>
 
@@ -1228,17 +1239,29 @@
                             id="rhythm-timing-practice"
                             class="practice-body practice-wide-content"
                         >
-                            <div class="rhythm-timing-track" aria-hidden="true">
-                                <span class="rhythm-timing-target"></span>
-                                <span
-                                    id="rhythm-timing-dot"
-                                    class="rhythm-timing-dot"
-                                ></span>
-                                <span
-                                    id="rhythm-timing-mark"
-                                    class="rhythm-timing-mark"
-                                    hidden
-                                ></span>
+                            <div>
+                                <div
+                                    id="rhythm-timing-feedback"
+                                    class="practice-result"
+                                >
+                                    <div
+                                        class="rhythm-timing-track"
+                                        aria-hidden="true"
+                                    >
+                                        <span
+                                            class="rhythm-timing-target"
+                                        ></span>
+                                        <span
+                                            id="rhythm-timing-dot"
+                                            class="rhythm-timing-dot"
+                                        ></span>
+                                        <span
+                                            id="rhythm-timing-mark"
+                                            class="rhythm-timing-mark"
+                                            hidden
+                                        ></span>
+                                    </div>
+                                </div>
                             </div>
                             <div
                                 class="rhythm-timing-labels"
@@ -1262,10 +1285,7 @@
                             >
                                 Press Play to begin.
                             </p>
-                            <p
-                                id="rhythm-timing-stats"
-                                class="tabular-numbers"
-                            >
+                            <p id="rhythm-timing-stats" class="tabular-numbers">
                                 No taps yet.
                             </p>
                         </div>
@@ -1951,8 +1971,8 @@
                                 <span aria-hidden="true">■</span>
                             </button>
                             <button
-                                class="icon-button"
-                                data-action="new-pitch-memory"
+                                class="icon-button auto-refresh"
+                                data-action="new-pitch"
                                 type="button"
                                 aria-label="New pitch-memory trial and start"
                                 title="New trial and start"
@@ -1997,13 +2017,13 @@
                                         class="pitch-memory-frequency-markers"
                                     >
                                         <span
-                                            class="pitch-memory-frequency-marker is-target"
+                                            class="pitch-memory-frequency-marker state-background is-target"
                                             data-output="pitch-memory-target-marker"
                                             title="Target frequency"
                                             hidden
                                         ></span>
                                         <span
-                                            class="pitch-memory-frequency-marker is-response"
+                                            class="pitch-memory-frequency-marker state-background"
                                             data-output="pitch-memory-response-marker"
                                             title="Your response"
                                             hidden
