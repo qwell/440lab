@@ -1,0 +1,74 @@
+@font-face {
+    font-family: 'Noto Music';
+    src: url('../fonts/NotoMusic-Regular.ttf') format('truetype');
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+}
+
+:root {
+    color-scheme: dark;
+
+    font-family:
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        'Segoe UI',
+        sans-serif;
+
+    font-size: 14px;
+
+    --page-width: 1200px;
+    --field-width: 240px;
+    --control-width: 190px;
+    --column-gap: 24px;
+    --button-gap: 6px;
+    --practice-detail-gap: 10px;
+    --practice-row-gap: 8px;
+    --practice-stats-spacing: 8px;
+    --footer-height: 1.7rem;
+
+    --background: #111;
+    --surface: #1b1b1b;
+    --button-background: #272727;
+    --button-hover-background: #333;
+    --border: #444;
+    --border-radius: 4px;
+    --muted: #999;
+    --text: #eee;
+    --mic-accent: crimson;
+    --correct: #68d47d;
+    --correct-border: #477e52;
+    --correct-background: #245d32;
+    --correct-emphasis: #8dec9f;
+    --incorrect: #ee7474;
+    --incorrect-border: #8a4a4a;
+    --incorrect-background: #642929;
+    --incorrect-emphasis: #ff9090;
+    --target: #8ab8ff;
+    --target-border: #4a668a;
+    --target-background: #263f64;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    overflow-y: scroll;
+}
+
+html,
+body {
+    margin: 0;
+    min-width: 0;
+}
+
+body {
+    overflow-x: hidden;
+
+    padding-bottom: calc(var(--footer-height) + 0.85rem);
+
+    background: var(--background);
+    color: var(--text);
+}
