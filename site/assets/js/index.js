@@ -236,6 +236,27 @@ function signed(value, decimalPlaces = 1) {
     return `${value >= 0 ? '+' : ''}${value.toFixed(decimalPlaces)}`;
 }
 
+function median(values) {
+    const sorted = [...values].sort((left, right) => left - right);
+    const middle = Math.floor(sorted.length / 2);
+
+    return sorted.length % 2 === 1
+        ? sorted[middle]
+        : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
+function shuffle(items) {
+    const result = [...items];
+
+    for (let index = result.length - 1; index > 0; index -= 1) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+
+        [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
+    }
+
+    return result;
+}
+
 function frequencyFromCents(referenceHz, cents) {
     return referenceHz * 2 ** (cents / 1200);
 }
@@ -1448,18 +1469,6 @@ function stopMicTuner() {
     resetTunerDetection();
 }
 
-function median(values) {
-    const sorted = [...values].sort((left, right) => left - right);
-
-    const middle = Math.floor(sorted.length / 2);
-
-    if (sorted.length % 2 === 1) {
-        return sorted[middle];
-    }
-
-    return (sorted[middle - 1] + sorted[middle]) / 2;
-}
-
 function detectPitchYin(
     samples,
     sampleRate,
@@ -1809,6 +1818,8 @@ const rhythmReading = {
     holdSpans: [],
     currentHold: null,
 };
+
+// Rhythm: reading
 
 function rhythmReadingEnabled() {
     return getControl('rhythm-mode').value === 'reading';
@@ -2339,6 +2350,8 @@ function stopRhythmReading() {
     document.getElementById('rhythm-hold').classList.remove('is-held');
 }
 
+// Rhythm: timing
+
 function rhythmTimingEnabled() {
     return getControl('rhythm-mode').value === 'timing';
 }
@@ -2408,6 +2421,8 @@ function recordRhythmTimingTap() {
     mark.style.left = `${50 + (error / (rhythmTiming.interval * 1000)) * 100}%`;
     rhythmTiming.markBeat = beat;
 }
+
+// Rhythm: playback
 
 function restartRhythm() {
     if (rhythm.running) {
@@ -3911,18 +3926,6 @@ function schedulePickAdvance() {
     pickAdvance.schedule();
 }
 
-function shuffle(items) {
-    const result = [...items];
-
-    for (let index = result.length - 1; index > 0; index -= 1) {
-        const swapIndex = Math.floor(Math.random() * (index + 1));
-
-        [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
-    }
-
-    return result;
-}
-
 function spreadMagnitudes(count, minimum, maximum) {
     if (count === 0) {
         return [];
@@ -4396,6 +4399,8 @@ function renderIntervalAnswers(selected = null, enabled = false) {
 function clearIntervalResult() {
     clearPracticeResult('interval-result');
 }
+
+// Intervals: recognition and construction
 
 function newIntervalTrial(playImmediately = false) {
     if (getControl('interval-mode').value === 'construction') {
