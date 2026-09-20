@@ -2750,11 +2750,10 @@ function readRange(minimumInput, maximumInput, defaultMinimum, defaultMaximum) {
 }
 
 function updateAdaptiveDifficulty(exercise, correct) {
-    const enabled = getControl(`${exercise}-adaptive`).value === 'on';
-    const state = exercise === 'pitch' ? pitch : pick;
+    const state = getAdaptiveState(exercise);
     const status = getOutput(`${exercise}-adaptive-status`);
 
-    if (!enabled) {
+    if (getControl(`${exercise}-adaptive`).value !== 'on') {
         state.adaptiveResults.length = 0;
         return;
     }
@@ -2770,7 +2769,6 @@ function updateAdaptiveDifficulty(exercise, correct) {
 
     const correctCount = state.adaptiveResults.filter(Boolean).length;
     state.adaptiveResults.length = 0;
-
     let factor = 1;
     let direction = '';
 
@@ -2787,33 +2785,66 @@ function updateAdaptiveDifficulty(exercise, correct) {
         return;
     }
 
-    const minimumInput = getControl(`${exercise}-range-min`);
-    const maximumInput = getControl(`${exercise}-range-max`);
-    const minimum = clamp(
-        Math.round(Number(minimumInput.value) * factor * 10) / 10,
-        Number(minimumInput.min),
-        Number(minimumInput.max)
-    );
-    const maximum = clamp(
-        Math.round(Number(maximumInput.value) * factor * 10) / 10,
-        Number(maximumInput.min),
-        Number(maximumInput.max)
-    );
+    let result;
 
-    writeNumberIfChanged(minimumInput, minimum);
-    writeNumberIfChanged(maximumInput, maximum);
+    if (
+        exercise === 'interval-recognition' ||
+        exercise === 'interval-construction'
+    ) {
+        const level = getControl(`${exercise}-level`);
 
-    status.textContent = `${direction} to ${minimum} - ${maximum}¢`;
+        level.selectedIndex = clamp(
+            level.selectedIndex + (factor < 1 ? 1 : -1),
+            0,
+            level.options.length - 1
+        );
+        result = level.value;
+    } else {
+        const minimumInput = getControl(`${exercise}-range-min`);
+        const maximumInput = getControl(`${exercise}-range-max`);
+        const minimum = clamp(
+            Math.round(Number(minimumInput.value) * factor * 10) / 10,
+            Number(minimumInput.min),
+            Number(minimumInput.max)
+        );
+        const maximum = clamp(
+            Math.round(Number(maximumInput.value) * factor * 10) / 10,
+            Number(maximumInput.min),
+            Number(maximumInput.max)
+        );
+
+        writeNumberIfChanged(minimumInput, minimum);
+        writeNumberIfChanged(maximumInput, maximum);
+
+        result = `${minimum} - ${maximum}¢`;
+    }
+
+    status.textContent = `${direction} to ${result}`;
+}
+
+function getAdaptiveState(exercise) {
+    return {
+        pitch,
+        pick,
+        'interval-recognition': interval.recognition,
+        'interval-construction': interval.construction,
+    }[exercise];
+}
+
+function renderAdaptiveProgress(exercise) {
+    const state = getAdaptiveState(exercise);
+    const enabled = getControl(`${exercise}-adaptive`).value === 'on';
+
+    getOutput(`${exercise}-adaptive-status`).textContent = enabled
+        ? `${state.adaptiveResults.length} of ${ADAPTIVE_WINDOW_SIZE} answers`
+        : '';
 }
 
 function resetAdaptiveProgress(exercise) {
-    const state = exercise === 'pitch' ? pitch : pick;
-    const enabled = getControl(`${exercise}-adaptive`).value === 'on';
+    const state = getAdaptiveState(exercise);
 
     state.adaptiveResults.length = 0;
-    getOutput(`${exercise}-adaptive-status`).textContent = enabled
-        ? `0 of ${ADAPTIVE_WINDOW_SIZE} answers`
-        : '';
+    renderAdaptiveProgress(exercise);
 }
 
 // Pitch: placement
@@ -4280,7 +4311,17 @@ stats.interval = loadIntervalStats();
 
 const interval = {
     trial: null,
+    recognition: {
+        adaptiveResults: [],
+    },
+    construction: {
+        adaptiveResults: [],
+    },
 };
+
+function getIntervalExercise() {
+    return `interval-${getControl('interval-mode').value}`;
+}
 
 const intervalAdvance = createAutoAdvance(
     '[data-action="new-interval"]',
@@ -4298,8 +4339,8 @@ function scheduleIntervalAdvance() {
 }
 
 function enabledIntervals() {
-    const level = getControl('interval-level').value;
     const mode = getControl('interval-mode').value;
+    const level = getControl(`interval-${mode}-level`).value;
     const enabledSemitones = INTERVAL_LEVELS[level] || INTERVAL_LEVELS.starter;
 
     return INTERVALS.filter(
@@ -4309,16 +4350,6 @@ function enabledIntervals() {
     );
 }
 
-function renderIntervalLevelOptions() {
-    const mode = getControl('interval-mode').value;
-
-    for (const option of getControl('interval-level').options) {
-        const unison = mode === 'recognition' && option.value === 'all' ? 1 : 0;
-
-        option.textContent = `${option.value} - ${INTERVAL_LEVELS[option.value].length + unison}`;
-    }
-}
-
 function updateIntervalMode() {
     const mode = getControl('interval-mode').value;
 
@@ -4326,7 +4357,7 @@ function updateIntervalMode() {
         panel.hidden = panel.dataset.modePanel !== mode;
     }
 
-    renderIntervalLevelOptions();
+    renderAdaptiveProgress(getIntervalExercise());
     newIntervalTrial();
     renderIntervalStats();
 }
@@ -4546,6 +4577,7 @@ function commitInterval(semitones) {
     renderIntervalStats();
     renderIntervalAnswers(semitones, true);
     renderPracticeResult('interval-result', correct, correctInterval.name);
+    updateAdaptiveDifficulty(`interval-${trial.mode}`, correct);
 
     const playedNotes = document.createElement('div');
 
@@ -4958,11 +4990,18 @@ function initializeEvents() {
         newPickTrial();
     });
 
-    for (const control of getControls('interval-level', 'interval-direction')) {
-        control.addEventListener('change', () => {
+    for (const exercise of ['interval-recognition', 'interval-construction']) {
+        getControl(`${exercise}-level`).addEventListener('change', () => {
+            resetAdaptiveProgress(exercise);
             newIntervalTrial();
         });
+        getControl(`${exercise}-adaptive`).addEventListener('change', () => {
+            resetAdaptiveProgress(exercise);
+        });
     }
+    getControl('interval-direction').addEventListener('change', () => {
+        newIntervalTrial();
+    });
 
     for (const control of getControls(
         'pitch-range-min',
@@ -4991,7 +5030,6 @@ function initializeEvents() {
             resetAdaptiveProgress(exercise);
         });
     }
-
     getControl('volume').addEventListener('input', updateVolume);
 
     const a4Input = getControl('a4');
