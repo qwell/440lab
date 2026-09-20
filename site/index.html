@@ -446,7 +446,7 @@
                             "Interference-resistant pitch-memory tests",
                             "Oscillator and microphone pitch recall",
                             "Adjustable pitch ranges in cents",
-                            "Multiple musical intervals",
+                            "Adaptive interval recognition and construction",
                             "Sine and triangle waveforms",
                             "Persistent practice statistics",
                             "No account required",
@@ -2475,29 +2475,56 @@
                         </div>
                     </div>
 
-                    <div class="field">
-                        <label for="interval-level">
+                    <div class="field" data-mode-panel="recognition">
+                        <label for="interval-recognition-level">
                             Interval set
 
                             <span
                                 class="info-tip"
                                 tabindex="0"
-                                aria-label="Controls which intervals can be requested. Recognition choices also come from this set; construction excludes unison and always shows 12 destination notes."
-                                data-tooltip="Controls which intervals can be requested. Recognition choices also come from this set; construction excludes unison and always shows 12 destination notes."
+                                aria-label="Controls which intervals can be requested and which recognition choices are shown."
+                                data-tooltip="Controls which intervals can be requested and which recognition choices are shown."
                             >
                                 ⓘ
                             </span>
                         </label>
                         <div class="control-row">
                             <select
-                                id="interval-level"
-                                data-control="interval-level"
+                                id="interval-recognition-level"
+                                data-control="interval-recognition-level"
                             >
                                 <option value="starter" selected>
                                     starter - 4
                                 </option>
                                 <option value="common">common - 8</option>
                                 <option value="all">all - 13</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="field" data-mode-panel="construction" hidden>
+                        <label for="interval-construction-level">
+                            Interval set
+
+                            <span
+                                class="info-tip"
+                                tabindex="0"
+                                aria-label="Controls which intervals can be requested. Construction excludes unison and always shows 12 destination notes."
+                                data-tooltip="Controls which intervals can be requested. Construction excludes unison and always shows 12 destination notes."
+                            >
+                                ⓘ
+                            </span>
+                        </label>
+                        <div class="control-row">
+                            <select
+                                id="interval-construction-level"
+                                data-control="interval-construction-level"
+                            >
+                                <option value="starter" selected>
+                                    starter - 4
+                                </option>
+                                <option value="common">common - 8</option>
+                                <option value="all">all - 12</option>
                             </select>
                         </div>
                     </div>
@@ -2512,6 +2539,54 @@
                                 <option value="random" selected>random</option>
                                 <option value="ascending">ascending</option>
                                 <option value="descending">descending</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="field" data-mode-panel="recognition">
+                        <label for="interval-recognition-adaptive">
+                            Adaptive difficulty
+
+                            <span
+                                class="info-tip"
+                                tabindex="0"
+                                aria-label="After every five answers, the interval set moves up when four or more are correct and down when two or fewer are correct."
+                                data-tooltip="After every five answers, the interval set moves up when four or more are correct and down when two or fewer are correct."
+                                >ⓘ</span
+                            >
+                        </label>
+
+                        <div class="control-row">
+                            <select
+                                id="interval-recognition-adaptive"
+                                data-control="interval-recognition-adaptive"
+                            >
+                                <option value="off" selected>off</option>
+                                <option value="on">on</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="field" data-mode-panel="construction" hidden>
+                        <label for="interval-construction-adaptive">
+                            Adaptive difficulty
+
+                            <span
+                                class="info-tip"
+                                tabindex="0"
+                                aria-label="After every five answers, the interval set moves up when four or more are correct and down when two or fewer are correct."
+                                data-tooltip="After every five answers, the interval set moves up when four or more are correct and down when two or fewer are correct."
+                                >ⓘ</span
+                            >
+                        </label>
+
+                        <div class="control-row">
+                            <select
+                                id="interval-construction-adaptive"
+                                data-control="interval-construction-adaptive"
+                            >
+                                <option value="off" selected>off</option>
+                                <option value="on">on</option>
                             </select>
                         </div>
                     </div>
@@ -2608,6 +2683,13 @@
                         class="stats practice-stats"
                         data-mode-panel="recognition"
                     >
+                        <div class="adaptive-status-row">
+                            <dt>Adaptive</dt>
+                            <dd
+                                data-output="interval-recognition-adaptive-status"
+                                aria-live="polite"
+                            ></dd>
+                        </div>
                         <div class="stats-with-action">
                             <dt>Streak</dt>
                             <dd>
@@ -2642,6 +2724,13 @@
                         data-mode-panel="construction"
                         hidden
                     >
+                        <div class="adaptive-status-row">
+                            <dt>Adaptive</dt>
+                            <dd
+                                data-output="interval-construction-adaptive-status"
+                                aria-live="polite"
+                            ></dd>
+                        </div>
                         <div class="stats-with-action">
                             <dt>Streak</dt>
                             <dd>
