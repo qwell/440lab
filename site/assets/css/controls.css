@@ -223,6 +223,7 @@ select {
 .practice > .button-row [data-action='play-tuner'],
 .practice > .button-row [data-action='play-rhythm'],
 .practice > .button-row [data-action='play-pitch'],
+.practice > .button-row [data-action='play-match'],
 .practice > .button-row [data-action='play-interval'],
 .practice > .button-row [data-action='play-chord'] {
     grid-column: 1;
@@ -235,7 +236,7 @@ select {
 .practice > .button-row [data-action='toggle-tuner-mic'],
 .practice > .button-row [data-action='new-rhythm'],
 .practice > .button-row [data-action='new-pitch'],
-.practice > .button-row [data-action='new-pick'],
+.practice > .button-row [data-action='new-match'],
 .practice > .button-row [data-action='new-interval'],
 .practice > .button-row [data-action='new-chord'] {
     grid-column: 3;
