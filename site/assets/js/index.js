@@ -58,6 +58,8 @@ const RHYTHM_SIGNATURE_SYMBOLS = {
     '2/2': '𝄵',
 };
 
+const PREFERENCES_KEY = '440Lab.preferences.v1';
+
 const STATS_KEYS = {
     pitch: '440Lab.pitchStats.v1',
     pick: '440Lab.pickStats.v7',
@@ -424,6 +426,46 @@ const storage = {
         }
     },
 };
+
+function savePreferences() {
+    storage.save(PREFERENCES_KEY, {
+        a4: getA4(),
+        volume: Number(getControl('volume').value),
+        location: window.location.hash,
+    });
+}
+
+function restorePreferences() {
+    const preferences = storage.load(PREFERENCES_KEY, {});
+    const a4Input = getControl('a4');
+    const volumeInput = getControl('volume');
+
+    if (Number.isFinite(preferences.a4)) {
+        a4Input.value = clamp(
+            preferences.a4,
+            Number(a4Input.min),
+            Number(a4Input.max)
+        ).toFixed(3);
+    }
+
+    if (Number.isFinite(preferences.volume)) {
+        volumeInput.value = String(
+            clamp(
+                preferences.volume,
+                Number(volumeInput.min),
+                Number(volumeInput.max)
+            )
+        );
+    }
+
+    if (
+        window.location.hash === '' &&
+        typeof preferences.location === 'string' &&
+        preferences.location.startsWith('#')
+    ) {
+        history.replaceState(null, '', preferences.location);
+    }
+}
 
 const stats = {};
 
@@ -822,6 +864,7 @@ function updateVolume() {
     getOutput('volume-percent').textContent = `${Math.round(volume * 100)}%`;
 
     audio.setMasterVolume(volume);
+    savePreferences();
 }
 
 let tunerTargetMidi = null;
@@ -1035,6 +1078,8 @@ function updateModeHash(tabName) {
     if (window.location.hash !== hash) {
         history.pushState(null, '', hash);
     }
+
+    savePreferences();
 }
 
 function activateTab(button, focus = false, updateUrl = true) {
@@ -1090,6 +1135,8 @@ function activateTab(button, focus = false, updateUrl = true) {
     if (updateUrl && window.location.hash !== hash) {
         history.pushState(null, '', hash);
     }
+
+    savePreferences();
 
     if (focus) {
         button.focus();
@@ -1165,6 +1212,8 @@ function initializeTabs() {
         } else if (tabName === 'intervals') {
             updateIntervalMode();
         }
+
+        savePreferences();
     }
 
     tabs.forEach((tab, index) => {
@@ -5034,10 +5083,23 @@ function initializeEvents() {
 
     const a4Input = getControl('a4');
 
-    a4Input.addEventListener('input', resetForReferenceChange);
+    a4Input.addEventListener('input', () => {
+        resetForReferenceChange();
+
+        const a4 = Number(a4Input.value);
+
+        if (
+            Number.isFinite(a4) &&
+            a4 >= Number(a4Input.min) &&
+            a4 <= Number(a4Input.max)
+        ) {
+            savePreferences();
+        }
+    });
     a4Input.addEventListener('change', () => {
         normalizeNumberInput(a4Input, DEFAULT_A4);
         resetForReferenceChange();
+        savePreferences();
     });
 
     getControl('pitch-duration').addEventListener('change', (event) => {
@@ -5056,6 +5118,7 @@ function initializeEvents() {
         getControl('a4').value = DEFAULT_A4.toFixed(3);
 
         resetForReferenceChange();
+        savePreferences();
     });
 
     getControl('tuner-instrument').addEventListener(
@@ -5262,6 +5325,8 @@ function initializeEvents() {
 // Initialization
 
 function initialize() {
+    restorePreferences();
+    updateVolume();
     initializePitchMemoryFrequencySlider();
     initializeModePanels('pitch');
     initializeTooltips();
