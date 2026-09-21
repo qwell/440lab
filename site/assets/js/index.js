@@ -62,7 +62,7 @@ const PREFERENCES_KEY = '440Lab.preferences.v1';
 
 const STATS_KEYS = {
     pitch: '440Lab.pitchStats.v1',
-    pick: '440Lab.pickStats.v7',
+    match: '440Lab.matchStats.v1',
     interval: '440Lab.intervalStats.v1',
     chord: '440Lab.chordStats.v1',
 };
@@ -1057,16 +1057,14 @@ function isPitchMemoryActive(tabName) {
 }
 
 function tabHash(tabName) {
-    if (tabName === 'pitch') {
-        return `#pitch/${getControl('pitch-mode').value}`;
-    }
-
-    if (tabName === 'intervals') {
-        return `#intervals/${getControl('interval-mode').value}`;
-    }
-
-    if (tabName === 'rhythm') {
-        return `#rhythm/${getControl('rhythm-mode').value}`;
+    switch (tabName) {
+        case 'pitch':
+        case 'intervals':
+        case 'rhythm':
+        case 'match': {
+            const mode = getControl(`${tabName}-mode`).value;
+            return `#${tabName}/${mode}`;
+        }
     }
 
     return `#${tabName}`;
@@ -1126,7 +1124,7 @@ function activateTab(button, focus = false, updateUrl = true) {
     }
 
     cancelPitchAdvance();
-    cancelPickAdvance();
+    cancelMatchAdvance();
     cancelIntervalAdvance();
     cancelChordAdvance();
 
@@ -1175,7 +1173,7 @@ function initializeTabs() {
                 hash === 'pitch-memory' ? 'memory' : 'placement';
         } else if (
             hashTab === 'pitch' &&
-            ['placement', 'identification', 'memory'].includes(hashMode)
+            ['placement', 'memory'].includes(hashMode)
         ) {
             getControl('pitch-mode').value = hashMode;
         } else if (
@@ -1183,6 +1181,11 @@ function initializeTabs() {
             ['recognition', 'construction'].includes(hashMode)
         ) {
             getControl('interval-mode').value = hashMode;
+        } else if (
+            hashTab === 'match' &&
+            ['target', 'identification'].includes(hashMode)
+        ) {
+            getControl('match-mode').value = hashMode;
         }
 
         if (
@@ -1205,12 +1208,22 @@ function initializeTabs() {
             activateTab(tab, false, false);
         }
 
-        if (tabName === 'rhythm') {
-            updateRhythmMode();
-        } else if (tabName === 'pitch') {
-            updatePitchMode();
-        } else if (tabName === 'intervals') {
-            updateIntervalMode();
+        switch (tabName) {
+            case 'rhythm':
+                updateRhythmMode();
+                break;
+
+            case 'pitch':
+                updatePitchMode();
+                break;
+
+            case 'intervals':
+                updateIntervalMode();
+                break;
+                
+            case 'match':
+                updateMatchMode();
+                break;
         }
 
         savePreferences();
@@ -2646,7 +2659,6 @@ function defaultPitchTypeStats() {
 function defaultPitchStats() {
     return {
         placement: defaultPitchTypeStats(),
-        identification: defaultPitchTypeStats(),
         'memory|novel': defaultPitchTypeStats(),
         'memory|interference': defaultPitchTypeStats(),
     };
@@ -2675,7 +2687,6 @@ function loadPitchStats() {
 
     return {
         placement: loadPitchTypeStats(stored.placement),
-        identification: loadPitchTypeStats(stored.identification),
         'memory|novel': loadPitchTypeStats(stored['memory|novel']),
         'memory|interference': loadPitchTypeStats(
             stored['memory|interference']
@@ -2697,8 +2708,6 @@ const pitch = {
 function newPitchTrial() {
     if (getControl('pitch-mode').value === 'memory') {
         newPitchMemoryTrial();
-    } else if (getControl('pitch-mode').value === 'identification') {
-        newPitchIdentificationTrial(true);
     } else {
         newPitchPlacementTrial(true);
     }
@@ -2723,10 +2732,6 @@ function pitchStatsType(mode, type = null) {
 
 function renderPitchStats() {
     const mode = getControl('pitch-mode').value;
-    if (mode === 'identification') {
-        renderPitchIdentificationStats();
-        return;
-    }
     const type =
         mode === 'memory' ? getControl('pitch-memory-type').value : null;
     const { streak, trials, errorTotal, best } =
@@ -2874,7 +2879,7 @@ function updateAdaptiveDifficulty(exercise, correct) {
 function getAdaptiveState(exercise) {
     return {
         pitch,
-        pick,
+        'match-target': matchTarget,
         'interval-recognition': interval.recognition,
         'interval-construction': interval.construction,
     }[exercise];
@@ -3774,11 +3779,7 @@ function updatePitchMode() {
     }
 
     stopPitchMemoryMic();
-    if (mode === 'identification') {
-        newPitchIdentificationTrial();
-    } else {
-        newPitchPlacementTrial();
-    }
+    newPitchPlacementTrial();
     renderPitchStats();
 }
 
@@ -3830,114 +3831,101 @@ function restorePitchMemoryTrial() {
     schedulePitchMemoryResponse();
 }
 
-// Pitch: identification
+// Match
 
-const pitchIdentification = { trial: null };
-
-function renderPitchIdentificationAnswers(selected = null) {
-    const trial = pitchIdentification.trial;
-    const buttons = NOTE_NAMES.map((name, pitchClass) => {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'answer-option';
-        button.dataset.pitchIdentificationAnswer = String(pitchClass);
-        button.textContent = name;
-        button.disabled = !trial?.played || trial.committed;
-        setAnswerOptionState(button, pitchClass, selected, trial?.midi % 12);
-        return button;
-    });
-    document
-        .querySelector('[data-pitch-identification-answers]')
-        .replaceChildren(...buttons);
-}
-
-function newPitchIdentificationTrial(playImmediately = false) {
-    cancelPitchAdvance();
-    stopAllAudio();
-    const octaveValue = getControl('pitch-identification-octave').value;
-    const octave =
-        octaveValue === 'random'
-            ? 3 + Math.floor(Math.random() * 3)
-            : Number(octaveValue);
-    pitchIdentification.trial = {
-        midi: (octave + 1) * 12 + Math.floor(Math.random() * 12),
-        played: false,
-        committed: false,
+function defaultMatchStats() {
+    return {
+        identification: defaultMatchIdentificationStats(),
+        target: defaultMatchTargetStats(),
     };
-    clearPracticeResult('pitch-identification-result');
-    renderPitchIdentificationAnswers();
-    if (playImmediately) {
-        playPitchIdentificationTrial();
+}
+
+function loadMatchStats() {
+    const stored = loadStats('match');
+
+    if (!stored || typeof stored !== 'object' || Array.isArray(stored)) {
+        return defaultMatchStats();
+    }
+
+    return {
+        identification: loadMatchIdentificationStats(stored.identification),
+        target: loadMatchTargetStats(stored.target),
+    };
+}
+
+function saveMatchStats() {
+    saveStats('match');
+}
+
+stats.match = loadMatchStats();
+
+function newMatchTrial(playImmediately = false) {
+    if (getControl('match-mode').value === 'identification') {
+        newMatchIdentificationTrial(playImmediately);
+    } else {
+        newMatchTargetTrial();
     }
 }
 
-function playPitchIdentificationTrial() {
-    cancelPitchAdvance();
-
-    if (!pitchIdentification.trial) {
-        newPitchIdentificationTrial();
+function playMatchTrial() {
+    if (getControl('match-mode').value === 'identification') {
+        playMatchIdentificationTrial();
     }
+}
+
+const matchAdvance = createAutoAdvance('[data-action="new-match"]', () =>
+    newMatchTrial(true)
+);
+
+function cancelMatchAdvance() {
+    matchAdvance.cancel();
+}
+
+function scheduleMatchAdvance() {
+    matchAdvance.schedule();
+}
+
+function renderMatchStats() {
+    if (getControl('match-mode').value === 'identification') {
+        renderMatchIdentificationStats();
+    } else {
+        renderMatchTargetStats();
+    }
+}
+
+function clearMatchStats() {
+    if (getControl('match-mode').value === 'identification') {
+        stats.match.identification = defaultMatchIdentificationStats();
+    } else {
+        stats.match.target = defaultMatchTargetStats();
+    }
+
+    saveMatchStats();
+    renderMatchStats();
+}
+
+function updateMatchMode() {
+    const mode = getControl('match-mode').value;
+
+    for (const panel of getModePanels('match')) {
+        panel.hidden = panel.dataset.modePanel !== mode;
+    }
+
     stopAllAudio();
-    const trial = pitchIdentification.trial;
-    audio.playTransient(
-        midiFrequency(trial.midi),
-        getWaveform('pitch-identification').value,
-        readNumber(getControl('pitch-identification-duration'), 1)
-    );
-    trial.played = true;
-    if (!trial.committed) {
-        renderPitchIdentificationAnswers();
+    cancelMatchAdvance();
+
+    if (mode === 'identification') {
+        newMatchIdentificationTrial();
+    } else {
+        newMatchTargetTrial();
     }
+
+    renderMatchStats();
 }
 
-function renderPitchIdentificationStats() {
-    const { streak, trials, correct, best } = stats.pitch.identification;
-    const accuracy = trials > 0 ? (correct / trials) * 100 : 0;
-    getOutput('pitch-identification-streak').textContent = String(streak);
-    getOutput('pitch-identification-accuracy').textContent =
-        `${accuracy.toFixed(0)}%`;
-    getOutput('pitch-identification-best').textContent =
-        best === null ? '--' : String(best);
-}
+// Match: target
 
-function commitPitchIdentification(pitchClass) {
-    const trial = pitchIdentification.trial;
-    if (
-        !trial?.played ||
-        trial.committed ||
-        !Number.isInteger(pitchClass) ||
-        pitchClass < 0 ||
-        pitchClass >= NOTE_NAMES.length
-    ) {
-        return;
-    }
-    audio.stopTransient();
-    trial.committed = true;
-    const correct = pitchClass === trial.midi % 12;
-    const typeStats = stats.pitch.identification;
-    typeStats.trials += 1;
-    typeStats.correct += correct ? 1 : 0;
-    typeStats.streak = correct ? typeStats.streak + 1 : 0;
-    if (
-        correct &&
-        (typeStats.best === null || typeStats.streak > typeStats.best)
-    ) {
-        typeStats.best = typeStats.streak;
-    }
-    savePitchStats();
-    renderPitchIdentificationStats();
-    renderPitchIdentificationAnswers(pitchClass);
-    renderPracticeResult(
-        'pitch-identification-result',
-        correct,
-        midiToNoteName(trial.midi)
-    );
-    schedulePitchAdvance();
-}
-
-// Pick: target
-
-function defaultPickTargetStats() {
+function defaultMatchTargetStats() {
     return {
         streak: 0,
         trials: 0,
@@ -3947,15 +3935,9 @@ function defaultPickTargetStats() {
     };
 }
 
-function defaultPickStats() {
-    return {
-        target: defaultPickTargetStats(),
-    };
-}
-
-function loadPickTargetStats(stored) {
+function loadMatchTargetStats(stored) {
     if (!stored || typeof stored !== 'object' || Array.isArray(stored)) {
-        return defaultPickTargetStats();
+        return defaultMatchTargetStats();
     }
 
     return {
@@ -3967,44 +3949,12 @@ function loadPickTargetStats(stored) {
     };
 }
 
-function loadPickStats() {
-    const stored = loadStats('pick');
-
-    if (!stored || typeof stored !== 'object' || Array.isArray(stored)) {
-        return defaultPickStats();
-    }
-
-    return {
-        target: loadPickTargetStats(stored.target ?? stored.recognition),
-    };
-}
-
-function savePickStats() {
-    saveStats('pick');
-}
-
-stats.pick = loadPickStats();
-
-const pick = {
+const matchTarget = {
     answers: [],
     committed: false,
     selectedAnswerIndex: null,
     adaptiveResults: [],
 };
-
-function newPickTrial() {
-    newPickTargetTrial();
-}
-
-const pickAdvance = createAutoAdvance('[data-action="new-pick"]', newPickTrial);
-
-function cancelPickAdvance() {
-    pickAdvance.cancel();
-}
-
-function schedulePickAdvance() {
-    pickAdvance.schedule();
-}
 
 function spreadMagnitudes(count, minimum, maximum) {
     if (count === 0) {
@@ -4027,7 +3977,7 @@ function spreadMagnitudes(count, minimum, maximum) {
     });
 }
 
-function pickTargetAnswerOffsets(count, minimum, maximum) {
+function matchTargetAnswerOffsets(count, minimum, maximum) {
     const nonTargetCount = count - 1;
 
     let negativeCount = Math.floor(nonTargetCount / 2);
@@ -4054,23 +4004,23 @@ function pickTargetAnswerOffsets(count, minimum, maximum) {
     return [0, ...negativeOffsets, ...positiveOffsets];
 }
 
-function newPickTargetTrial() {
-    cancelPickAdvance();
+function newMatchTargetTrial() {
+    cancelMatchAdvance();
     stopAllAudio();
 
-    const targetHz = selectedNoteFrequency(getNote('pick'));
+    const targetHz = selectedNoteFrequency(getNote('match-target'));
 
     const { minimum: minimumCents, maximum: maximumCents } = readRange(
-        getControl('pick-range-min'),
-        getControl('pick-range-max'),
+        getControl('match-target-range-min'),
+        getControl('match-target-range-max'),
         10,
         50
     );
 
-    const count = Math.round(readNumber(getControl('pick-count'), 7));
+    const count = Math.round(readNumber(getControl('match-target-count'), 7));
 
-    pick.answers = shuffle(
-        pickTargetAnswerOffsets(count, minimumCents, maximumCents).map(
+    matchTarget.answers = shuffle(
+        matchTargetAnswerOffsets(count, minimumCents, maximumCents).map(
             (cents) => ({
                 cents,
 
@@ -4083,23 +4033,25 @@ function newPickTargetTrial() {
         )
     );
 
-    pick.committed = false;
-    pick.selectedAnswerIndex = null;
+    matchTarget.committed = false;
+    matchTarget.selectedAnswerIndex = null;
 
-    getOutput('pick-status').textContent = '';
+    getOutput('match-target-status').textContent = '';
 
-    renderPickTargetAnswers();
+    renderMatchTargetAnswers();
 }
 
-function getPickTargetAnswerResult(index) {
-    if (!pick.committed) {
+function getMatchTargetAnswerResult(index) {
+    if (!matchTarget.committed) {
         return null;
     }
 
-    const targetIndex = pick.answers.findIndex((answer) => answer.isTarget);
+    const targetIndex = matchTarget.answers.findIndex(
+        (answer) => answer.isTarget
+    );
     const className = answerStateClass(
         index,
-        pick.selectedAnswerIndex,
+        matchTarget.selectedAnswerIndex,
         targetIndex
     );
 
@@ -4114,12 +4066,12 @@ function getPickTargetAnswerResult(index) {
     };
 }
 
-function createPickTargetAnswerRow(answer, index) {
+function createMatchTargetAnswerRow(answer, index) {
     const row = document.createElement('div');
 
     row.className = 'practice-row';
 
-    row.dataset.pickTargetAnswer = String(index);
+    row.dataset.matchTargetAnswer = String(index);
 
     const buttons = document.createElement('div');
 
@@ -4131,7 +4083,7 @@ function createPickTargetAnswerRow(answer, index) {
 
     playButton.className = 'icon-button answer-play';
 
-    playButton.dataset.action = 'play-pick-answer';
+    playButton.dataset.action = 'play-match-answer';
 
     playButton.setAttribute('aria-label', `Play answer ${index + 1}`);
 
@@ -4145,17 +4097,17 @@ function createPickTargetAnswerRow(answer, index) {
 
     chooseButton.className = 'answer-option answer-select';
 
-    chooseButton.dataset.action = 'select-pick-answer';
+    chooseButton.dataset.action = 'select-match-answer';
 
     chooseButton.textContent = `Choose #${index + 1}`;
 
-    chooseButton.disabled = pick.committed || !answer.played;
+    chooseButton.disabled = matchTarget.committed || !answer.played;
 
     buttons.append(playButton, chooseButton);
 
     row.append(buttons);
 
-    const result = getPickTargetAnswerResult(index);
+    const result = getMatchTargetAnswerResult(index);
 
     if (!result) {
         return row;
@@ -4192,22 +4144,22 @@ function createPickTargetAnswerRow(answer, index) {
     return row;
 }
 
-function renderPickTargetAnswers() {
-    const rows = pick.answers.map(createPickTargetAnswerRow);
+function renderMatchTargetAnswers() {
+    const rows = matchTarget.answers.map(createMatchTargetAnswerRow);
 
     document
-        .querySelector('[data-pick-target-answers]')
+        .querySelector('[data-match-target-answers]')
         .replaceChildren(...rows);
 }
 
-function playPickTargetAnswer(index) {
-    const answer = pick.answers[index];
+function playMatchTargetAnswer(index) {
+    const answer = matchTarget.answers[index];
 
     if (!answer) {
         return;
     }
 
-    cancelPickAdvance();
+    cancelMatchAdvance();
     stopAllAudio();
 
     answer.played = true;
@@ -4215,51 +4167,45 @@ function playPickTargetAnswer(index) {
     audio.playTransient(
         answer.frequencyHz,
 
-        getWaveform('pick').value,
+        getWaveform('match-target').value,
 
-        readNumber(getControl('pick-duration'), 1)
+        readNumber(getControl('match-target-duration'), 1)
     );
 
-    if (pick.committed) {
+    if (matchTarget.committed) {
         return;
     }
 
-    const row = document.querySelector(`[data-pick-target-answer="${index}"]`);
+    const row = document.querySelector(`[data-match-target-answer="${index}"]`);
 
-    const chooseButton = row ? getAction('select-pick-answer', row) : null;
+    const chooseButton = row ? getAction('select-match-answer', row) : null;
 
     if (chooseButton) {
         chooseButton.disabled = false;
     }
 }
 
-function renderPickTargetStats() {
-    const { streak, trials, errorTotal, best } = stats.pick.target;
+function renderMatchTargetStats() {
+    const { streak, trials, errorTotal, best } = stats.match.target;
     const meanError = trials > 0 ? errorTotal / trials : 0;
 
-    getOutput('pick-streak').textContent = String(streak);
+    getOutput('match-target-streak').textContent = String(streak);
 
-    getOutput('pick-mean-error').textContent = `${meanError.toFixed(1)} cents`;
+    getOutput('match-target-mean-error').textContent =
+        `${meanError.toFixed(1)} cents`;
 
-    getOutput('pick-best').textContent = best === null ? '--' : String(best);
+    getOutput('match-target-best').textContent =
+        best === null ? '--' : String(best);
 }
 
-function clearPickTargetStats() {
-    stats.pick.target = defaultPickTargetStats();
-
-    clearStats('pick');
-
-    renderPickTargetStats();
-}
-
-function commitPickTargetAnswer(index) {
-    if (pick.committed) {
+function commitMatchTargetAnswer(index) {
+    if (matchTarget.committed) {
         return;
     }
 
-    const selected = pick.answers[index];
+    const selected = matchTarget.answers[index];
 
-    const target = pick.answers.find((answer) => answer.isTarget);
+    const target = matchTarget.answers.find((answer) => answer.isTarget);
 
     if (!selected || !target) {
         return;
@@ -4267,45 +4213,172 @@ function commitPickTargetAnswer(index) {
 
     audio.stopTransient();
 
-    pick.committed = true;
-    pick.selectedAnswerIndex = index;
+    matchTarget.committed = true;
+    matchTarget.selectedAnswerIndex = index;
 
     const correct = selected.isTarget;
     const errorCents = Math.abs(
         centsBetween(selected.frequencyHz, target.frequencyHz)
     );
 
-    stats.pick.target.trials += 1;
-    stats.pick.target.correct += correct ? 1 : 0;
-    stats.pick.target.errorTotal += errorCents;
-    stats.pick.target.streak = correct ? stats.pick.target.streak + 1 : 0;
+    stats.match.target.trials += 1;
+    stats.match.target.correct += correct ? 1 : 0;
+    stats.match.target.errorTotal += errorCents;
+    stats.match.target.streak = correct ? stats.match.target.streak + 1 : 0;
 
     if (
         correct &&
-        (stats.pick.target.best === null ||
-            stats.pick.target.streak > stats.pick.target.best)
+        (stats.match.target.best === null ||
+            stats.match.target.streak > stats.match.target.best)
     ) {
-        stats.pick.target.best = stats.pick.target.streak;
+        stats.match.target.best = stats.match.target.streak;
     }
 
-    savePickStats();
+    saveMatchStats();
 
-    renderPickTargetAnswers();
-    renderPickTargetStats();
-    updateAdaptiveDifficulty('pick', correct);
+    renderMatchTargetAnswers();
+    renderMatchTargetStats();
+    updateAdaptiveDifficulty('match-target', correct);
 
-    const targetIndex = pick.answers.indexOf(target);
-    const status = getOutput('pick-status');
-    const newPickButton = getAction('new-pick');
+    const targetIndex = matchTarget.answers.indexOf(target);
+    const status = getOutput('match-target-status');
+    const newMatchButton = getAction('new-match');
 
-    newPickButton?.focus();
+    newMatchButton?.focus();
 
     status.textContent = selected.isTarget
         ? `Correct. Answer ${index + 1} matched the target.`
         : `Incorrect. Answer ${index + 1} selected; ` +
           `answer ${targetIndex + 1} was the target.`;
 
-    schedulePickAdvance();
+    scheduleMatchAdvance();
+}
+
+// Match: identification
+
+function defaultMatchIdentificationStats() {
+    return {
+        streak: 0,
+        trials: 0,
+        correct: 0,
+        best: null,
+    };
+}
+
+function loadMatchIdentificationStats(stored) {
+    if (!stored || typeof stored !== 'object' || Array.isArray(stored)) {
+        return defaultMatchIdentificationStats();
+    }
+
+    return {
+        streak: Number.isFinite(stored.streak) ? stored.streak : 0,
+        trials: Number.isFinite(stored.trials) ? stored.trials : 0,
+        correct: Number.isFinite(stored.correct) ? stored.correct : 0,
+        best: Number.isFinite(stored.best) ? stored.best : null,
+    };
+}
+
+const matchIdentification = { trial: null };
+
+function renderMatchIdentificationAnswers(selected = null) {
+    const trial = matchIdentification.trial;
+    const buttons = NOTE_NAMES.map((name, pitchClass) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'answer-option';
+        button.dataset.matchIdentificationAnswer = String(pitchClass);
+        button.textContent = name;
+        button.disabled = !trial?.played || trial.committed;
+        setAnswerOptionState(button, pitchClass, selected, trial?.midi % 12);
+        return button;
+    });
+    document
+        .querySelector('[data-match-identification-answers]')
+        .replaceChildren(...buttons);
+}
+
+function newMatchIdentificationTrial(playImmediately = false) {
+    cancelMatchAdvance();
+    stopAllAudio();
+    const octaveValue = getControl('match-identification-octave').value;
+    const octave =
+        octaveValue === 'random'
+            ? 3 + Math.floor(Math.random() * 3)
+            : Number(octaveValue);
+    matchIdentification.trial = {
+        midi: (octave + 1) * 12 + Math.floor(Math.random() * 12),
+        played: false,
+        committed: false,
+    };
+    clearPracticeResult('match-identification-result');
+    renderMatchIdentificationAnswers();
+    if (playImmediately) {
+        playMatchIdentificationTrial();
+    }
+}
+
+function playMatchIdentificationTrial() {
+    cancelMatchAdvance();
+
+    if (!matchIdentification.trial) {
+        newMatchIdentificationTrial();
+    }
+    stopAllAudio();
+    const trial = matchIdentification.trial;
+    audio.playTransient(
+        midiFrequency(trial.midi),
+        getWaveform('match-identification').value,
+        readNumber(getControl('match-identification-duration'), 1)
+    );
+    trial.played = true;
+    if (!trial.committed) {
+        renderMatchIdentificationAnswers();
+    }
+}
+
+function renderMatchIdentificationStats() {
+    const { streak, trials, correct, best } = stats.match.identification;
+    const accuracy = trials > 0 ? (correct / trials) * 100 : 0;
+    getOutput('match-identification-streak').textContent = String(streak);
+    getOutput('match-identification-accuracy').textContent =
+        `${accuracy.toFixed(0)}%`;
+    getOutput('match-identification-best').textContent =
+        best === null ? '--' : String(best);
+}
+
+function commitMatchIdentification(pitchClass) {
+    const trial = matchIdentification.trial;
+    if (
+        !trial?.played ||
+        trial.committed ||
+        !Number.isInteger(pitchClass) ||
+        pitchClass < 0 ||
+        pitchClass >= NOTE_NAMES.length
+    ) {
+        return;
+    }
+    audio.stopTransient();
+    trial.committed = true;
+    const correct = pitchClass === trial.midi % 12;
+    const typeStats = stats.match.identification;
+    typeStats.trials += 1;
+    typeStats.correct += correct ? 1 : 0;
+    typeStats.streak = correct ? typeStats.streak + 1 : 0;
+    if (
+        correct &&
+        (typeStats.best === null || typeStats.streak > typeStats.best)
+    ) {
+        typeStats.best = typeStats.streak;
+    }
+    saveMatchStats();
+    renderMatchIdentificationStats();
+    renderMatchIdentificationAnswers(pitchClass);
+    renderPracticeResult(
+        'match-identification-result',
+        correct,
+        midiToNoteName(trial.midi)
+    );
+    scheduleMatchAdvance();
 }
 
 // Intervals
@@ -4870,9 +4943,8 @@ function resetForReferenceChange() {
     }
 
     newPitchPlacementTrial();
-    newPickTrial();
+    newMatchTrial();
     newIntervalTrial();
-    newPitchIdentificationTrial();
 }
 
 function initializeEvents() {
@@ -4884,6 +4956,11 @@ function initializeEvents() {
     getControl('interval-mode').addEventListener('input', () => {
         updateModeHash('intervals');
         updateIntervalMode();
+    });
+
+    getControl('match-mode').addEventListener('input', () => {
+        updateModeHash('match');
+        updateMatchMode();
     });
 
     getNote('tuner').addEventListener('change', (event) => {
@@ -5033,10 +5110,10 @@ function initializeEvents() {
         newPitchPlacementTrial();
     });
 
-    getNote('pick').addEventListener('change', (event) => {
+    getNote('match-target').addEventListener('change', (event) => {
         updateNoteReadout(event.currentTarget);
 
-        newPickTrial();
+        newMatchTrial();
     });
 
     for (const exercise of ['interval-recognition', 'interval-construction']) {
@@ -5064,17 +5141,17 @@ function initializeEvents() {
     }
 
     for (const control of getControls(
-        'pick-range-min',
-        'pick-range-max',
-        'pick-count'
+        'match-target-range-min',
+        'match-target-range-max',
+        'match-target-count'
     )) {
         control.addEventListener('change', () => {
-            resetAdaptiveProgress('pick');
-            newPickTrial();
+            resetAdaptiveProgress('match-target');
+            newMatchTrial();
         });
     }
 
-    for (const exercise of ['pitch', 'pick']) {
+    for (const exercise of ['pitch', 'match-target']) {
         getControl(`${exercise}-adaptive`).addEventListener('change', () => {
             resetAdaptiveProgress(exercise);
         });
@@ -5106,7 +5183,7 @@ function initializeEvents() {
         normalizeNumberInput(event.currentTarget, 1);
     });
 
-    getControl('pick-duration').addEventListener('change', (event) => {
+    getControl('match-target-duration').addEventListener('change', (event) => {
         normalizeNumberInput(event.currentTarget, 1);
     });
 
@@ -5134,43 +5211,41 @@ function initializeEvents() {
 
     getAction('toggle-tuner-mic').addEventListener('click', toggleMicTuner);
 
-    getControl('pitch-identification-octave').addEventListener('change', () => {
-        newPitchIdentificationTrial();
+    getControl('match-identification-octave').addEventListener('change', () => {
+        newMatchIdentificationTrial();
     });
-    getControl('pitch-identification-duration').addEventListener(
+    getControl('match-identification-duration').addEventListener(
         'change',
         (event) => {
             normalizeNumberInput(event.currentTarget, 1);
         }
     );
     document
-        .querySelector('[data-pitch-identification-answers]')
+        .querySelector('[data-match-identification-answers]')
         .addEventListener('click', (event) => {
             const button = event.target.closest(
-                'button[data-pitch-identification-answer]'
+                'button[data-match-identification-answer]'
             );
             if (button && !button.disabled) {
-                commitPitchIdentification(
-                    Number(button.dataset.pitchIdentificationAnswer)
+                commitMatchIdentification(
+                    Number(button.dataset.matchIdentificationAnswer)
                 );
             }
         });
 
     for (const button of getActions('play-pitch')) {
-        button.addEventListener('click', () => {
-            if (getControl('pitch-mode').value === 'identification') {
-                playPitchIdentificationTrial();
-            } else {
-                playPitchPlacementTrial();
-            }
-        });
+        button.addEventListener('click', playPitchPlacementTrial);
     }
+
+    getAction('play-match').addEventListener('click', playMatchTrial);
 
     for (const button of getActions('new-pitch')) {
         button.addEventListener('click', newPitchTrial);
     }
 
-    getAction('new-pick').addEventListener('click', newPickTrial);
+    for (const button of getActions('new-match')) {
+        button.addEventListener('click', () => newMatchTrial(true));
+    }
 
     getAction('play-interval').addEventListener('click', playIntervalTrial);
 
@@ -5270,7 +5345,7 @@ function initializeEvents() {
         button.addEventListener('click', () => {
             stopAllAudio();
             cancelPitchAdvance();
-            cancelPickAdvance();
+            cancelMatchAdvance();
             cancelIntervalAdvance();
             cancelChordAdvance();
         });
@@ -5281,25 +5356,25 @@ function initializeEvents() {
     }
 
     document
-        .querySelector('[data-pick-target-answers]')
+        .querySelector('[data-match-target-answers]')
         .addEventListener('click', (event) => {
             const button = event.target.closest('button[data-action]');
 
-            const row = button?.closest('[data-pick-target-answer]');
+            const row = button?.closest('[data-match-target-answer]');
 
             if (!button || !row) {
                 return;
             }
 
-            const index = Number(row.dataset.pickTargetAnswer);
+            const index = Number(row.dataset.matchTargetAnswer);
 
-            if (button.dataset.action === 'play-pick-answer') {
-                playPickTargetAnswer(index);
+            if (button.dataset.action === 'play-match-answer') {
+                playMatchTargetAnswer(index);
                 return;
             }
 
-            if (button.dataset.action === 'select-pick-answer') {
-                commitPickTargetAnswer(index);
+            if (button.dataset.action === 'select-match-answer') {
+                commitMatchTargetAnswer(index);
             }
         });
 
@@ -5307,10 +5382,9 @@ function initializeEvents() {
         button.addEventListener('click', clearPitchStats);
     }
 
-    getAction('clear-pick-stats').addEventListener(
-        'click',
-        clearPickTargetStats
-    );
+    for (const button of getActions('clear-match-stats')) {
+        button.addEventListener('click', clearMatchStats);
+    }
 
     for (const button of getActions('clear-interval-stats')) {
         button.addEventListener('click', clearIntervalStats);
@@ -5329,6 +5403,7 @@ function initialize() {
     updateVolume();
     initializePitchMemoryFrequencySlider();
     initializeModePanels('pitch');
+    initializeModePanels('match');
     initializeTooltips();
     initializeNotes();
     initializeTunerInstruments();
@@ -5344,11 +5419,10 @@ function initialize() {
     renderPitchStats();
     updatePitchMode();
 
-    newPickTrial();
+    updateMatchMode();
     updateIntervalMode();
     newChordTrial();
 
-    renderPickTargetStats();
     renderChordQualityStats();
     restorePitchMemoryTrial();
     renderPitchMemoryResponseFrequency();
@@ -5360,7 +5434,7 @@ window.addEventListener('beforeunload', () => {
     stopAllAudio();
     stopPitchMemoryMic();
     cancelPitchAdvance();
-    cancelPickAdvance();
+    cancelMatchAdvance();
     cancelIntervalAdvance();
     cancelChordAdvance();
     clearPitchMemoryTimers();
