@@ -73,13 +73,13 @@ export default defineConfig(
             'html/no-multiple-empty-lines': 'off',
             'html/no-trailing-spaces': 'off',
             'html/quotes': 'off',
-
             'html/require-closing-tags': [
                 'error',
                 {
                     selfClosing: 'always',
                 },
             ],
+            'html/use-baseline': 'off' /* Go get a new browser. */,
         },
     }
 );
