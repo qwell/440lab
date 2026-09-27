@@ -348,37 +348,6 @@ function getModePanels(name) {
     );
 }
 
-function initializeModePanels(name) {
-    const panel = document.querySelector(`[data-panel="${name}"]`);
-    let controls = panel.querySelector(':scope > .form-grid');
-
-    if (!controls) {
-        controls = document.createElement('div');
-        controls.className = 'form-grid';
-        panel.insertBefore(
-            controls,
-            panel.querySelector(':scope > [data-mode-panel]')
-        );
-    }
-
-    for (const modePanel of panel.querySelectorAll(
-        ':scope > [data-mode-panel]'
-    )) {
-        const modeControls = modePanel.querySelector(':scope > .form-grid');
-
-        if (!modeControls) {
-            continue;
-        }
-
-        for (const field of [...modeControls.children]) {
-            field.dataset.modePanel = modePanel.dataset.modePanel;
-            controls.append(field);
-        }
-
-        modeControls.remove();
-    }
-}
-
 function getNote(name) {
     return document.querySelector(`[data-note="${name}"]`);
 }
@@ -5436,8 +5405,6 @@ function initialize() {
     restorePreferences();
     updateVolume();
     initializePitchMemoryFrequencySlider();
-    initializeModePanels('pitch');
-    initializeModePanels('match');
     initializeTooltips();
     initializeNotes();
     initializeTunerInstruments();

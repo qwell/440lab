@@ -54,6 +54,20 @@ select {
 
 /* Form fields */
 
+.settings-heading {
+    margin: 28px 0 0;
+    padding-top: 14px;
+
+    border-top: 1px solid var(--border);
+
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.settings-heading + .form-grid {
+    margin-top: 12px;
+}
+
 .form-grid {
     margin-top: 18px;
 

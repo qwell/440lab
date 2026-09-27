@@ -775,68 +775,6 @@
                     detected pitch over the last eight seconds.
                 </h3>
 
-                <div class="form-grid">
-                    <div class="field">
-                        <label for="tuner-note">
-                            Note (<span
-                                class="frequency-value note-frequency"
-                                data-note-frequency="tuner"
-                            ></span
-                            >)
-                        </label>
-
-                        <div class="control-row">
-                            <select id="tuner-note" data-note="tuner"></select>
-                        </div>
-                    </div>
-
-                    <div class="field">
-                        <label for="tuner-waveform">
-                            Wave type
-
-                            <span
-                                class="info-tip"
-                                tabindex="0"
-                                aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
-                                data-tooltip="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
-                            >
-                                ⓘ
-                            </span>
-                        </label>
-
-                        <div class="control-row">
-                            <select id="tuner-waveform" data-waveform="tuner">
-                                <option value="triangle" selected>
-                                    triangle
-                                </option>
-                                <option value="sine">sine</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="field">
-                        <label for="tuner-instrument">Instrument</label>
-                        <div class="control-row">
-                            <select
-                                id="tuner-instrument"
-                                data-control="tuner-instrument"
-                            >
-                                <option value="">custom note</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label for="tuner-variation">Tuning variation</label>
-                        <div class="control-row">
-                            <select
-                                id="tuner-variation"
-                                data-control="tuner-variation"
-                                disabled
-                            ></select>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="practice practice-wide">
                     <div class="button-row">
                         <button
@@ -981,6 +919,68 @@
                         role="img"
                     ></canvas>
                 </div>
+                <h3 class="settings-heading">Settings</h3>
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="tuner-note">
+                            Note (<span
+                                class="frequency-value note-frequency"
+                                data-note-frequency="tuner"
+                            ></span
+                            >)
+                        </label>
+
+                        <div class="control-row">
+                            <select id="tuner-note" data-note="tuner"></select>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label for="tuner-waveform">
+                            Wave type
+
+                            <span
+                                class="info-tip"
+                                tabindex="0"
+                                aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
+                                data-tooltip="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
+                            >
+                                ⓘ
+                            </span>
+                        </label>
+
+                        <div class="control-row">
+                            <select id="tuner-waveform" data-waveform="tuner">
+                                <option value="triangle" selected>
+                                    triangle
+                                </option>
+                                <option value="sine">sine</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label for="tuner-instrument">Instrument</label>
+                        <div class="control-row">
+                            <select
+                                id="tuner-instrument"
+                                data-control="tuner-instrument"
+                            >
+                                <option value="">custom note</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="tuner-variation">Tuning variation</label>
+                        <div class="control-row">
+                            <select
+                                id="tuner-variation"
+                                data-control="tuner-variation"
+                                disabled
+                            ></select>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <!-- Rhythm -->
@@ -1003,166 +1003,6 @@
                     Read a rhythm after a visual count-in. Hold Space or the
                     button for each note, and release for rests.
                 </h3>
-                <details class="practice-guide" data-mode-panel="timing" hidden>
-                    <summary>How timing practice works</summary>
-                    <p>
-                        Press Play, then press Space or tap as the dot crosses
-                        the center line. Match every click, including
-                        subdivisions. Results use your latest 20 taps, one per
-                        click. Average error measures distance from the beat;
-                        bias shows whether you tend to rush or drag. Device
-                        latency can affect results.
-                    </p>
-                </details>
-                <details
-                    class="practice-guide"
-                    data-mode-panel="reading"
-                    hidden
-                >
-                    <summary>How to read and hold a rhythm</summary>
-                    <p>
-                        After a one-bar count-in, hold Space, the button, or the
-                        lane for each note. Release and press again for
-                        consecutive notes; leave rests silent. The guide under
-                        each symbol shows how long to hold. Notes and numbered
-                        count-in beats scroll toward the fixed play line from
-                        the right. Press when a note reaches the line; release
-                        when its guide ends. Dashed guides mean rests. Hover a
-                        note for its value and duration in beats (or
-                        subdivisions in compound meters).
-                    </p>
-                    <p>
-                        Blue guides show the full note duration before it
-                        reaches the play line. Red overlays show the time you
-                        actually held the input, including early presses, late
-                        releases, and holds through rests.
-                    </p>
-                    <p id="rhythm-meter-help"></p>
-                    <p>
-                        A whole note is hollow without a stem. A half note is
-                        hollow with a stem. A quarter note is filled with a
-                        stem; an eighth adds one flag, and a sixteenth adds two.
-                        Each value lasts half as long as the one before it.
-                    </p>
-                    <p>
-                        A dot adds half of the original duration. In 4/4, a
-                        quarter note lasts 1 beat, so a dotted quarter lasts 1 +
-                        ½ = 1½ beats. A half note lasts 2 beats, so a dotted
-                        half lasts 2 + 1 = 3 beats. Rests can have dots too.
-                    </p>
-                    <p>
-                        Negative milliseconds mean early; positive mean late.
-                        Attack and release errors are scored separately. Device
-                        and audio latency can affect measurements.
-                    </p>
-                </details>
-
-                <div class="form-grid">
-                    <div class="field">
-                        <label for="rhythm-bpm">
-                            BPM
-
-                            <span
-                                class="info-tip"
-                                tabindex="0"
-                                aria-label="Beats per minute. Higher numbers are faster. 60 BPM is one beat per second."
-                                data-tooltip="Beats per minute. Higher numbers are faster. 60 BPM is one beat per second."
-                            >
-                                ⓘ
-                            </span>
-                        </label>
-
-                        <div class="control-row input-button-row">
-                            <input
-                                id="rhythm-bpm"
-                                data-control="rhythm-bpm"
-                                type="number"
-                                min="30"
-                                max="240"
-                                step="1"
-                                value="100"
-                            />
-                            <button
-                                data-action="tap-tempo"
-                                type="button"
-                                title="Tap tempo"
-                                aria-label="Tap tempo"
-                            >
-                                Tap
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="field">
-                        <label for="rhythm-time-signature">
-                            Time signature
-
-                            <span
-                                class="info-tip"
-                                tabindex="0"
-                                aria-label="How beats are grouped. The first beat is accented. Compound meters such as 6/8 are grouped into sets of three."
-                                data-tooltip="How beats are grouped. The first beat is accented. Compound meters such as 6/8 are grouped into sets of three."
-                            >
-                                ⓘ
-                            </span>
-                        </label>
-
-                        <div class="control-row">
-                            <select
-                                id="rhythm-time-signature"
-                                class="rhythm-time-signature"
-                                data-control="rhythm-time-signature"
-                            >
-                                <option value="2/4">2/4 - 𝅘𝅥</option>
-                                <option value="3/4">3/4 - 𝅘𝅥</option>
-                                <option value="4/4" selected>
-                                    4/4 - 𝄴 (common)
-                                </option>
-                                <option value="2/2">2/2 - 𝄵 (cut time)</option>
-                                <option value="3/8">3/8 - 𝅘𝅥𝅮</option>
-                                <option value="6/8">6/8 - 𝅘𝅥.</option>
-                                <option value="9/8">9/8 - 𝅘𝅥.</option>
-                                <option value="12/8">12/8 - 𝅘𝅥.</option>
-                                <option value="5/4">5/4 - 𝅘𝅥</option>
-                                <option value="7/8">7/8 - 𝅘𝅥𝅮</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="field" data-mode-panel="reading" hidden>
-                        <label for="rhythm-note-values">
-                            Note values
-                            <span
-                                class="info-tip"
-                                tabindex="0"
-                                aria-label="All uses whole, half, quarter, eighth, and sixteenth notes. All + dotted also uses dotted versions. A dot adds half the note's duration."
-                                data-tooltip="All uses whole, half, quarter, eighth, and sixteenth notes. All + dotted also uses dotted versions. A dot adds half the note's duration."
-                            >
-                                ⓘ
-                            </span>
-                        </label>
-                        <div class="control-row">
-                            <select
-                                id="rhythm-note-values"
-                                data-control="rhythm-note-values"
-                            >
-                                <option value="all" selected>all</option>
-                                <option value="all-dotted">all + dotted</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="field" data-mode-panel="reading" hidden>
-                        <label for="rhythm-bars">Bars</label>
-                        <div class="control-row">
-                            <select id="rhythm-bars" data-control="rhythm-bars">
-                                <option value="2" selected>2</option>
-                                <option value="4">4</option>
-                                <option value="6">6</option>
-                                <option value="8">8</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
                 <div data-mode-panel="metronome">
                     <div class="practice">
                         <div class="button-row">
@@ -1354,6 +1194,166 @@
                         </div>
                     </div>
                 </div>
+                <h3 class="settings-heading">Settings</h3>
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="rhythm-bpm">
+                            BPM
+
+                            <span
+                                class="info-tip"
+                                tabindex="0"
+                                aria-label="Beats per minute. Higher numbers are faster. 60 BPM is one beat per second."
+                                data-tooltip="Beats per minute. Higher numbers are faster. 60 BPM is one beat per second."
+                            >
+                                ⓘ
+                            </span>
+                        </label>
+
+                        <div class="control-row input-button-row">
+                            <input
+                                id="rhythm-bpm"
+                                data-control="rhythm-bpm"
+                                type="number"
+                                min="30"
+                                max="240"
+                                step="1"
+                                value="100"
+                            />
+                            <button
+                                data-action="tap-tempo"
+                                type="button"
+                                title="Tap tempo"
+                                aria-label="Tap tempo"
+                            >
+                                Tap
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label for="rhythm-time-signature">
+                            Time signature
+
+                            <span
+                                class="info-tip"
+                                tabindex="0"
+                                aria-label="How beats are grouped. The first beat is accented. Compound meters such as 6/8 are grouped into sets of three."
+                                data-tooltip="How beats are grouped. The first beat is accented. Compound meters such as 6/8 are grouped into sets of three."
+                            >
+                                ⓘ
+                            </span>
+                        </label>
+
+                        <div class="control-row">
+                            <select
+                                id="rhythm-time-signature"
+                                class="rhythm-time-signature"
+                                data-control="rhythm-time-signature"
+                            >
+                                <option value="2/4">2/4 - 𝅘𝅥</option>
+                                <option value="3/4">3/4 - 𝅘𝅥</option>
+                                <option value="4/4" selected>
+                                    4/4 - 𝄴 (common)
+                                </option>
+                                <option value="2/2">2/2 - 𝄵 (cut time)</option>
+                                <option value="3/8">3/8 - 𝅘𝅥𝅮</option>
+                                <option value="6/8">6/8 - 𝅘𝅥.</option>
+                                <option value="9/8">9/8 - 𝅘𝅥.</option>
+                                <option value="12/8">12/8 - 𝅘𝅥.</option>
+                                <option value="5/4">5/4 - 𝅘𝅥</option>
+                                <option value="7/8">7/8 - 𝅘𝅥𝅮</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="field" data-mode-panel="reading" hidden>
+                        <label for="rhythm-note-values">
+                            Note values
+                            <span
+                                class="info-tip"
+                                tabindex="0"
+                                aria-label="All uses whole, half, quarter, eighth, and sixteenth notes. All + dotted also uses dotted versions. A dot adds half the note's duration."
+                                data-tooltip="All uses whole, half, quarter, eighth, and sixteenth notes. All + dotted also uses dotted versions. A dot adds half the note's duration."
+                            >
+                                ⓘ
+                            </span>
+                        </label>
+                        <div class="control-row">
+                            <select
+                                id="rhythm-note-values"
+                                data-control="rhythm-note-values"
+                            >
+                                <option value="all" selected>all</option>
+                                <option value="all-dotted">all + dotted</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="field" data-mode-panel="reading" hidden>
+                        <label for="rhythm-bars">Bars</label>
+                        <div class="control-row">
+                            <select id="rhythm-bars" data-control="rhythm-bars">
+                                <option value="2" selected>2</option>
+                                <option value="4">4</option>
+                                <option value="6">6</option>
+                                <option value="8">8</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <details class="practice-guide" data-mode-panel="timing" hidden>
+                    <summary>How timing practice works</summary>
+                    <p>
+                        Press Play, then press Space or tap as the dot crosses
+                        the center line. Match every click, including
+                        subdivisions. Results use your latest 20 taps, one per
+                        click. Average error measures distance from the beat;
+                        bias shows whether you tend to rush or drag. Device
+                        latency can affect results.
+                    </p>
+                </details>
+                <details
+                    class="practice-guide"
+                    data-mode-panel="reading"
+                    hidden
+                >
+                    <summary>How to read and hold a rhythm</summary>
+                    <p>
+                        After a one-bar count-in, hold Space, the button, or the
+                        lane for each note. Release and press again for
+                        consecutive notes; leave rests silent. The guide under
+                        each symbol shows how long to hold. Notes and numbered
+                        count-in beats scroll toward the fixed play line from
+                        the right. Press when a note reaches the line; release
+                        when its guide ends. Dashed guides mean rests. Hover a
+                        note for its value and duration in beats (or
+                        subdivisions in compound meters).
+                    </p>
+                    <p>
+                        Blue guides show the full note duration before it
+                        reaches the play line. Red overlays show the time you
+                        actually held the input, including early presses, late
+                        releases, and holds through rests.
+                    </p>
+                    <p id="rhythm-meter-help"></p>
+                    <p>
+                        A whole note is hollow without a stem. A half note is
+                        hollow with a stem. A quarter note is filled with a
+                        stem; an eighth adds one flag, and a sixteenth adds two.
+                        Each value lasts half as long as the one before it.
+                    </p>
+                    <p>
+                        A dot adds half of the original duration. In 4/4, a
+                        quarter note lasts 1 beat, so a dotted quarter lasts 1 +
+                        ½ = 1½ beats. A half note lasts 2 beats, so a dotted
+                        half lasts 2 + 1 = 3 beats. Rests can have dots too.
+                    </p>
+                    <p>
+                        Negative milliseconds mean early; positive mean late.
+                        Attack and release errors are scored separately. Device
+                        and audio latency can affect measurements.
+                    </p>
+                </details>
             </section>
 
             <!-- Pitch -->
@@ -1376,49 +1376,133 @@
                     names or familiar recordings are used.
                 </h3>
 
-                <div class="form-grid">
-                    <div class="field" data-mode-panel="placement">
-                        <label for="pitch-note">
-                            Note (<span
-                                class="frequency-value note-frequency"
-                                data-note-frequency="pitch"
-                            ></span
-                            >)
-                        </label>
-
-                        <div class="control-row">
-                            <select id="pitch-note" data-note="pitch"></select>
-                        </div>
-                    </div>
-
-                    <div class="field" data-mode-panel="memory" hidden>
-                        <label for="pitch-memory-type">
-                            Type
-                            <span
-                                class="info-tip"
-                                tabindex="0"
-                                aria-label="Novel melody tests recall of an unfamiliar melody's opening frequency after a delay. Interference tests recall of a single target after unrelated tones."
-                                data-tooltip="Novel melody tests recall of an unfamiliar melody's opening frequency after a delay. Interference tests recall of a single target after unrelated tones."
-                            >
-                                ⓘ
-                            </span>
-                        </label>
-                        <div class="control-row">
-                            <select
-                                id="pitch-memory-type"
-                                data-control="pitch-memory-type"
-                            >
-                                <option value="novel">novel melody</option>
-                                <option value="interference">
-                                    interference
-                                </option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
                 <div data-mode-panel="placement">
+                    <div class="practice">
+                        <div class="button-row">
+                            <button
+                                class="icon-button"
+                                data-action="play-pitch"
+                                type="button"
+                                aria-label="Play trial"
+                                title="Play"
+                            >
+                                <span aria-hidden="true">▶</span>
+                            </button>
+
+                            <button
+                                class="icon-button"
+                                data-action="stop-audio"
+                                type="button"
+                                aria-label="Stop all audio"
+                                title="Stop"
+                            >
+                                <span aria-hidden="true">■</span>
+                            </button>
+
+                            <button
+                                class="icon-button auto-refresh"
+                                data-action="new-pitch"
+                                type="button"
+                                aria-label="New trial and play"
+                                title="New trial and play"
+                            >
+                                <span aria-hidden="true">↻</span>
+                            </button>
+                        </div>
+
+                        <div class="practice-row">
+                            <div
+                                class="answer-options segmented-answers"
+                                data-pitch-placement-answers
+                                role="group"
+                                aria-label="Pitch placement answer"
+                            >
+                                <button
+                                    class="answer-option"
+                                    type="button"
+                                    data-answer="flat"
+                                    disabled
+                                >
+                                    Flat
+                                </button>
+
+                                <button
+                                    class="answer-option"
+                                    type="button"
+                                    data-answer="sharp"
+                                    disabled
+                                >
+                                    Sharp
+                                </button>
+                            </div>
+
+                            <div
+                                class="practice-result"
+                                data-output="pitch-placement-result"
+                                aria-live="polite"
+                            ></div>
+                        </div>
+
+                        <dl class="stats practice-stats">
+                            <div class="adaptive-status-row">
+                                <dt>Adaptive</dt>
+                                <dd
+                                    data-output="pitch-adaptive-status"
+                                    aria-live="polite"
+                                ></dd>
+                            </div>
+
+                            <div class="stats-with-action">
+                                <dt>Streak</dt>
+
+                                <dd>
+                                    <strong data-output="pitch-placement-streak"
+                                        >0</strong
+                                    >
+
+                                    <button
+                                        class="link-button"
+                                        data-action="clear-pitch-stats"
+                                        type="button"
+                                        title="Clear pitch statistics"
+                                    >
+                                        Clear
+                                    </button>
+                                </dd>
+                            </div>
+
+                            <div>
+                                <dt>Mean error</dt>
+                                <dd data-output="pitch-placement-mean-error">
+                                    0.0 cents
+                                </dd>
+                            </div>
+
+                            <div>
+                                <dt>Best</dt>
+                                <dd data-output="pitch-placement-best">--</dd>
+                            </div>
+                        </dl>
+                    </div>
+                    <h3 class="settings-heading">Settings</h3>
                     <div class="form-grid">
+                        <div class="field">
+                            <label for="pitch-note">
+                                Note (<span
+                                    class="frequency-value note-frequency"
+                                    data-note-frequency="pitch"
+                                ></span
+                                >)
+                            </label>
+
+                            <div class="control-row">
+                                <select
+                                    id="pitch-note"
+                                    data-note="pitch"
+                                ></select>
+                            </div>
+                        </div>
+
                         <div class="field">
                             <label for="pitch-waveform">
                                 Wave type
@@ -1566,202 +1650,10 @@
                             </div>
                         </div>
                     </div>
-
-                    <div class="practice">
-                        <div class="button-row">
-                            <button
-                                class="icon-button"
-                                data-action="play-pitch"
-                                type="button"
-                                aria-label="Play trial"
-                                title="Play"
-                            >
-                                <span aria-hidden="true">▶</span>
-                            </button>
-
-                            <button
-                                class="icon-button"
-                                data-action="stop-audio"
-                                type="button"
-                                aria-label="Stop all audio"
-                                title="Stop"
-                            >
-                                <span aria-hidden="true">■</span>
-                            </button>
-
-                            <button
-                                class="icon-button auto-refresh"
-                                data-action="new-pitch"
-                                type="button"
-                                aria-label="New trial and play"
-                                title="New trial and play"
-                            >
-                                <span aria-hidden="true">↻</span>
-                            </button>
-                        </div>
-
-                        <div class="practice-row">
-                            <div
-                                class="answer-options segmented-answers"
-                                data-pitch-placement-answers
-                                role="group"
-                                aria-label="Pitch placement answer"
-                            >
-                                <button
-                                    class="answer-option"
-                                    type="button"
-                                    data-answer="flat"
-                                    disabled
-                                >
-                                    Flat
-                                </button>
-
-                                <button
-                                    class="answer-option"
-                                    type="button"
-                                    data-answer="sharp"
-                                    disabled
-                                >
-                                    Sharp
-                                </button>
-                            </div>
-
-                            <div
-                                class="practice-result"
-                                data-output="pitch-placement-result"
-                                aria-live="polite"
-                            ></div>
-                        </div>
-
-                        <dl class="stats practice-stats">
-                            <div class="adaptive-status-row">
-                                <dt>Adaptive</dt>
-                                <dd
-                                    data-output="pitch-adaptive-status"
-                                    aria-live="polite"
-                                ></dd>
-                            </div>
-
-                            <div class="stats-with-action">
-                                <dt>Streak</dt>
-
-                                <dd>
-                                    <strong data-output="pitch-placement-streak"
-                                        >0</strong
-                                    >
-
-                                    <button
-                                        class="link-button"
-                                        data-action="clear-pitch-stats"
-                                        type="button"
-                                        title="Clear pitch statistics"
-                                    >
-                                        Clear
-                                    </button>
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt>Mean error</dt>
-                                <dd data-output="pitch-placement-mean-error">
-                                    0.0 cents
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt>Best</dt>
-                                <dd data-output="pitch-placement-best">--</dd>
-                            </div>
-                        </dl>
-                    </div>
                 </div>
 
                 <!-- Pitch Memory -->
                 <div data-mode-panel="memory" hidden>
-                    <div class="form-grid">
-                        <div class="field">
-                            <label for="pitch-memory-response">
-                                Response
-                                <span
-                                    class="info-tip"
-                                    tabindex="0"
-                                    aria-label="Oscillator scores the exact frequency of an adjusted tone. Microphone measures a pitch you sing, hum, or play and scores its nearest octave equivalent, so the same note in another octave is accepted."
-                                    data-tooltip="Oscillator scores the exact frequency of an adjusted tone. Microphone measures a pitch you sing, hum, or play and scores its nearest octave equivalent, so the same note in another octave is accepted."
-                                >
-                                    ⓘ
-                                </span>
-                            </label>
-                            <div class="control-row">
-                                <select
-                                    id="pitch-memory-response"
-                                    data-control="pitch-memory-response"
-                                >
-                                    <option value="oscillator">
-                                        oscillator
-                                    </option>
-                                    <option value="microphone">
-                                        microphone
-                                    </option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="field" data-pitch-memory-type="novel">
-                            <label for="pitch-memory-delay">
-                                Recall after
-                                <span
-                                    class="info-tip"
-                                    tabindex="0"
-                                    aria-label="Sets the delay after the generated melody finishes. Delayed trials are saved in this browser."
-                                    data-tooltip="Sets the delay after the generated melody finishes. Delayed trials are saved in this browser."
-                                >
-                                    ⓘ
-                                </span>
-                            </label>
-                            <div class="control-row">
-                                <select
-                                    id="pitch-memory-delay"
-                                    data-control="pitch-memory-delay"
-                                >
-                                    <option value="10">10 seconds</option>
-                                    <option value="60">1 minute</option>
-                                    <option value="3600">1 hour</option>
-                                    <option value="86400">1 day</option>
-                                    <option value="604800">1 week</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div
-                            class="field"
-                            data-pitch-memory-type="interference"
-                            hidden
-                        >
-                            <label for="pitch-memory-distractors">
-                                Distractors
-                                <span
-                                    class="info-tip"
-                                    tabindex="0"
-                                    aria-label="Sets how many unrelated tones play between the target and your response. More tones create stronger interference."
-                                    data-tooltip="Sets how many unrelated tones play between the target and your response. More tones create stronger interference."
-                                >
-                                    ⓘ
-                                </span>
-                            </label>
-                            <div class="control-row">
-                                <select
-                                    id="pitch-memory-distractors"
-                                    data-control="pitch-memory-distractors"
-                                >
-                                    <option value="0">0</option>
-                                    <option value="11">11</option>
-                                    <option value="31" selected>31</option>
-                                    <option value="71">71</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="practice practice-wide">
                         <div class="button-row">
                             <button
@@ -1926,6 +1818,115 @@
                             </dl>
                         </div>
                     </div>
+                    <h3 class="settings-heading">Settings</h3>
+                    <div class="form-grid">
+                        <div class="field">
+                            <label for="pitch-memory-type">
+                                Type
+                                <span
+                                    class="info-tip"
+                                    tabindex="0"
+                                    aria-label="Novel melody tests recall of an unfamiliar melody's opening frequency after a delay. Interference tests recall of a single target after unrelated tones."
+                                    data-tooltip="Novel melody tests recall of an unfamiliar melody's opening frequency after a delay. Interference tests recall of a single target after unrelated tones."
+                                >
+                                    ⓘ
+                                </span>
+                            </label>
+                            <div class="control-row">
+                                <select
+                                    id="pitch-memory-type"
+                                    data-control="pitch-memory-type"
+                                >
+                                    <option value="novel">novel melody</option>
+                                    <option value="interference">
+                                        interference
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label for="pitch-memory-response">
+                                Response
+                                <span
+                                    class="info-tip"
+                                    tabindex="0"
+                                    aria-label="Oscillator scores the exact frequency of an adjusted tone. Microphone measures a pitch you sing, hum, or play and scores its nearest octave equivalent, so the same note in another octave is accepted."
+                                    data-tooltip="Oscillator scores the exact frequency of an adjusted tone. Microphone measures a pitch you sing, hum, or play and scores its nearest octave equivalent, so the same note in another octave is accepted."
+                                >
+                                    ⓘ
+                                </span>
+                            </label>
+                            <div class="control-row">
+                                <select
+                                    id="pitch-memory-response"
+                                    data-control="pitch-memory-response"
+                                >
+                                    <option value="oscillator">
+                                        oscillator
+                                    </option>
+                                    <option value="microphone">
+                                        microphone
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="field" data-pitch-memory-type="novel">
+                            <label for="pitch-memory-delay">
+                                Recall after
+                                <span
+                                    class="info-tip"
+                                    tabindex="0"
+                                    aria-label="Sets the delay after the generated melody finishes. Delayed trials are saved in this browser."
+                                    data-tooltip="Sets the delay after the generated melody finishes. Delayed trials are saved in this browser."
+                                >
+                                    ⓘ
+                                </span>
+                            </label>
+                            <div class="control-row">
+                                <select
+                                    id="pitch-memory-delay"
+                                    data-control="pitch-memory-delay"
+                                >
+                                    <option value="10">10 seconds</option>
+                                    <option value="60">1 minute</option>
+                                    <option value="3600">1 hour</option>
+                                    <option value="86400">1 day</option>
+                                    <option value="604800">1 week</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div
+                            class="field"
+                            data-pitch-memory-type="interference"
+                            hidden
+                        >
+                            <label for="pitch-memory-distractors">
+                                Distractors
+                                <span
+                                    class="info-tip"
+                                    tabindex="0"
+                                    aria-label="Sets how many unrelated tones play between the target and your response. More tones create stronger interference."
+                                    data-tooltip="Sets how many unrelated tones play between the target and your response. More tones create stronger interference."
+                                >
+                                    ⓘ
+                                </span>
+                            </label>
+                            <div class="control-row">
+                                <select
+                                    id="pitch-memory-distractors"
+                                    data-control="pitch-memory-distractors"
+                                >
+                                    <option value="0">0</option>
+                                    <option value="11">11</option>
+                                    <option value="31" selected>31</option>
+                                    <option value="71">71</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -1948,6 +1949,82 @@
                 </h3>
 
                 <div data-mode-panel="target">
+                    <div class="practice">
+                        <div class="button-row">
+                            <button
+                                class="icon-button"
+                                data-action="stop-audio"
+                                type="button"
+                                aria-label="Stop all audio"
+                                title="Stop"
+                            >
+                                <span aria-hidden="true">■</span>
+                            </button>
+
+                            <button
+                                class="icon-button auto-refresh"
+                                data-action="new-match"
+                                type="button"
+                                aria-label="New answer set"
+                                title="New answer set"
+                            >
+                                <span aria-hidden="true">↻</span>
+                            </button>
+                        </div>
+
+                        <div
+                            class="answer-list"
+                            data-match-target-answers
+                        ></div>
+
+                        <div
+                            class="sr-only"
+                            data-output="match-target-status"
+                            aria-live="polite"
+                            aria-atomic="true"
+                        ></div>
+
+                        <dl class="stats practice-stats">
+                            <div class="adaptive-status-row">
+                                <dt>Adaptive</dt>
+                                <dd
+                                    data-output="match-target-adaptive-status"
+                                    aria-live="polite"
+                                ></dd>
+                            </div>
+
+                            <div class="stats-with-action">
+                                <dt>Streak</dt>
+
+                                <dd>
+                                    <strong data-output="match-target-streak"
+                                        >0</strong
+                                    >
+
+                                    <button
+                                        class="link-button"
+                                        data-action="clear-match-stats"
+                                        type="button"
+                                        title="Clear match-target statistics"
+                                    >
+                                        Clear
+                                    </button>
+                                </dd>
+                            </div>
+
+                            <div>
+                                <dt>Mean error</dt>
+                                <dd data-output="match-target-mean-error">
+                                    0.0 cents
+                                </dd>
+                            </div>
+                            <div>
+                                <dt>Best</dt>
+                                <dd data-output="match-target-best">--</dd>
+                            </div>
+                        </dl>
+                    </div>
+                    <h3 class="settings-heading">Settings</h3>
                     <div class="form-grid">
                         <div class="field">
                             <label for="match-target-note">
@@ -2109,141 +2186,9 @@
                             </div>
                         </div>
                     </div>
-
-                    <div class="practice">
-                        <div class="button-row">
-                            <button
-                                class="icon-button"
-                                data-action="stop-audio"
-                                type="button"
-                                aria-label="Stop all audio"
-                                title="Stop"
-                            >
-                                <span aria-hidden="true">■</span>
-                            </button>
-
-                            <button
-                                class="icon-button auto-refresh"
-                                data-action="new-match"
-                                type="button"
-                                aria-label="New answer set"
-                                title="New answer set"
-                            >
-                                <span aria-hidden="true">↻</span>
-                            </button>
-                        </div>
-
-                        <div
-                            class="answer-list"
-                            data-match-target-answers
-                        ></div>
-
-                        <div
-                            class="sr-only"
-                            data-output="match-target-status"
-                            aria-live="polite"
-                            aria-atomic="true"
-                        ></div>
-
-                        <dl class="stats practice-stats">
-                            <div class="adaptive-status-row">
-                                <dt>Adaptive</dt>
-                                <dd
-                                    data-output="match-target-adaptive-status"
-                                    aria-live="polite"
-                                ></dd>
-                            </div>
-
-                            <div class="stats-with-action">
-                                <dt>Streak</dt>
-
-                                <dd>
-                                    <strong data-output="match-target-streak"
-                                        >0</strong
-                                    >
-
-                                    <button
-                                        class="link-button"
-                                        data-action="clear-match-stats"
-                                        type="button"
-                                        title="Clear match-target statistics"
-                                    >
-                                        Clear
-                                    </button>
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt>Mean error</dt>
-                                <dd data-output="match-target-mean-error">
-                                    0.0 cents
-                                </dd>
-                            </div>
-                            <div>
-                                <dt>Best</dt>
-                                <dd data-output="match-target-best">--</dd>
-                            </div>
-                        </dl>
-                    </div>
                 </div>
 
                 <div data-mode-panel="identification" hidden>
-                    <div class="form-grid">
-                        <div class="field">
-                            <label for="match-identification-octave"
-                                >Octave</label
-                            >
-                            <div class="control-row">
-                                <select
-                                    id="match-identification-octave"
-                                    data-control="match-identification-octave"
-                                >
-                                    <option value="random">random (3–5)</option>
-                                    <option value="3">3</option>
-                                    <option value="4">4</option>
-                                    <option value="5">5</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label for="match-identification-waveform"
-                                >Wave type
-                                <span
-                                    class="info-tip"
-                                    tabindex="0"
-                                    aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
-                                    data-tooltip="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
-                                    >ⓘ</span
-                                >
-                            </label>
-                            <div class="control-row">
-                                <select
-                                    id="match-identification-waveform"
-                                    data-waveform="match-identification"
-                                >
-                                    <option value="sine" selected>sine</option>
-                                    <option value="triangle">triangle</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label for="match-identification-duration"
-                                >Duration (seconds)</label
-                            >
-                            <div class="control-row">
-                                <input
-                                    id="match-identification-duration"
-                                    data-control="match-identification-duration"
-                                    type="number"
-                                    min="0.1"
-                                    max="10"
-                                    step="0.1"
-                                    value="1.0"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="practice">
                         <div class="button-row">
                             <button
@@ -2325,6 +2270,62 @@
                             </div>
                         </dl>
                     </div>
+                    <h3 class="settings-heading">Settings</h3>
+                    <div class="form-grid">
+                        <div class="field">
+                            <label for="match-identification-octave"
+                                >Octave</label
+                            >
+                            <div class="control-row">
+                                <select
+                                    id="match-identification-octave"
+                                    data-control="match-identification-octave"
+                                >
+                                    <option value="random">random (3–5)</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                    <option value="5">5</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="match-identification-waveform"
+                                >Wave type
+                                <span
+                                    class="info-tip"
+                                    tabindex="0"
+                                    aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
+                                    data-tooltip="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
+                                    >ⓘ</span
+                                >
+                            </label>
+                            <div class="control-row">
+                                <select
+                                    id="match-identification-waveform"
+                                    data-waveform="match-identification"
+                                >
+                                    <option value="sine" selected>sine</option>
+                                    <option value="triangle">triangle</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="match-identification-duration"
+                                >Duration (seconds)</label
+                            >
+                            <div class="control-row">
+                                <input
+                                    id="match-identification-duration"
+                                    data-control="match-identification-duration"
+                                    type="number"
+                                    min="0.1"
+                                    max="10"
+                                    step="0.1"
+                                    value="1.0"
+                                />
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -2343,95 +2344,134 @@
                     Build a requested interval above or below a starting note.
                 </h3>
 
-                <details class="practice-guide">
-                    <summary>What do these mean?</summary>
-                    <p>
-                        An interval is the distance between two notes. One
-                        semitone is one piano-key step, including black keys.
-                        The distance stays the same when the notes start
-                        somewhere else or move downward. Some pitches have two
-                        names, such as F♯ and G♭. The interval determines which
-                        name is normally written, even though the sound is the
-                        same; a tritone can use either name.
-                    </p>
-                    <table class="interval-guide-table">
-                        <thead>
-                            <tr>
-                                <th scope="col">Interval</th>
-                                <th scope="col">Steps</th>
-                                <th scope="col">Example</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <th scope="row">Unison</th>
-                                <td>0</td>
-                                <td>C → C</td>
-                            </tr>
-                            <tr>
-                                <th scope="row">Minor 2nd</th>
-                                <td>1</td>
-                                <td>C → D♭</td>
-                            </tr>
-                            <tr>
-                                <th scope="row">Major 2nd</th>
-                                <td>2</td>
-                                <td>C → D</td>
-                            </tr>
-                            <tr>
-                                <th scope="row">Minor 3rd</th>
-                                <td>3</td>
-                                <td>C → E♭</td>
-                            </tr>
-                            <tr>
-                                <th scope="row">Major 3rd</th>
-                                <td>4</td>
-                                <td>C → E</td>
-                            </tr>
-                            <tr>
-                                <th scope="row">Perfect 4th</th>
-                                <td>5</td>
-                                <td>C → F</td>
-                            </tr>
-                            <tr>
-                                <th scope="row">Tritone</th>
-                                <td>6</td>
-                                <td>C → F♯ / G♭</td>
-                            </tr>
-                            <tr>
-                                <th scope="row">Perfect 5th</th>
-                                <td>7</td>
-                                <td>C → G</td>
-                            </tr>
-                            <tr>
-                                <th scope="row">Minor 6th</th>
-                                <td>8</td>
-                                <td>C → A♭</td>
-                            </tr>
-                            <tr>
-                                <th scope="row">Major 6th</th>
-                                <td>9</td>
-                                <td>C → A</td>
-                            </tr>
-                            <tr>
-                                <th scope="row">Minor 7th</th>
-                                <td>10</td>
-                                <td>C → B♭</td>
-                            </tr>
-                            <tr>
-                                <th scope="row">Major 7th</th>
-                                <td>11</td>
-                                <td>C → B</td>
-                            </tr>
-                            <tr>
-                                <th scope="row">Octave</th>
-                                <td>12</td>
-                                <td>C → next C</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </details>
+                <div class="practice">
+                    <div class="button-row">
+                        <button
+                            class="icon-button"
+                            data-action="play-interval"
+                            type="button"
+                            aria-label="Play interval"
+                            title="Play interval"
+                        >
+                            <span aria-hidden="true">▶</span>
+                        </button>
+                        <button
+                            class="icon-button"
+                            data-action="stop-audio"
+                            type="button"
+                            aria-label="Stop interval"
+                            title="Stop"
+                        >
+                            <span aria-hidden="true">■</span>
+                        </button>
+                        <button
+                            class="icon-button auto-refresh"
+                            data-action="new-interval"
+                            type="button"
+                            aria-label="New interval and play"
+                            title="New interval and play"
+                        >
+                            <span aria-hidden="true">↻</span>
+                        </button>
+                    </div>
 
+                    <div class="practice-row">
+                        <div
+                            class="answer-options answer-grid"
+                            data-interval-answers
+                            role="group"
+                            aria-label="Interval"
+                        ></div>
+
+                        <div
+                            class="practice-result"
+                            data-output="interval-result"
+                            aria-live="polite"
+                        ></div>
+                    </div>
+
+                    <dl
+                        class="stats practice-stats"
+                        data-mode-panel="recognition"
+                    >
+                        <div class="adaptive-status-row">
+                            <dt>Adaptive</dt>
+                            <dd
+                                data-output="interval-recognition-adaptive-status"
+                                aria-live="polite"
+                            ></dd>
+                        </div>
+                        <div class="stats-with-action">
+                            <dt>Streak</dt>
+                            <dd>
+                                <strong
+                                    data-output="interval-recognition-streak"
+                                    >0</strong
+                                >
+                                <button
+                                    class="link-button"
+                                    data-action="clear-interval-stats"
+                                    type="button"
+                                    title="Clear interval statistics"
+                                >
+                                    Clear
+                                </button>
+                            </dd>
+                        </div>
+                        <div>
+                            <dt>Accuracy</dt>
+                            <dd data-output="interval-recognition-accuracy">
+                                0%
+                            </dd>
+                        </div>
+                        <div>
+                            <dt>Best</dt>
+                            <dd data-output="interval-recognition-best">--</dd>
+                        </div>
+                    </dl>
+
+                    <dl
+                        class="stats practice-stats"
+                        data-mode-panel="construction"
+                        hidden
+                    >
+                        <div class="adaptive-status-row">
+                            <dt>Adaptive</dt>
+                            <dd
+                                data-output="interval-construction-adaptive-status"
+                                aria-live="polite"
+                            ></dd>
+                        </div>
+                        <div class="stats-with-action">
+                            <dt>Streak</dt>
+                            <dd>
+                                <strong
+                                    data-output="interval-construction-streak"
+                                    >0</strong
+                                >
+                                <button
+                                    class="link-button"
+                                    data-action="clear-interval-stats"
+                                    type="button"
+                                    title="Clear interval statistics"
+                                >
+                                    Clear
+                                </button>
+                            </dd>
+                        </div>
+                        <div>
+                            <dt>Accuracy</dt>
+                            <dd data-output="interval-construction-accuracy">
+                                0%
+                            </dd>
+                        </div>
+                        <div>
+                            <dt>Best</dt>
+                            <dd data-output="interval-construction-best">--</dd>
+                        </div>
+                    </dl>
+                </div>
+                <h3 class="settings-heading">Settings</h3>
                 <div class="form-grid">
                     <div class="field" data-mode-panel="recognition">
                         <label for="interval-recognition-level">
@@ -2591,133 +2631,94 @@
                     </div>
                 </div>
 
-                <div class="practice">
-                    <div class="button-row">
-                        <button
-                            class="icon-button"
-                            data-action="play-interval"
-                            type="button"
-                            aria-label="Play interval"
-                            title="Play interval"
-                        >
-                            <span aria-hidden="true">▶</span>
-                        </button>
-                        <button
-                            class="icon-button"
-                            data-action="stop-audio"
-                            type="button"
-                            aria-label="Stop interval"
-                            title="Stop"
-                        >
-                            <span aria-hidden="true">■</span>
-                        </button>
-                        <button
-                            class="icon-button auto-refresh"
-                            data-action="new-interval"
-                            type="button"
-                            aria-label="New interval and play"
-                            title="New interval and play"
-                        >
-                            <span aria-hidden="true">↻</span>
-                        </button>
-                    </div>
-
-                    <div class="practice-row">
-                        <div
-                            class="answer-options answer-grid"
-                            data-interval-answers
-                            role="group"
-                            aria-label="Interval"
-                        ></div>
-
-                        <div
-                            class="practice-result"
-                            data-output="interval-result"
-                            aria-live="polite"
-                        ></div>
-                    </div>
-
-                    <dl
-                        class="stats practice-stats"
-                        data-mode-panel="recognition"
-                    >
-                        <div class="adaptive-status-row">
-                            <dt>Adaptive</dt>
-                            <dd
-                                data-output="interval-recognition-adaptive-status"
-                                aria-live="polite"
-                            ></dd>
-                        </div>
-                        <div class="stats-with-action">
-                            <dt>Streak</dt>
-                            <dd>
-                                <strong
-                                    data-output="interval-recognition-streak"
-                                    >0</strong
-                                >
-                                <button
-                                    class="link-button"
-                                    data-action="clear-interval-stats"
-                                    type="button"
-                                    title="Clear interval statistics"
-                                >
-                                    Clear
-                                </button>
-                            </dd>
-                        </div>
-                        <div>
-                            <dt>Accuracy</dt>
-                            <dd data-output="interval-recognition-accuracy">
-                                0%
-                            </dd>
-                        </div>
-                        <div>
-                            <dt>Best</dt>
-                            <dd data-output="interval-recognition-best">--</dd>
-                        </div>
-                    </dl>
-
-                    <dl
-                        class="stats practice-stats"
-                        data-mode-panel="construction"
-                        hidden
-                    >
-                        <div class="adaptive-status-row">
-                            <dt>Adaptive</dt>
-                            <dd
-                                data-output="interval-construction-adaptive-status"
-                                aria-live="polite"
-                            ></dd>
-                        </div>
-                        <div class="stats-with-action">
-                            <dt>Streak</dt>
-                            <dd>
-                                <strong
-                                    data-output="interval-construction-streak"
-                                    >0</strong
-                                >
-                                <button
-                                    class="link-button"
-                                    data-action="clear-interval-stats"
-                                    type="button"
-                                    title="Clear interval statistics"
-                                >
-                                    Clear
-                                </button>
-                            </dd>
-                        </div>
-                        <div>
-                            <dt>Accuracy</dt>
-                            <dd data-output="interval-construction-accuracy">
-                                0%
-                            </dd>
-                        </div>
-                        <div>
-                            <dt>Best</dt>
-                            <dd data-output="interval-construction-best">--</dd>
-                        </div>
-                    </dl>
-                </div>
+                <details class="practice-guide">
+                    <summary>What do these mean?</summary>
+                    <p>
+                        An interval is the distance between two notes. One
+                        semitone is one piano-key step, including black keys.
+                        The distance stays the same when the notes start
+                        somewhere else or move downward. Some pitches have two
+                        names, such as F♯ and G♭. The interval determines which
+                        name is normally written, even though the sound is the
+                        same; a tritone can use either name.
+                    </p>
+                    <table class="interval-guide-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Interval</th>
+                                <th scope="col">Steps</th>
+                                <th scope="col">Example</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <th scope="row">Unison</th>
+                                <td>0</td>
+                                <td>C → C</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Minor 2nd</th>
+                                <td>1</td>
+                                <td>C → D♭</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Major 2nd</th>
+                                <td>2</td>
+                                <td>C → D</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Minor 3rd</th>
+                                <td>3</td>
+                                <td>C → E♭</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Major 3rd</th>
+                                <td>4</td>
+                                <td>C → E</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Perfect 4th</th>
+                                <td>5</td>
+                                <td>C → F</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Tritone</th>
+                                <td>6</td>
+                                <td>C → F♯ / G♭</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Perfect 5th</th>
+                                <td>7</td>
+                                <td>C → G</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Minor 6th</th>
+                                <td>8</td>
+                                <td>C → A♭</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Major 6th</th>
+                                <td>9</td>
+                                <td>C → A</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Minor 7th</th>
+                                <td>10</td>
+                                <td>C → B♭</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Major 7th</th>
+                                <td>11</td>
+                                <td>C → B</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Octave</th>
+                                <td>12</td>
+                                <td>C → next C</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </details>
             </section>
 
             <!-- Chords -->
@@ -2731,58 +2732,6 @@
                 <h3 class="blurb">
                     Hear a triad and identify its chord quality.
                 </h3>
-
-                <div class="form-grid">
-                    <div class="field">
-                        <label for="chord-waveform">
-                            Wave type
-
-                            <span
-                                class="info-tip"
-                                tabindex="0"
-                                aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
-                                data-tooltip="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
-                            >
-                                ⓘ
-                            </span>
-                        </label>
-
-                        <div class="control-row">
-                            <select id="chord-waveform" data-waveform="chords">
-                                <option value="sine" selected>sine</option>
-                                <option value="triangle">triangle</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="field">
-                        <label for="chord-playback">
-                            Playback
-
-                            <span
-                                class="info-tip"
-                                tabindex="0"
-                                aria-label="Together plays all chord tones at once. Ascending plays them one at a time from lowest to highest; descending plays them from highest to lowest."
-                                data-tooltip="Together plays all chord tones at once. Ascending plays them one at a time from lowest to highest; descending plays them from highest to lowest."
-                            >
-                                ⓘ
-                            </span>
-                        </label>
-
-                        <div class="control-row">
-                            <select
-                                id="chord-playback"
-                                data-control="chord-playback"
-                            >
-                                <option value="together" selected>
-                                    together
-                                </option>
-                                <option value="ascending">ascending</option>
-                                <option value="descending">descending</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
 
                 <div class="practice">
                     <div class="button-row">
@@ -2857,6 +2806,58 @@
                             <dd data-output="chord-best">--</dd>
                         </div>
                     </dl>
+                </div>
+                <h3 class="settings-heading">Settings</h3>
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="chord-waveform">
+                            Wave type
+
+                            <span
+                                class="info-tip"
+                                tabindex="0"
+                                aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
+                                data-tooltip="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
+                            >
+                                ⓘ
+                            </span>
+                        </label>
+
+                        <div class="control-row">
+                            <select id="chord-waveform" data-waveform="chords">
+                                <option value="sine" selected>sine</option>
+                                <option value="triangle">triangle</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label for="chord-playback">
+                            Playback
+
+                            <span
+                                class="info-tip"
+                                tabindex="0"
+                                aria-label="Together plays all chord tones at once. Ascending plays them one at a time from lowest to highest; descending plays them from highest to lowest."
+                                data-tooltip="Together plays all chord tones at once. Ascending plays them one at a time from lowest to highest; descending plays them from highest to lowest."
+                            >
+                                ⓘ
+                            </span>
+                        </label>
+
+                        <div class="control-row">
+                            <select
+                                id="chord-playback"
+                                data-control="chord-playback"
+                            >
+                                <option value="together" selected>
+                                    together
+                                </option>
+                                <option value="ascending">ascending</option>
+                                <option value="descending">descending</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
             </section>
 
