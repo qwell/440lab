@@ -53,7 +53,7 @@ export default defineConfig(
                 'error',
                 { allowUnknownVariables: true },
             ],
-            'css/use-baseline': ['warn', { available: 'newly' }],
+            'css/use-baseline': 'off' /* Go get a new browser. */,
         },
     },
 

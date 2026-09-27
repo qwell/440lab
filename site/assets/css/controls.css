@@ -131,7 +131,7 @@ select {
 }
 
 .note-frequency {
-    color: #ddd;
+    color: var(--text);
 }
 
 .frequency-value {
@@ -162,7 +162,7 @@ select {
 
 .info-tip:hover,
 .info-tip:focus-visible {
-    color: #ddd;
+    color: var(--text);
 }
 
 .info-tip::after {

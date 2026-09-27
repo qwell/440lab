@@ -127,9 +127,6 @@
                         },
                         "hasPart": [
                             {
-                                "@id": "https://440lab.com/#about"
-                            },
-                            {
                                 "@id": "https://440lab.com/#tuner"
                             },
                             {
@@ -146,6 +143,9 @@
                             },
                             {
                                 "@id": "https://440lab.com/#chords"
+                            },
+                            {
+                                "@id": "https://440lab.com/#about"
                             }
                         ],
                         "mainEntity": {
@@ -156,15 +156,6 @@
                         },
                         "datePublished": "2026-08-25",
                         "dateModified": "2026-09-20"
-                    },
-                    {
-                        "@type": "WebPageElement",
-                        "@id": "https://440lab.com/#about",
-                        "name": "About",
-                        "description": "Information about 440 Lab, its features, and usage.",
-                        "isPartOf": {
-                            "@id": "https://440lab.com/#webpage"
-                        }
                     },
                     {
                         "@type": "WebPageElement",
@@ -216,6 +207,15 @@
                         "@id": "https://440lab.com/#chords",
                         "name": "Chords",
                         "description": "Ear-training exercise for identifying major, minor, diminished, and augmented triad qualities.",
+                        "isPartOf": {
+                            "@id": "https://440lab.com/#webpage"
+                        }
+                    },
+                    {
+                        "@type": "WebPageElement",
+                        "@id": "https://440lab.com/#about",
+                        "name": "About",
+                        "description": "Information about 440 Lab, its features, and usage.",
                         "isPartOf": {
                             "@id": "https://440lab.com/#webpage"
                         }
@@ -508,9 +508,19 @@
     </head>
 
     <body>
-        <header class="topbar">
-            <div class="page-width topbar-inner">
-                <h1 class="brand-name">
+        <header class="site-header">
+            <div class="page-width site-header-inner">
+                <button
+                    class="nav-toggle"
+                    type="button"
+                    aria-label="Open navigation"
+                    aria-controls="site-navigation"
+                    aria-expanded="false"
+                >
+                    <span class="nav-toggle-icon" aria-hidden="true"></span>
+                </button>
+
+                <h1 class="site-title">
                     <a href="https://440lab.com/" title="Visit 440lab.com">
                         440 Lab
                     </a>
@@ -564,224 +574,197 @@
             </div>
         </header>
 
-        <nav class="tabs" aria-label="440 Lab sections">
-            <div class="page-width tabs-inner" role="tablist">
-                <button
-                    id="tab-about"
-                    class="tab is-active"
-                    data-tab="about"
-                    type="button"
-                    role="tab"
-                    aria-selected="true"
-                    aria-controls="panel-about"
-                >
-                    About
-                </button>
+        <nav
+            id="site-navigation"
+            class="site-nav"
+            aria-label="440 Lab sections"
+            aria-hidden="true"
+            inert
+            hidden
+        >
+            <ul class="nav-list">
+                <li>
+                    <button
+                        id="nav-tuning"
+                        class="nav-item"
+                        data-section="tuner"
+                        type="button"
+                        aria-controls="panel-tuning"
+                    >
+                        Tuning
+                    </button>
+                </li>
 
-                <button
-                    id="tab-tuning"
-                    class="tab"
-                    data-tab="tuner"
-                    type="button"
-                    role="tab"
-                    aria-selected="false"
-                    aria-controls="panel-tuning"
-                >
-                    Tuning
-                </button>
+                <li class="nav-group">
+                    <button
+                        id="nav-rhythm"
+                        class="nav-item"
+                        data-section="rhythm"
+                        type="button"
+                        aria-controls="panel-rhythm"
+                    >
+                        Rhythm
+                    </button>
+                    <ul class="nav-modes">
+                        <li>
+                            <button
+                                type="button"
+                                data-nav-section="rhythm"
+                                data-nav-mode="metronome"
+                            >
+                                Metronome
+                            </button>
+                        </li>
+                        <li>
+                            <button
+                                type="button"
+                                data-nav-section="rhythm"
+                                data-nav-mode="timing"
+                            >
+                                Timing practice
+                            </button>
+                        </li>
+                        <li>
+                            <button
+                                type="button"
+                                data-nav-section="rhythm"
+                                data-nav-mode="reading"
+                            >
+                                Rhythm reading
+                            </button>
+                        </li>
+                    </ul>
+                </li>
 
-                <button
-                    id="tab-rhythm"
-                    class="tab"
-                    data-tab="rhythm"
-                    type="button"
-                    role="tab"
-                    aria-selected="false"
-                    aria-controls="panel-rhythm"
-                    tabindex="-1"
-                >
-                    Rhythm
-                </button>
+                <li class="nav-group">
+                    <button
+                        id="nav-pitch"
+                        class="nav-item"
+                        data-section="pitch"
+                        type="button"
+                        aria-controls="panel-pitch"
+                    >
+                        Pitch
+                    </button>
+                    <ul class="nav-modes">
+                        <li>
+                            <button
+                                type="button"
+                                data-nav-section="pitch"
+                                data-nav-mode="placement"
+                            >
+                                Placement
+                            </button>
+                        </li>
+                        <li>
+                            <button
+                                type="button"
+                                data-nav-section="pitch"
+                                data-nav-mode="memory"
+                            >
+                                Memory
+                            </button>
+                        </li>
+                    </ul>
+                </li>
 
-                <button
-                    id="tab-pitch"
-                    class="tab"
-                    data-tab="pitch"
-                    type="button"
-                    role="tab"
-                    aria-selected="false"
-                    aria-controls="panel-pitch"
-                    tabindex="-1"
-                >
-                    Pitch
-                </button>
+                <li class="nav-group">
+                    <button
+                        id="nav-match"
+                        class="nav-item"
+                        data-section="match"
+                        type="button"
+                        aria-controls="panel-match"
+                    >
+                        Match
+                    </button>
+                    <ul class="nav-modes">
+                        <li>
+                            <button
+                                type="button"
+                                data-nav-section="match"
+                                data-nav-mode="target"
+                            >
+                                Target
+                            </button>
+                        </li>
+                        <li>
+                            <button
+                                type="button"
+                                data-nav-section="match"
+                                data-nav-mode="identification"
+                            >
+                                Identification
+                            </button>
+                        </li>
+                    </ul>
+                </li>
 
-                <button
-                    id="tab-match"
-                    class="tab"
-                    data-tab="match"
-                    type="button"
-                    role="tab"
-                    aria-selected="false"
-                    aria-controls="panel-match"
-                    tabindex="-1"
-                >
-                    Match
-                </button>
+                <li class="nav-group">
+                    <button
+                        id="nav-intervals"
+                        class="nav-item"
+                        data-section="intervals"
+                        type="button"
+                        aria-controls="panel-intervals"
+                    >
+                        Intervals
+                    </button>
+                    <ul class="nav-modes">
+                        <li>
+                            <button
+                                type="button"
+                                data-nav-section="intervals"
+                                data-nav-mode="recognition"
+                            >
+                                Recognition
+                            </button>
+                        </li>
+                        <li>
+                            <button
+                                type="button"
+                                data-nav-section="intervals"
+                                data-nav-mode="construction"
+                            >
+                                Construction
+                            </button>
+                        </li>
+                    </ul>
+                </li>
 
-                <button
-                    id="tab-intervals"
-                    class="tab"
-                    data-tab="intervals"
-                    type="button"
-                    role="tab"
-                    aria-selected="false"
-                    aria-controls="panel-intervals"
-                    tabindex="-1"
-                >
-                    Intervals
-                </button>
+                <li>
+                    <button
+                        id="nav-chords"
+                        class="nav-item"
+                        data-section="chords"
+                        type="button"
+                        aria-controls="panel-chords"
+                    >
+                        Chords
+                    </button>
+                </li>
 
-                <button
-                    id="tab-chords"
-                    class="tab"
-                    data-tab="chords"
-                    type="button"
-                    role="tab"
-                    aria-selected="false"
-                    aria-controls="panel-chords"
-                    tabindex="-1"
-                >
-                    Chords
-                </button>
-            </div>
-
-            <div class="page-width tabs-picker">
-                <label class="sr-only" for="section-picker">Section</label>
-                <select id="section-picker" data-control="section-picker">
-                    <option value="about">About</option>
-                    <option value="tuner">Tuning</option>
-                    <option value="rhythm">Rhythm</option>
-                    <option value="pitch">Pitch</option>
-                    <option value="match">Match</option>
-                    <option value="intervals">Intervals</option>
-                    <option value="chords">Chords</option>
-                </select>
-            </div>
+                <li>
+                    <button
+                        id="nav-about"
+                        class="nav-item is-active"
+                        data-section="about"
+                        type="button"
+                        aria-current="page"
+                        aria-controls="panel-about"
+                    >
+                        About
+                    </button>
+                </li>
+            </ul>
         </nav>
 
         <main class="page-width">
-            <!-- About -->
-            <section
-                id="panel-about"
-                class="tab-panel"
-                data-panel="about"
-                role="tabpanel"
-                aria-labelledby="tab-about"
-            >
-                <h2 class="sr-only">About</h2>
-                <h3 class="blurb">
-                    440 Lab is a free, ad-free collection of simple tools for
-                    musical tuning, rhythm, pitch, and intonation ear training.
-                </h3>
-
-                <div class="about-content">
-                    <h4>Tuning and reference pitches</h4>
-                    <p>
-                        Use the tuner to check the pitch of a note with your
-                        microphone, or play reference tones to practice matching
-                        and tuning by ear. The reference pitch is adjustable, so
-                        you are not limited to A440.
-                    </p>
-
-                    <h4>Pitch and intonation ear training</h4>
-                    <p>
-                        Practice hearing small differences in pitch and
-                        recognizing whether a note is sharp or flat, identifying
-                        a chromatic note without a reference, or identifying the
-                        distance between two notes. The exercises develop pitch
-                        discrimination, absolute and relative pitch recognition,
-                        and a more accurate sense of intonation.
-                    </p>
-
-                    <h4>Metronome and rhythm practice</h4>
-                    <p>
-                        Use the metronome for a steady beat while practicing,
-                        choose from common simple, compound, and odd meters, or
-                        tap a tempo to set the BPM by feel. Timing practice
-                        measures early and late taps. Rhythm reading generates
-                        sheet music and scores when you press and release each
-                        note.
-                    </p>
-
-                    <h4>Simple by design</h4>
-                    <p>
-                        440 Lab is designed to be a small, straightforward set
-                        of music practice tools: open it, choose a tab, and
-                        start practicing. Works well on desktop and mobile.
-                    </p>
-
-                    <h4>Free forever</h4>
-                    <p>
-                        440 Lab will always remain free, ad-free, and without
-                        in-app purchases. To run this site locally, download and
-                        unzip the
-                        <a
-                            href="https://github.com/qwell/440lab/releases/latest"
-                            target="_blank"
-                            rel="noopener"
-                            >latest release</a
-                        >, which can be hosted on a webserver like nginx or by
-                        directly opening index.html.
-                    </p>
-
-                    <h4>Get involved</h4>
-                    <p>
-                        440 Lab is created and maintained by
-                        <a
-                            href="https://ꩰ.com/@north"
-                            target="_blank"
-                            rel="noopener"
-                            >Jason Parker</a
-                        >
-                        and is open source. If you find a bug or have an idea
-                        for an improvement, please
-                        <a
-                            href="https://github.com/qwell/440lab/issues"
-                            target="_blank"
-                            rel="noopener"
-                        >
-                            open an issue on GitHub</a
-                        >.
-                    </p>
-
-                    <p>
-                        If you find 440 Lab useful, you can help by
-                        <a
-                            href="https://github.com/qwell/440lab"
-                            target="_blank"
-                            rel="noopener"
-                        >
-                            starring the project on GitHub</a
-                        >
-                        or
-                        <a
-                            href="https://github.com/sponsors/qwell"
-                            target="_blank"
-                            rel="noopener"
-                            >sponsoring its development</a
-                        >.
-                    </p>
-                </div>
-            </section>
-
             <!-- Tuning -->
             <section
                 id="panel-tuning"
-                class="tab-panel"
+                class="section-panel"
                 data-panel="tuner"
-                role="tabpanel"
-                aria-labelledby="tab-tuning"
                 hidden
             >
                 <h2 class="sr-only">Tuning</h2>
@@ -1003,10 +986,8 @@
             <!-- Rhythm -->
             <section
                 id="panel-rhythm"
-                class="tab-panel"
+                class="section-panel"
                 data-panel="rhythm"
-                role="tabpanel"
-                aria-labelledby="tab-rhythm"
                 hidden
             >
                 <h2 class="sr-only">Rhythm</h2>
@@ -1077,16 +1058,6 @@
                 </details>
 
                 <div class="form-grid">
-                    <div class="field">
-                        <label for="rhythm-mode">Mode</label>
-                        <div class="control-row">
-                            <select id="rhythm-mode" data-control="rhythm-mode">
-                                <option value="metronome">metronome</option>
-                                <option value="timing">timing practice</option>
-                                <option value="reading">rhythm reading</option>
-                            </select>
-                        </div>
-                    </div>
                     <div class="field">
                         <label for="rhythm-bpm">
                             BPM
@@ -1388,10 +1359,8 @@
             <!-- Pitch -->
             <section
                 id="panel-pitch"
-                class="tab-panel"
+                class="section-panel"
                 data-panel="pitch"
-                role="tabpanel"
-                aria-labelledby="tab-pitch"
                 hidden
             >
                 <h2 class="sr-only">Pitch</h2>
@@ -1408,18 +1377,6 @@
                 </h3>
 
                 <div class="form-grid">
-                    <div class="field">
-                        <label for="pitch-mode">Mode</label>
-                        <div class="control-row">
-                            <select id="pitch-mode" data-control="pitch-mode">
-                                <option value="placement" selected>
-                                    placement
-                                </option>
-                                <option value="memory">memory</option>
-                            </select>
-                        </div>
-                    </div>
-
                     <div class="field" data-mode-panel="placement">
                         <label for="pitch-note">
                             Note (<span
@@ -1975,10 +1932,8 @@
             <!-- Match -->
             <section
                 id="panel-match"
-                class="tab-panel"
+                class="section-panel"
                 data-panel="match"
-                role="tabpanel"
-                aria-labelledby="tab-match"
                 hidden
             >
                 <h2 class="sr-only">Match</h2>
@@ -1991,20 +1946,6 @@
                     Hear a note without a reference and identify its note name.
                     Octave does not affect your answer.
                 </h3>
-
-                <div class="form-grid">
-                    <div class="field">
-                        <label for="match-mode">Mode</label>
-                        <div class="control-row">
-                            <select id="match-mode" data-control="match-mode">
-                                <option value="target" selected>target</option>
-                                <option value="identification">
-                                    identification
-                                </option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
 
                 <div data-mode-panel="target">
                     <div class="form-grid">
@@ -2390,10 +2331,8 @@
             <!-- Intervals -->
             <section
                 id="panel-intervals"
-                class="tab-panel"
+                class="section-panel"
                 data-panel="intervals"
-                role="tabpanel"
-                aria-labelledby="tab-intervals"
                 hidden
             >
                 <h2 class="sr-only">Intervals</h2>
@@ -2494,23 +2433,6 @@
                 </details>
 
                 <div class="form-grid">
-                    <div class="field">
-                        <label for="intervals-mode">Mode</label>
-                        <div class="control-row">
-                            <select
-                                id="intervals-mode"
-                                data-control="intervals-mode"
-                            >
-                                <option value="recognition" selected>
-                                    recognition
-                                </option>
-                                <option value="construction">
-                                    construction
-                                </option>
-                            </select>
-                        </div>
-                    </div>
-
                     <div class="field" data-mode-panel="recognition">
                         <label for="interval-recognition-level">
                             Interval set
@@ -2801,10 +2723,8 @@
             <!-- Chords -->
             <section
                 id="panel-chords"
-                class="tab-panel"
+                class="section-panel"
                 data-panel="chords"
-                role="tabpanel"
-                aria-labelledby="tab-chords"
                 hidden
             >
                 <h2 class="sr-only">Chords</h2>
@@ -2937,6 +2857,104 @@
                             <dd data-output="chord-best">--</dd>
                         </div>
                     </dl>
+                </div>
+            </section>
+
+            <!-- About -->
+            <section id="panel-about" class="section-panel" data-panel="about">
+                <h2 class="sr-only">About</h2>
+                <h3 class="blurb">
+                    440 Lab is a free, ad-free collection of simple tools for
+                    musical tuning, rhythm, pitch, and intonation ear training.
+                </h3>
+
+                <div class="about-content">
+                    <h4>Tuning and reference pitches</h4>
+                    <p>
+                        Use the tuner to check the pitch of a note with your
+                        microphone, or play reference tones to practice matching
+                        and tuning by ear. The reference pitch is adjustable, so
+                        you are not limited to A440.
+                    </p>
+
+                    <h4>Pitch and intonation ear training</h4>
+                    <p>
+                        Practice hearing small differences in pitch and
+                        recognizing whether a note is sharp or flat, identifying
+                        a chromatic note without a reference, or identifying the
+                        distance between two notes. The exercises develop pitch
+                        discrimination, absolute and relative pitch recognition,
+                        and a more accurate sense of intonation.
+                    </p>
+
+                    <h4>Metronome and rhythm practice</h4>
+                    <p>
+                        Use the metronome for a steady beat while practicing,
+                        choose from common simple, compound, and odd meters, or
+                        tap a tempo to set the BPM by feel. Timing practice
+                        measures early and late taps. Rhythm reading generates
+                        sheet music and scores when you press and release each
+                        note.
+                    </p>
+
+                    <h4>Simple by design</h4>
+                    <p>
+                        440 Lab is designed to be a small, straightforward set
+                        of music practice tools: open it, choose a tool, and
+                        start practicing. Works well on desktop and mobile.
+                    </p>
+
+                    <h4>Free forever</h4>
+                    <p>
+                        440 Lab will always remain free, ad-free, and without
+                        in-app purchases. To run this site locally, download and
+                        unzip the
+                        <a
+                            href="https://github.com/qwell/440lab/releases/latest"
+                            target="_blank"
+                            rel="noopener"
+                            >latest release</a
+                        >, which can be hosted on a webserver like nginx or by
+                        directly opening index.html.
+                    </p>
+
+                    <h4>Get involved</h4>
+                    <p>
+                        440 Lab is created and maintained by
+                        <a
+                            href="https://ꩰ.com/@north"
+                            target="_blank"
+                            rel="noopener"
+                            >Jason Parker</a
+                        >
+                        and is open source. If you find a bug or have an idea
+                        for an improvement, please
+                        <a
+                            href="https://github.com/qwell/440lab/issues"
+                            target="_blank"
+                            rel="noopener"
+                        >
+                            open an issue on GitHub</a
+                        >.
+                    </p>
+
+                    <p>
+                        If you find 440 Lab useful, you can help by
+                        <a
+                            href="https://github.com/qwell/440lab"
+                            target="_blank"
+                            rel="noopener"
+                        >
+                            starring the project on GitHub</a
+                        >
+                        or
+                        <a
+                            href="https://github.com/sponsors/qwell"
+                            target="_blank"
+                            rel="noopener"
+                            >sponsoring its development</a
+                        >.
+                    </p>
                 </div>
             </section>
         </main>

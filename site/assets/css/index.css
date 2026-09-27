@@ -591,63 +591,27 @@
         background: var(--button-hover-background);
     }
 
-    .tab:hover:not(:disabled) {
+    .nav-item:hover:not(:disabled) {
         background: transparent;
         color: var(--text);
     }
 
     .link-button:hover:not(:disabled) {
         background: transparent;
-        color: #fff;
+        color: var(--text);
     }
 }
 
 /* Tablet */
 @media (max-width: 1060px) {
-    .topbar-inner,
     .form-grid {
         grid-template-columns: repeat(3, var(--field-width));
-    }
-
-    .brand-name {
-        grid-column: 1;
-    }
-
-    .global-volume {
-        grid-column: 2;
-    }
-
-    .global-reference {
-        grid-column: 3;
     }
 }
 
 @media (max-width: 800px) {
     .form-grid {
         grid-template-columns: repeat(2, var(--field-width));
-    }
-
-    .topbar-inner {
-        grid-template-columns: repeat(2, var(--field-width));
-
-        grid-template-areas:
-            'brand brand'
-            'volume reference';
-
-        column-gap: var(--column-gap);
-        row-gap: 8px;
-    }
-
-    .brand-name {
-        grid-area: brand;
-    }
-
-    .global-volume {
-        grid-area: volume;
-    }
-
-    .global-reference {
-        grid-area: reference;
     }
 }
 
@@ -657,21 +621,6 @@
 
         --field-width: calc((100vw - 40px) / 2);
         --control-width: min(190px, var(--field-width));
-    }
-
-    .page-width {
-        width: calc(100% - 16px);
-    }
-
-    .brand-name {
-        min-width: 0;
-
-        font-size: clamp(18px, 5.5vw, 28px);
-        white-space: nowrap;
-    }
-
-    .global-reference-controls button {
-        padding-inline: 6px;
     }
 
     .form-grid {
@@ -726,25 +675,6 @@
 
         transform: translateY(-50%);
     }
-
-    footer {
-        gap: 12px;
-
-        white-space: nowrap;
-    }
-
-    .footer-source {
-        flex: none;
-        font-size: 0.75rem;
-    }
-
-    .footer-socials {
-        min-width: 0;
-
-        overflow: hidden;
-
-        text-overflow: ellipsis;
-    }
 }
 
 /* Very narrow phones: only then switch to one column. */
@@ -754,20 +684,7 @@
         --control-width: min(190px, 100%);
     }
 
-    .topbar-inner {
-        grid-template-columns: minmax(0, 1fr);
-
-        grid-template-areas:
-            'brand'
-            'volume'
-            'reference';
-    }
-
     .form-grid {
         grid-template-columns: minmax(0, 1fr);
-    }
-
-    .brand-name {
-        font-size: 22px;
     }
 }
