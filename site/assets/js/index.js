@@ -1180,7 +1180,7 @@ function initializeTabs() {
             hashTab === 'intervals' &&
             ['recognition', 'construction'].includes(hashMode)
         ) {
-            getControl('interval-mode').value = hashMode;
+            getControl('intervals-mode').value = hashMode;
         } else if (
             hashTab === 'match' &&
             ['target', 'identification'].includes(hashMode)
@@ -1220,7 +1220,7 @@ function initializeTabs() {
             case 'intervals':
                 updateIntervalMode();
                 break;
-                
+
             case 'match':
                 updateMatchMode();
                 break;
@@ -4442,7 +4442,7 @@ const interval = {
 };
 
 function getIntervalExercise() {
-    return `interval-${getControl('interval-mode').value}`;
+    return `interval-${getControl('intervals-mode').value}`;
 }
 
 const intervalAdvance = createAutoAdvance(
@@ -4461,7 +4461,7 @@ function scheduleIntervalAdvance() {
 }
 
 function enabledIntervals() {
-    const mode = getControl('interval-mode').value;
+    const mode = getControl('intervals-mode').value;
     const level = getControl(`interval-${mode}-level`).value;
     const enabledSemitones = INTERVAL_LEVELS[level] || INTERVAL_LEVELS.starter;
 
@@ -4473,7 +4473,7 @@ function enabledIntervals() {
 }
 
 function updateIntervalMode() {
-    const mode = getControl('interval-mode').value;
+    const mode = getControl('intervals-mode').value;
 
     for (const panel of getModePanels('intervals')) {
         panel.hidden = panel.dataset.modePanel !== mode;
@@ -4556,7 +4556,7 @@ function clearIntervalResult() {
 // Intervals: recognition and construction
 
 function newIntervalTrial(playImmediately = false) {
-    if (getControl('interval-mode').value === 'construction') {
+    if (getControl('intervals-mode').value === 'construction') {
         newIntervalConstructionTrial(playImmediately);
     } else {
         newIntervalRecognitionTrial(playImmediately);
@@ -4645,7 +4645,7 @@ function playIntervalTrial() {
 }
 
 function renderIntervalStats() {
-    const mode = getControl('interval-mode').value;
+    const mode = getControl('intervals-mode').value;
     const { streak, trials, correct, best } = stats.interval[mode];
 
     const accuracy = trials > 0 ? (correct / trials) * 100 : 0;
@@ -4659,7 +4659,7 @@ function renderIntervalStats() {
 }
 
 function clearIntervalStats() {
-    const mode = getControl('interval-mode').value;
+    const mode = getControl('intervals-mode').value;
 
     stats.interval[mode] = defaultIntervalTypeStats();
     saveIntervalStats();
@@ -4953,7 +4953,7 @@ function initializeEvents() {
         updatePitchMode();
     });
 
-    getControl('interval-mode').addEventListener('input', () => {
+    getControl('intervals-mode').addEventListener('change', () => {
         updateModeHash('intervals');
         updateIntervalMode();
     });
