@@ -1162,37 +1162,32 @@ function initializeNavigation() {
 
     function activateHashSection() {
         const hash = window.location.hash.slice(1);
-        const pitchHash = ['pitch-placement', 'pitch-memory'].includes(hash);
-        const [hashSection, hashMode] = hash.split('/');
+        const [sectionName, hashMode] = hash.split('/');
 
-        if (pitchHash) {
-            sectionModes.pitch =
-                hash === 'pitch-memory' ? 'memory' : 'placement';
-        } else if (
-            hashSection === 'pitch' &&
+        if (
+            sectionName === 'pitch' &&
             ['placement', 'memory'].includes(hashMode)
         ) {
             sectionModes.pitch = hashMode;
         } else if (
-            hashSection === 'intervals' &&
+            sectionName === 'intervals' &&
             ['recognition', 'construction'].includes(hashMode)
         ) {
             sectionModes.intervals = hashMode;
         } else if (
-            hashSection === 'match' &&
+            sectionName === 'match' &&
             ['target', 'identification'].includes(hashMode)
         ) {
             sectionModes.match = hashMode;
         }
 
         if (
-            hashSection === 'rhythm' &&
+            sectionName === 'rhythm' &&
             ['metronome', 'timing', 'reading'].includes(hashMode)
         ) {
             sectionModes.rhythm = hashMode;
         }
 
-        const sectionName = pitchHash ? 'pitch' : hashSection;
         const navItem =
             navItems.find(
                 (candidate) => candidate.dataset.section === sectionName
