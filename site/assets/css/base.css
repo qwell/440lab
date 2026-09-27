@@ -65,7 +65,7 @@ body {
 }
 
 body {
-    overflow-x: hidden;
+    overflow-x: clip;
 
     padding-bottom: calc(var(--footer-height) + 0.85rem);
 

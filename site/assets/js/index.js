@@ -350,7 +350,16 @@ function getModePanels(name) {
 
 function initializeModePanels(name) {
     const panel = document.querySelector(`[data-panel="${name}"]`);
-    const controls = panel.querySelector(':scope > .form-grid');
+    let controls = panel.querySelector(':scope > .form-grid');
+
+    if (!controls) {
+        controls = document.createElement('div');
+        controls.className = 'form-grid';
+        panel.insertBefore(
+            controls,
+            panel.querySelector(':scope > [data-mode-panel]')
+        );
+    }
 
     for (const modePanel of panel.querySelectorAll(
         ':scope > [data-mode-panel]'
@@ -431,7 +440,6 @@ function savePreferences() {
     storage.save(PREFERENCES_KEY, {
         a4: getA4(),
         volume: Number(getControl('volume').value),
-        location: window.location.hash,
     });
 }
 
@@ -456,14 +464,6 @@ function restorePreferences() {
                 Number(volumeInput.max)
             )
         );
-    }
-
-    if (
-        window.location.hash === '' &&
-        typeof preferences.location === 'string' &&
-        preferences.location.startsWith('#')
-    ) {
-        history.replaceState(null, '', preferences.location);
     }
 }
 
@@ -1050,42 +1050,53 @@ function updateNoteReadouts() {
     }
 }
 
-// Tabs
+// Navigation
 
-function isPitchMemoryActive(tabName) {
-    return tabName === 'pitch' && getControl('pitch-mode').value === 'memory';
+const sectionModes = {
+    rhythm: 'metronome',
+    pitch: 'placement',
+    match: 'target',
+    intervals: 'recognition',
+};
+
+function isPitchMemoryActive(sectionName) {
+    return sectionName === 'pitch' && sectionModes.pitch === 'memory';
 }
 
-function tabHash(tabName) {
-    switch (tabName) {
+function sectionHash(sectionName) {
+    switch (sectionName) {
         case 'pitch':
         case 'intervals':
         case 'rhythm':
         case 'match': {
-            const mode = getControl(`${tabName}-mode`).value;
-            return `#${tabName}/${mode}`;
+            return `#${sectionName}/${sectionModes[sectionName]}`;
         }
+        case 'about':
+            return '';
     }
 
-    return `#${tabName}`;
+    return `#${sectionName}`;
 }
 
-function updateModeHash(tabName) {
-    const hash = tabHash(tabName);
-
-    if (window.location.hash !== hash) {
-        history.pushState(null, '', hash);
+function pushUrlHash(hash) {
+    if (window.location.hash === hash) {
+        return;
     }
 
-    savePreferences();
-}
-
-function activateTab(button, focus = false, updateUrl = true) {
-    const tabName = button.dataset.tab;
-    const pitchMemoryActive = isPitchMemoryActive(tabName);
-    const sectionPicker = document.querySelector(
-        '[data-control="section-picker"]'
+    history.pushState(
+        null,
+        '',
+        hash || `${window.location.pathname}${window.location.search}`
     );
+}
+
+function updateModeHash(sectionName) {
+    pushUrlHash(sectionHash(sectionName));
+}
+
+function activateSection(button, updateUrl = true) {
+    const sectionName = button.dataset.section;
+    const pitchMemoryActive = isPitchMemoryActive(sectionName);
 
     if (
         !pitchMemoryActive &&
@@ -1096,21 +1107,16 @@ function activateTab(button, focus = false, updateUrl = true) {
         cancelPitchMemoryTrial();
     }
 
-    for (const tab of document.querySelectorAll('.tab')) {
-        const active = tab === button;
+    for (const navItem of document.querySelectorAll('.nav-item')) {
+        const active = navItem === button;
 
-        tab.classList.toggle('is-active', active);
-
-        tab.setAttribute('aria-selected', String(active));
-
-        tab.tabIndex = active ? 0 : -1;
+        navItem.classList.toggle('is-active', active);
+        navItem.removeAttribute('aria-current');
     }
 
-    for (const panel of document.querySelectorAll('.tab-panel')) {
-        panel.hidden = panel.dataset.panel !== tabName;
+    for (const panel of document.querySelectorAll('.section-panel')) {
+        panel.hidden = panel.dataset.panel !== sectionName;
     }
-
-    sectionPicker.value = tabName;
 
     stopAllAudio();
 
@@ -1128,87 +1134,115 @@ function activateTab(button, focus = false, updateUrl = true) {
     cancelIntervalAdvance();
     cancelChordAdvance();
 
-    const hash = tabHash(tabName);
-
-    if (updateUrl && window.location.hash !== hash) {
-        history.pushState(null, '', hash);
-    }
-
-    savePreferences();
-
-    if (focus) {
-        button.focus();
+    if (updateUrl) {
+        pushUrlHash(sectionHash(sectionName));
     }
 }
 
-function initializeTabs() {
-    const tabs = [...document.querySelectorAll('.tab')];
-    const tabNavigation = document.querySelector('.tabs');
-    const tabList = document.querySelector('.tabs-inner');
-    const sectionPicker = document.querySelector(
-        '[data-control="section-picker"]'
-    );
-    const requiredTabWidth = tabList.scrollWidth;
+function initializeNavigation() {
+    const navItems = [...document.querySelectorAll('.nav-item')];
+    const siteNavigation = document.querySelector('.site-nav');
+    const navToggle = document.querySelector('.nav-toggle');
 
-    const resizeObserver = new ResizeObserver(([entry]) => {
-        const pageGutters = window.matchMedia('(max-width: 560px)').matches
-            ? 16
-            : 28;
+    siteNavigation.hidden = false;
 
-        tabNavigation.classList.toggle(
-            'is-overflowing',
-            entry.contentRect.width - pageGutters < requiredTabWidth
+    function closeNavigation(restoreFocus = false) {
+        document.body.classList.remove('nav-open');
+        navToggle.setAttribute('aria-expanded', 'false');
+        navToggle.setAttribute('aria-label', 'Open navigation');
+        siteNavigation.setAttribute('aria-hidden', 'true');
+        siteNavigation.inert = true;
+
+        if (restoreFocus) {
+            navToggle.focus();
+        }
+    }
+
+    function openNavigation() {
+        document.body.classList.add('nav-open');
+        navToggle.setAttribute('aria-expanded', 'true');
+        navToggle.setAttribute('aria-label', 'Close navigation');
+        siteNavigation.setAttribute('aria-hidden', 'false');
+        siteNavigation.inert = false;
+    }
+
+    function syncModeNavigation() {
+        const activeNavItem = navItems.find((item) =>
+            item.classList.contains('is-active')
         );
-    });
+        const activeSection = activeNavItem?.dataset.section;
 
-    resizeObserver.observe(tabNavigation);
+        if (activeNavItem && !(activeSection in sectionModes)) {
+            activeNavItem.setAttribute('aria-current', 'page');
+        }
 
-    function activateHashTab() {
+        for (const modeButton of document.querySelectorAll('[data-nav-mode]')) {
+            const active =
+                modeButton.dataset.navSection === activeSection &&
+                sectionModes[activeSection] === modeButton.dataset.navMode;
+
+            modeButton.classList.toggle('is-active', active);
+
+            if (active) {
+                modeButton.setAttribute('aria-current', 'page');
+            } else {
+                modeButton.removeAttribute('aria-current');
+            }
+        }
+    }
+
+    function activateHashSection() {
         const hash = window.location.hash.slice(1);
         const pitchHash = ['pitch-placement', 'pitch-memory'].includes(hash);
-        const [hashTab, hashMode] = hash.split('/');
+        const [hashSection, hashMode] = hash.split('/');
 
         if (pitchHash) {
-            getControl('pitch-mode').value =
+            sectionModes.pitch =
                 hash === 'pitch-memory' ? 'memory' : 'placement';
         } else if (
-            hashTab === 'pitch' &&
+            hashSection === 'pitch' &&
             ['placement', 'memory'].includes(hashMode)
         ) {
-            getControl('pitch-mode').value = hashMode;
+            sectionModes.pitch = hashMode;
         } else if (
-            hashTab === 'intervals' &&
+            hashSection === 'intervals' &&
             ['recognition', 'construction'].includes(hashMode)
         ) {
-            getControl('intervals-mode').value = hashMode;
+            sectionModes.intervals = hashMode;
         } else if (
-            hashTab === 'match' &&
+            hashSection === 'match' &&
             ['target', 'identification'].includes(hashMode)
         ) {
-            getControl('match-mode').value = hashMode;
+            sectionModes.match = hashMode;
         }
 
         if (
-            hashTab === 'rhythm' &&
+            hashSection === 'rhythm' &&
             ['metronome', 'timing', 'reading'].includes(hashMode)
         ) {
-            getControl('rhythm-mode').value = hashMode;
+            sectionModes.rhythm = hashMode;
         }
 
-        const tabName = pitchHash ? 'pitch' : hashTab;
-        const tab =
-            tabs.find((candidate) => candidate.dataset.tab === tabName) ||
-            (hash === '' ? tabs[0] : null);
+        const sectionName = pitchHash ? 'pitch' : hashSection;
+        const navItem =
+            navItems.find(
+                (candidate) => candidate.dataset.section === sectionName
+            ) ||
+            (hash === ''
+                ? navItems.find(
+                      (candidate) => candidate.dataset.section === 'about'
+                  )
+                : null);
 
-        if (!tab) {
+        if (!navItem) {
             return;
         }
 
-        if (!tab.classList.contains('is-active')) {
-            activateTab(tab, false, false);
+        if (!navItem.classList.contains('is-active')) {
+            activateSection(navItem, false);
         }
 
-        switch (tabName) {
+        switch (sectionName) {
             case 'rhythm':
                 updateRhythmMode();
                 break;
@@ -1227,60 +1261,78 @@ function initializeTabs() {
         }
 
         savePreferences();
+        syncModeNavigation();
     }
 
-    tabs.forEach((tab, index) => {
-        tab.addEventListener('click', () => {
-            activateTab(tab);
-        });
-
-        tab.addEventListener('keydown', (event) => {
-            let nextIndex;
-
-            switch (event.key) {
-                case 'ArrowRight':
-                    nextIndex = (index + 1) % tabs.length;
-
-                    break;
-
-                case 'ArrowLeft':
-                    nextIndex = (index - 1 + tabs.length) % tabs.length;
-
-                    break;
-
-                case 'Home':
-                    nextIndex = 0;
-                    break;
-
-                case 'End':
-                    nextIndex = tabs.length - 1;
-
-                    break;
-
-                default:
-                    return;
-            }
-
-            event.preventDefault();
-
-            activateTab(tabs[nextIndex], true);
+    navItems.forEach((navItem) => {
+        navItem.addEventListener('click', () => {
+            activateSection(navItem);
+            syncModeNavigation();
         });
     });
 
-    sectionPicker.addEventListener('change', () => {
-        const tab = tabs.find(
-            (candidate) => candidate.dataset.tab === sectionPicker.value
-        );
-
-        if (tab) {
-            activateTab(tab);
+    navToggle.addEventListener('click', () => {
+        if (document.body.classList.contains('nav-open')) {
+            closeNavigation();
+        } else {
+            openNavigation();
         }
     });
 
-    window.addEventListener('hashchange', activateHashTab);
-    window.addEventListener('popstate', activateHashTab);
+    document.addEventListener('click', (event) => {
+        if (
+            document.body.classList.contains('nav-open') &&
+            !siteNavigation.contains(event.target) &&
+            !navToggle.contains(event.target)
+        ) {
+            closeNavigation();
+        }
+    });
 
-    activateHashTab();
+    for (const modeButton of document.querySelectorAll('[data-nav-mode]')) {
+        modeButton.addEventListener('click', () => {
+            const sectionName = modeButton.dataset.navSection;
+            const navItem = navItems.find(
+                (candidate) => candidate.dataset.section === sectionName
+            );
+
+            sectionModes[sectionName] = modeButton.dataset.navMode;
+            updateModeHash(sectionName);
+
+            switch (sectionName) {
+                case 'rhythm':
+                    updateRhythmMode();
+                    break;
+                case 'pitch':
+                    updatePitchMode();
+                    break;
+                case 'match':
+                    updateMatchMode();
+                    break;
+                case 'intervals':
+                    updateIntervalMode();
+                    break;
+            }
+
+            activateSection(navItem);
+            syncModeNavigation();
+        });
+    }
+
+    document.addEventListener('keydown', (event) => {
+        if (
+            event.key === 'Escape' &&
+            document.body.classList.contains('nav-open')
+        ) {
+            closeNavigation(true);
+        }
+    });
+
+    window.addEventListener('hashchange', activateHashSection);
+    window.addEventListener('popstate', activateHashSection);
+
+    activateHashSection();
+    syncModeNavigation();
 }
 
 function initializeTooltips() {
@@ -1884,7 +1936,7 @@ const rhythmReading = {
 // Rhythm: reading
 
 function rhythmReadingEnabled() {
-    return getControl('rhythm-mode').value === 'reading';
+    return sectionModes.rhythm === 'reading';
 }
 
 function rhythmMeter(signature) {
@@ -2101,7 +2153,7 @@ function playRhythmInputSound() {
 }
 
 function updateRhythmMode() {
-    const mode = getControl('rhythm-mode').value;
+    const mode = sectionModes.rhythm;
     for (const panel of getModePanels('rhythm')) {
         panel.hidden = panel.dataset.modePanel !== mode;
     }
@@ -2415,7 +2467,7 @@ function stopRhythmReading() {
 // Rhythm: timing
 
 function rhythmTimingEnabled() {
-    return getControl('rhythm-mode').value === 'timing';
+    return sectionModes.rhythm === 'timing';
 }
 
 function drawRhythmTiming() {
@@ -2706,7 +2758,7 @@ const pitch = {
 };
 
 function newPitchTrial() {
-    if (getControl('pitch-mode').value === 'memory') {
+    if (sectionModes.pitch === 'memory') {
         newPitchMemoryTrial();
     } else {
         newPitchPlacementTrial(true);
@@ -2731,7 +2783,7 @@ function pitchStatsType(mode, type = null) {
 }
 
 function renderPitchStats() {
-    const mode = getControl('pitch-mode').value;
+    const mode = sectionModes.pitch;
     const type =
         mode === 'memory' ? getControl('pitch-memory-type').value : null;
     const { streak, trials, errorTotal, best } =
@@ -2746,7 +2798,7 @@ function renderPitchStats() {
 }
 
 function clearPitchStats() {
-    const mode = getControl('pitch-mode').value;
+    const mode = sectionModes.pitch;
     const type =
         mode === 'memory' ? getControl('pitch-memory-type').value : null;
 
@@ -3228,10 +3280,11 @@ function stopPitchMemoryMic() {
 }
 
 function updatePitchMemoryResponseMethod() {
-    const tabName = document.querySelector('.tab.is-active')?.dataset.tab;
+    const sectionName = document.querySelector('.nav-item.is-active')?.dataset
+        .section;
 
     if (
-        isPitchMemoryActive(tabName) &&
+        isPitchMemoryActive(sectionName) &&
         getControl('pitch-memory-response').value === 'microphone'
     ) {
         void startPitchMemoryMic();
@@ -3755,7 +3808,7 @@ function updatePitchMemoryControls() {
 }
 
 function updatePitchMode() {
-    const mode = getControl('pitch-mode').value;
+    const mode = sectionModes.pitch;
 
     for (const panel of getModePanels('pitch')) {
         panel.hidden = panel.dataset.modePanel !== mode;
@@ -3860,7 +3913,7 @@ function saveMatchStats() {
 stats.match = loadMatchStats();
 
 function newMatchTrial(playImmediately = false) {
-    if (getControl('match-mode').value === 'identification') {
+    if (sectionModes.match === 'identification') {
         newMatchIdentificationTrial(playImmediately);
     } else {
         newMatchTargetTrial();
@@ -3868,7 +3921,7 @@ function newMatchTrial(playImmediately = false) {
 }
 
 function playMatchTrial() {
-    if (getControl('match-mode').value === 'identification') {
+    if (sectionModes.match === 'identification') {
         playMatchIdentificationTrial();
     }
 }
@@ -3886,7 +3939,7 @@ function scheduleMatchAdvance() {
 }
 
 function renderMatchStats() {
-    if (getControl('match-mode').value === 'identification') {
+    if (sectionModes.match === 'identification') {
         renderMatchIdentificationStats();
     } else {
         renderMatchTargetStats();
@@ -3894,7 +3947,7 @@ function renderMatchStats() {
 }
 
 function clearMatchStats() {
-    if (getControl('match-mode').value === 'identification') {
+    if (sectionModes.match === 'identification') {
         stats.match.identification = defaultMatchIdentificationStats();
     } else {
         stats.match.target = defaultMatchTargetStats();
@@ -3905,7 +3958,7 @@ function clearMatchStats() {
 }
 
 function updateMatchMode() {
-    const mode = getControl('match-mode').value;
+    const mode = sectionModes.match;
 
     for (const panel of getModePanels('match')) {
         panel.hidden = panel.dataset.modePanel !== mode;
@@ -4442,7 +4495,7 @@ const interval = {
 };
 
 function getIntervalExercise() {
-    return `interval-${getControl('intervals-mode').value}`;
+    return `interval-${sectionModes.intervals}`;
 }
 
 const intervalAdvance = createAutoAdvance(
@@ -4461,7 +4514,7 @@ function scheduleIntervalAdvance() {
 }
 
 function enabledIntervals() {
-    const mode = getControl('intervals-mode').value;
+    const mode = sectionModes.intervals;
     const level = getControl(`interval-${mode}-level`).value;
     const enabledSemitones = INTERVAL_LEVELS[level] || INTERVAL_LEVELS.starter;
 
@@ -4473,7 +4526,7 @@ function enabledIntervals() {
 }
 
 function updateIntervalMode() {
-    const mode = getControl('intervals-mode').value;
+    const mode = sectionModes.intervals;
 
     for (const panel of getModePanels('intervals')) {
         panel.hidden = panel.dataset.modePanel !== mode;
@@ -4556,7 +4609,7 @@ function clearIntervalResult() {
 // Intervals: recognition and construction
 
 function newIntervalTrial(playImmediately = false) {
-    if (getControl('intervals-mode').value === 'construction') {
+    if (sectionModes.intervals === 'construction') {
         newIntervalConstructionTrial(playImmediately);
     } else {
         newIntervalRecognitionTrial(playImmediately);
@@ -4645,7 +4698,7 @@ function playIntervalTrial() {
 }
 
 function renderIntervalStats() {
-    const mode = getControl('intervals-mode').value;
+    const mode = sectionModes.intervals;
     const { streak, trials, correct, best } = stats.interval[mode];
 
     const accuracy = trials > 0 ? (correct / trials) * 100 : 0;
@@ -4659,7 +4712,7 @@ function renderIntervalStats() {
 }
 
 function clearIntervalStats() {
-    const mode = getControl('intervals-mode').value;
+    const mode = sectionModes.intervals;
 
     stats.interval[mode] = defaultIntervalTypeStats();
     saveIntervalStats();
@@ -4948,21 +5001,6 @@ function resetForReferenceChange() {
 }
 
 function initializeEvents() {
-    getControl('pitch-mode').addEventListener('input', () => {
-        updateModeHash('pitch');
-        updatePitchMode();
-    });
-
-    getControl('intervals-mode').addEventListener('change', () => {
-        updateModeHash('intervals');
-        updateIntervalMode();
-    });
-
-    getControl('match-mode').addEventListener('input', () => {
-        updateModeHash('match');
-        updateMatchMode();
-    });
-
     getNote('tuner').addEventListener('change', (event) => {
         updateNoteReadout(event.currentTarget);
         if (tunerTargetMidi !== null) {
@@ -4993,10 +5031,6 @@ function initializeEvents() {
         });
     }
     getControl('rhythm-bpm').addEventListener('change', restartRhythm);
-    getControl('rhythm-mode').addEventListener('change', () => {
-        updateModeHash('rhythm');
-        updateRhythmMode();
-    });
     const rhythmHold = document.getElementById('rhythm-hold');
     getAction('new-rhythm').addEventListener('click', () => {
         newRhythmPhrase();
@@ -5411,7 +5445,7 @@ function initialize() {
     initializeEvents();
     updateRhythmMode();
     updateNoteReadouts();
-    initializeTabs();
+    initializeNavigation();
 
     resetTunerDetection();
 
