@@ -55,7 +55,9 @@ select {
 /* Form fields */
 
 .settings-heading {
-    margin: 28px 0 0;
+    grid-column: 1 / -1;
+
+    margin: 0;
     padding-top: 14px;
 
     border-top: 1px solid var(--border);
@@ -64,12 +66,8 @@ select {
     font-weight: 600;
 }
 
-.settings-heading + .form-grid {
-    margin-top: 12px;
-}
-
-.form-grid {
-    margin-top: 18px;
+.settings {
+    margin-top: 28px;
 
     display: grid;
     grid-template-columns: repeat(4, var(--field-width));
@@ -144,18 +142,6 @@ select {
     color: var(--muted);
 }
 
-.note-frequency {
-    color: var(--text);
-}
-
-.frequency-value {
-    font-variant-numeric: tabular-nums;
-}
-
-.tabular-numbers {
-    font-variant-numeric: tabular-nums;
-}
-
 /* Tooltips */
 
 .info-tip {
@@ -219,48 +205,6 @@ select {
     visibility: visible;
 }
 
-/* Button rows */
-
-.button-row {
-    width: var(--control-width);
-    max-width: 100%;
-
-    display: grid;
-
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-
-    gap: var(--button-gap);
-
-    align-items: center;
-}
-
-.practice > .button-row [data-action='play-tuner'],
-.practice > .button-row [data-action='play-rhythm'],
-.practice > .button-row [data-action='play-pitch'],
-.practice > .button-row [data-action='play-match'],
-.practice > .button-row [data-action='play-interval'],
-.practice > .button-row [data-action='play-chord'] {
-    grid-column: 1;
-}
-
-.practice > .button-row [data-action='stop-audio'] {
-    grid-column: 2;
-}
-
-.practice > .button-row [data-action='toggle-tuner-mic'],
-.practice > .button-row [data-action='new-rhythm'],
-.practice > .button-row [data-action='new-pitch'],
-.practice > .button-row [data-action='new-match'],
-.practice > .button-row [data-action='new-interval'],
-.practice > .button-row [data-action='new-chord'] {
-    grid-column: 3;
-}
-
-.button-row .icon-button {
-    width: 100%;
-    min-width: 0;
-}
-
 .icon-button {
     min-width: 0;
     height: 32px;
@@ -274,41 +218,51 @@ select {
     line-height: 1;
 }
 
-/* Automatic refresh countdown */
-
-.auto-refresh {
-    position: relative;
-    overflow: hidden;
+@media (hover: hover) {
+    button:hover:not(:disabled) {
+        background: var(--button-hover-background);
+    }
 }
 
-.auto-refresh::before {
-    content: '';
-
-    position: absolute;
-
-    inset: 0;
-
-    background: rgb(255 255 255 / 16%);
-
-    transform: scaleX(0);
-    transform-origin: right center;
+@media (max-width: 1060px) {
+    .settings {
+        grid-template-columns: repeat(3, var(--field-width));
+    }
 }
 
-.auto-refresh > span {
-    position: relative;
-    z-index: 1;
+@media (max-width: 800px) {
+    .settings {
+        grid-template-columns: repeat(2, var(--field-width));
+    }
 }
 
-.auto-refresh.is-counting-down::before {
-    animation: refresh-countdown 3s linear forwards;
-}
-
-@keyframes refresh-countdown {
-    from {
-        transform: scaleX(1);
+@media (max-width: 560px) {
+    .settings {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    to {
-        transform: scaleX(0);
+    .control-row input[type='number'],
+    .control-row select,
+    .range-controls {
+        width: 100%;
+    }
+
+    .info-tip::after {
+        position: fixed;
+
+        top: 50%;
+        right: 12px;
+        left: 12px;
+
+        width: auto;
+        max-width: none;
+
+        transform: translateY(-50%);
+    }
+}
+
+@media (max-width: 340px) {
+    .settings {
+        grid-template-columns: minmax(0, 1fr);
     }
 }

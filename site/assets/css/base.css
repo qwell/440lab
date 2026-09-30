@@ -25,7 +25,6 @@
     --button-gap: 6px;
     --practice-detail-gap: 10px;
     --practice-row-gap: 8px;
-    --practice-stats-spacing: 8px;
     --footer-height: 1.7rem;
 
     --background: #111;
@@ -71,4 +70,23 @@ body {
 
     background: var(--background);
     color: var(--text);
+}
+
+.tabular-numbers {
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 560px) {
+    :root {
+        --column-gap: 12px;
+        --field-width: calc((100vw - 40px) / 2);
+        --control-width: min(190px, var(--field-width));
+    }
+}
+
+@media (max-width: 340px) {
+    :root {
+        --field-width: 100%;
+        --control-width: min(190px, 100%);
+    }
 }

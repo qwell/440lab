@@ -29,15 +29,6 @@
     text-align: center;
 }
 
-.mic-button {
-    font-size: 12px;
-}
-
-.mic-button.is-active {
-    border-color: var(--mic-accent);
-    color: var(--mic-accent);
-}
-
 .tuner-header {
     min-height: 58px;
 }
@@ -204,12 +195,10 @@
     font-family: 'Noto Music', serif;
 }
 
-.rhythm-timing-track {
+.rhythm-beat-track {
     position: relative;
 
     height: 28px;
-
-    margin-bottom: var(--practice-row-gap);
 
     border: 1px solid var(--border);
     border-radius: var(--border-radius);
@@ -217,7 +206,7 @@
     background: var(--surface);
 }
 
-.rhythm-timing-target,
+.rhythm-beat-target,
 .rhythm-timing-mark {
     position: absolute;
 
@@ -257,7 +246,7 @@
     transform: translateX(-50%);
 }
 
-.rhythm-timing-dot {
+.rhythm-beat-dot {
     position: absolute;
 
     top: 50%;
@@ -273,8 +262,8 @@
     transform: translate(-50%, -50%);
 }
 
-.rhythm-timing-labels {
-    margin-bottom: var(--practice-row-gap);
+.rhythm-beat-labels {
+    margin-top: 4px;
 
     display: flex;
     justify-content: space-between;
@@ -291,27 +280,20 @@
     touch-action: none;
 }
 
-.response-row {
-    width: var(--control-width);
-    max-width: 100%;
-
-    margin-bottom: var(--practice-row-gap);
-}
-
-.rhythm-hold {
+.rhythm-sheet-hold {
     width: 100%;
 
     touch-action: none;
 }
 
-.rhythm-hold.is-held {
+.rhythm-sheet-hold.is-held {
     border-color: var(--target);
 
     background: var(--target-background);
 }
 
-.rhythm-count-in {
-    min-height: 28px;
+.rhythm-sheet-count-in {
+    min-height: 18px;
 
     display: flex;
     align-items: center;
@@ -321,13 +303,27 @@
     font-size: 12px;
 }
 
-.rhythm-score {
+.rhythm-sheet-score {
+    --rhythm-sheet-beam-thickness: 0.24rem;
+    --rhythm-sheet-notehead-y: 5.25rem;
+    --rhythm-sheet-stem-length: 1.75rem;
+    --rhythm-sheet-beam-width-extension: 0.0625rem;
+    --rhythm-sheet-beam-stem-inset: 0.0625rem;
+    --rhythm-sheet-up-stem-x: 0.95rem;
+    --rhythm-sheet-up-beam-x: 0.95rem;
+    --rhythm-sheet-up-note-y: -0.125rem;
+    --rhythm-sheet-up-layout-y: 0.0625rem;
+    --rhythm-sheet-up-stem-note-inset: 0.125rem;
+    --rhythm-sheet-down-stem-x: 0.5rem;
+    --rhythm-sheet-down-beam-x: 0.5rem;
+    --rhythm-sheet-down-note-y: -0.0625rem;
+    --rhythm-sheet-down-layout-y: 0;
+    --rhythm-sheet-down-stem-note-inset: 0.0625rem;
+
     position: relative;
 
     width: 100%;
-    height: 2.25rem;
-
-    margin-bottom: var(--practice-row-gap);
+    height: 8.25rem;
 
     border: 1px solid var(--border);
     border-radius: var(--border-radius);
@@ -339,14 +335,53 @@
     overflow: hidden;
 }
 
-.rhythm-lane {
+.rhythm-sheet-staff {
+    position: absolute;
+    inset: 2.25rem 0 auto;
+
+    height: 3rem;
+
+    pointer-events: none;
+}
+
+.rhythm-sheet-staff > span {
+    position: absolute;
+    right: 0;
+    left: 0;
+
+    height: 1px;
+
+    background: var(--muted);
+}
+
+.rhythm-sheet-staff > span:nth-child(1) {
+    top: 0;
+}
+
+.rhythm-sheet-staff > span:nth-child(2) {
+    top: 0.75rem;
+}
+
+.rhythm-sheet-staff > span:nth-child(3) {
+    top: 1.5rem;
+}
+
+.rhythm-sheet-staff > span:nth-child(4) {
+    top: 2.25rem;
+}
+
+.rhythm-sheet-staff > span:nth-child(5) {
+    top: 3rem;
+}
+
+.rhythm-sheet-lane {
     position: absolute;
     inset: 0;
 
     will-change: transform;
 }
 
-.rhythm-lane-note {
+.rhythm-sheet-lane-note {
     position: absolute;
 
     top: 0;
@@ -356,38 +391,122 @@
     color: var(--text);
 }
 
-.rhythm-note-symbol {
+.rhythm-sheet-note-symbol {
     position: absolute;
 
+    top: calc(3.825rem - var(--staff-step, 3) * 0.375rem);
     left: 0.4rem;
 
-    font-size: 1.6rem;
-    line-height: 2rem;
+    font-size: 1.75rem;
+    line-height: 1;
 
     white-space: nowrap;
 }
 
-.rhythm-score-heading {
+.rhythm-sheet-note-symbol:not(.is-whole):not(.is-stem-down) {
+    top: calc(3.8rem - var(--staff-step, 3) * 0.375rem);
+}
+
+.rhythm-sheet-note-symbol.is-stem-down {
+    top: calc(5rem - var(--staff-step) * 0.375rem);
+
+    transform: rotate(180deg);
+}
+
+.rhythm-sheet-note-symbol.is-beamed {
+    top: calc(3.725rem - var(--staff-step) * 0.375rem);
+
+    font-family: 'Noto Music', serif;
+
+    transform: none;
+}
+
+.rhythm-sheet-note-symbol.is-beamed.is-stem-down {
+    top: calc(3.7875rem - var(--staff-step) * 0.375rem);
+}
+
+.rhythm-sheet-beam {
+    position: absolute;
+    z-index: 1;
+
+    height: var(--rhythm-sheet-beam-thickness);
+
+    background: var(--text);
+
+    pointer-events: none;
+}
+
+.rhythm-sheet-beam-stem {
+    position: absolute;
+    z-index: 1;
+
+    width: 1px;
+
+    background: var(--text);
+
+    pointer-events: none;
+}
+
+.rhythm-sheet-lane-note.is-rest .rhythm-sheet-note-symbol {
+    top: 2.6rem;
+
+    font-size: 2.5rem;
+}
+
+.rhythm-sheet-lane-note.is-rest .rhythm-sheet-note-symbol.is-whole,
+.rhythm-sheet-lane-note.is-rest .rhythm-sheet-note-symbol.is-half {
+    top: 2.9rem;
+
+    font-size: 2.25rem;
+}
+
+.rhythm-sheet-note-dot {
     position: absolute;
 
-    top: 0;
+    top: calc(5.1rem - var(--staff-step) * 0.375rem);
+    left: 1.75rem;
 
-    height: 100%;
+    width: 0.22rem;
+    height: 0.22rem;
+
+    border-radius: 50%;
+
+    background: currentcolor;
+}
+
+.rhythm-sheet-ledger-line {
+    position: absolute;
+
+    top: calc(5.25rem - var(--staff-step) * 0.375rem);
+    left: 0.05rem;
+
+    width: 2rem;
+    height: 1.5px;
+
+    background: var(--muted);
+}
+
+.rhythm-sheet-score-heading {
+    position: absolute;
+
+    top: 1.75rem;
+
+    height: 4.5rem;
 
     display: flex;
     align-items: center;
 
-    gap: 0.25rem;
+    gap: 0.4rem;
 
     white-space: nowrap;
 
-    color: var(--muted);
+    color: var(--text);
 
     transform: translateX(calc(-100% - 1rem));
 }
 
-.rhythm-score-heading > span:first-child,
-.rhythm-barline {
+.rhythm-sheet-clef,
+.rhythm-sheet-barline {
     display: flex;
     align-items: center;
 
@@ -395,48 +514,94 @@
 
     overflow: hidden;
 
-    font-size: 2rem;
+    font-size: 3.25rem;
     line-height: 1;
 
     transform: scaleY(1.125);
     transform-origin: center;
 }
 
-.rhythm-score-heading > span:first-child {
+.rhythm-sheet-clef {
     flex: none;
+
+    overflow: visible;
 }
 
-.rhythm-signature {
-    height: 100%;
+.rhythm-sheet-clef-bass {
+    font-size: 3rem;
+}
+
+.rhythm-sheet-clef-alto,
+.rhythm-sheet-clef-tenor {
+    font-size: 2.75rem;
+}
+
+.rhythm-sheet-clef-tenor {
+    position: relative;
+    top: -0.75rem;
+}
+
+.rhythm-sheet-signature {
+    height: 3rem;
 
     overflow: hidden;
 }
 
-.rhythm-signature:not(.is-numeric) {
+.rhythm-sheet-signature:not(.is-numeric) {
     display: flex;
     align-items: center;
 
-    font-size: 1.6rem;
+    font-size: 2.5rem;
     line-height: 1;
 }
 
-.rhythm-signature.is-numeric {
+.rhythm-sheet-signature.is-numeric {
     display: grid;
-    grid-template-rows: repeat(2, 1rem);
+    grid-template-rows: repeat(2, 1.5rem);
     align-content: center;
 
     text-align: center;
 
-    font-size: 0.9rem;
-    line-height: 1rem;
+    font-size: 1.25rem;
+    line-height: 1.5rem;
 }
 
-.rhythm-lane-note.is-current {
+.rhythm-sheet-lane-note.is-current,
+.rhythm-sheet-tie.is-current {
     color: var(--target);
 }
 
-.rhythm-duration-track,
-.rhythm-held-section {
+.rhythm-sheet-tie {
+    position: absolute;
+    z-index: 1;
+
+    height: 0.7rem;
+
+    border-color: currentcolor;
+    border-style: solid;
+    border-width: 0;
+
+    color: var(--text);
+
+    pointer-events: none;
+}
+
+.rhythm-sheet-tie.is-above {
+    top: calc(4.475rem - var(--staff-step) * 0.375rem);
+
+    border-top-width: 2px;
+    border-radius: 50% 50% 0 0;
+}
+
+.rhythm-sheet-tie.is-below {
+    top: calc(5.225rem - var(--staff-step) * 0.375rem);
+
+    border-bottom-width: 2px;
+    border-radius: 0 0 50% 50%;
+}
+
+.rhythm-sheet-duration-track,
+.rhythm-sheet-held-section {
     position: absolute;
 
     bottom: 0;
@@ -445,13 +610,13 @@
     height: 0.25rem;
 }
 
-.rhythm-duration-track {
+.rhythm-sheet-duration-track {
     width: calc(100% + 1px);
 
     background: var(--target);
 }
 
-.rhythm-held-section {
+.rhythm-sheet-held-section {
     z-index: 1;
 
     background: var(--incorrect);
@@ -459,65 +624,50 @@
     pointer-events: none;
 }
 
-.rhythm-lane-note.is-rest .rhythm-duration-track {
-    border-bottom: 1px dashed var(--muted);
-
-    background: none;
+.rhythm-sheet-lane-note.is-rest .rhythm-sheet-duration-track {
+    background: var(--correct);
 }
 
-.rhythm-count-marker {
+.rhythm-sheet-count-marker {
     position: absolute;
+    top: 0.15rem;
 
-    top: 0;
-
-    font-size: 1.25rem;
-    line-height: 2rem;
+    line-height: 1rem;
 
     color: var(--muted);
 
     transform: translateX(-50%);
 }
 
-.rhythm-play-line {
+.rhythm-sheet-play-line {
     position: absolute;
 
-    top: 0;
+    top: 2rem;
     left: 2rem;
 
     width: 1px;
-    height: 100%;
+    height: 3.5rem;
 
     background: var(--target);
 
     pointer-events: none;
 }
 
-.rhythm-barline {
+.rhythm-sheet-barline {
     position: absolute;
 
-    top: 0;
+    top: 1.75rem;
 
-    margin-left: -0.05em;
+    height: 4rem;
+
+    font-size: 3.75rem;
 
     color: var(--muted);
+
+    transform: translateX(-50%) scaleY(1.125);
 }
 
-.inline-stats > div {
-    display: flex;
-    flex-wrap: wrap;
-
-    gap: 0.5rem;
-}
-
-.inline-stats dt::after {
-    content: ':';
-}
-
-.inline-stats dd {
-    margin: 0;
-}
-
-.rhythm-score[aria-disabled='false'] {
+.rhythm-sheet-score[aria-disabled='false'] {
     cursor: pointer;
     touch-action: none;
 }
@@ -586,105 +736,12 @@
     white-space: nowrap;
 }
 
-@media (hover: hover) {
-    button:hover:not(:disabled) {
-        background: var(--button-hover-background);
-    }
-
-    .nav-item:hover:not(:disabled) {
-        background: transparent;
-        color: var(--text);
-    }
-
-    .link-button:hover:not(:disabled) {
-        background: transparent;
-        color: var(--text);
-    }
-}
-
-/* Tablet */
-@media (max-width: 1060px) {
-    .form-grid {
-        grid-template-columns: repeat(3, var(--field-width));
-    }
-}
-
-@media (max-width: 800px) {
-    .form-grid {
-        grid-template-columns: repeat(2, var(--field-width));
-    }
-}
-
 @media (max-width: 560px) {
-    :root {
-        --column-gap: 12px;
-
-        --field-width: calc((100vw - 40px) / 2);
-        --control-width: min(190px, var(--field-width));
-    }
-
-    .form-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .control-row input[type='number'],
-    .control-row select,
-    .range-controls {
-        width: 100%;
-    }
-
-    .practice {
-        width: 100%;
-    }
-
-    .practice-wide {
-        row-gap: 14px;
-    }
-
-    .practice-row {
-        grid-template-columns: var(--control-width) minmax(0, 1fr);
-    }
-
-    .practice-wide-content {
-        width: 100%;
-    }
-
     .tuner-note {
         font-size: 28px;
     }
 
     .tuner-cents {
         font-size: 19px;
-    }
-
-    .practice-result {
-        white-space: normal;
-
-        overflow-wrap: anywhere;
-    }
-
-    .info-tip::after {
-        position: fixed;
-
-        top: 50%;
-        right: 12px;
-        left: 12px;
-
-        width: auto;
-        max-width: none;
-
-        transform: translateY(-50%);
-    }
-}
-
-/* Very narrow phones: only then switch to one column. */
-@media (max-width: 340px) {
-    :root {
-        --field-width: 100%;
-        --control-width: min(190px, 100%);
-    }
-
-    .form-grid {
-        grid-template-columns: minmax(0, 1fr);
     }
 }
