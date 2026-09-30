@@ -146,12 +146,59 @@ body.nav-open .nav-toggle-icon::after {
     line-height: 1.2;
 }
 
-.global-volume input {
-    display: block;
-
+.global-volume-controls {
     width: var(--control-width);
+    max-width: 100%;
+
+    display: flex;
+    align-items: center;
+
+    gap: 6px;
+}
+
+.global-volume-button,
+.global-mic-button {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+
+    display: inline-grid;
+    flex: none;
+    place-items: center;
+}
+
+.global-volume-button {
+    font-size: 16px;
+}
+
+.global-volume-controls input {
+    width: 0;
+    min-width: 0;
     height: 32px;
     margin: 0;
+
+    flex: 1;
+}
+
+.global-mic-button[aria-pressed='true'] {
+    border-color: var(--mic-accent);
+    color: var(--mic-accent);
+}
+
+.global-mic-icon {
+    width: 18px;
+    height: 18px;
+
+    display: block;
+}
+
+.global-mic-icon-on,
+.global-mic-button[aria-pressed='true'] .global-mic-icon-off {
+    display: none;
+}
+
+.global-mic-button[aria-pressed='true'] .global-mic-icon-on {
+    display: block;
 }
 
 .global-reference-controls {
@@ -373,6 +420,13 @@ footer a {
 
 footer a:hover {
     text-decoration: none;
+}
+
+@media (hover: hover) {
+    .nav-item:hover:not(:disabled) {
+        background: transparent;
+        color: var(--text);
+    }
 }
 
 @media (max-width: 1060px) {

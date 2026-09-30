@@ -26,13 +26,114 @@
     align-items: start;
 }
 
-.practice-wide {
-    width: auto;
+.practice-content-column,
+.practice-content-column-2,
+.practice-content-column-3,
+.practice-content-column-4 {
+    max-width: 100%;
 }
 
-.practice-wide-content {
+.practice-content-column {
+    width: var(--control-width);
+}
+
+.practice-content-column-2 {
     width: calc(var(--field-width) + var(--column-gap) + var(--control-width));
+}
+
+.practice-content-column-3 {
+    width: calc(
+        var(--field-width) + var(--column-gap) + var(--field-width) +
+            var(--column-gap) + var(--control-width)
+    );
+}
+
+.practice-content-column-4 {
+    width: calc(
+        var(--field-width) + var(--column-gap) + var(--field-width) +
+            var(--column-gap) + var(--field-width) + var(--column-gap) +
+            var(--control-width)
+    );
+}
+
+.practice-content-column-2 input,
+.practice-content-column-2 select,
+.practice-content-column-2 textarea,
+.practice-content-column-2 button,
+.practice-content-column-3 input,
+.practice-content-column-3 select,
+.practice-content-column-3 textarea,
+.practice-content-column-3 button,
+.practice-content-column-4 input,
+.practice-content-column-4 select,
+.practice-content-column-4 textarea,
+.practice-content-column-4 button {
+    width: 100%;
     max-width: 100%;
+}
+
+.practice-buttons {
+    width: var(--control-width);
+    max-width: 100%;
+
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--button-gap);
+
+    align-items: center;
+}
+
+.practice > .practice-buttons [data-action$='-play'] {
+    grid-column: 1;
+}
+
+.practice > .practice-buttons [data-action$='-stop'] {
+    grid-column: 2;
+}
+
+.practice > .practice-buttons [data-action$='-new'] {
+    grid-column: 3;
+}
+
+.practice-buttons .icon-button {
+    width: 100%;
+    min-width: 0;
+}
+
+.auto-refresh {
+    position: relative;
+    overflow: hidden;
+}
+
+.auto-refresh::before {
+    content: '';
+
+    position: absolute;
+    inset: 0;
+
+    background: rgb(255 255 255 / 16%);
+
+    transform: scaleX(0);
+    transform-origin: right center;
+}
+
+.auto-refresh > span {
+    position: relative;
+    z-index: 1;
+}
+
+.auto-refresh.is-counting-down::before {
+    animation: refresh-countdown 3s linear forwards;
+}
+
+@keyframes refresh-countdown {
+    from {
+        transform: scaleX(1);
+    }
+
+    to {
+        transform: scaleX(0);
+    }
 }
 
 .practice-guide {
@@ -57,10 +158,6 @@
     line-height: 1.4;
 }
 
-.practice-body {
-    min-width: 0;
-}
-
 .practice-status {
     min-height: 32px;
     margin: 0 0 8px;
@@ -72,15 +169,15 @@
     line-height: 1.4;
 }
 
-.practice-body > label {
-    display: block;
-    margin-bottom: 5px;
+.practice-note {
+    margin: -4px 0 8px;
 
-    color: #bbb;
+    color: var(--muted);
+
     font-size: 12px;
 }
 
-.practice-body input[type='range'] {
+.practice input[type='range'] {
     display: block;
     width: 100%;
     height: 32px;
@@ -96,18 +193,9 @@
     flex: 1;
 }
 
-.practice-report {
-    display: flex;
-    align-items: flex-end;
-    gap: 12px;
-}
-
-.practice-report .practice-stats {
-    margin-top: var(--practice-stats-spacing);
-}
-
-.practice-stats {
-    margin-top: calc(var(--practice-stats-spacing) - var(--practice-row-gap));
+.practice-responses {
+    display: grid;
+    row-gap: var(--button-gap);
 }
 
 .practice-row {
@@ -142,9 +230,8 @@
     color: var(--target);
 }
 
-.practice-body > .practice-result {
-    min-height: 20px;
-    margin-top: 8px;
+.practice > .practice-result {
+    margin: 0;
 }
 
 .practice-result:empty {
@@ -168,14 +255,53 @@
     color: var(--text);
 }
 
+/* Result groups */
+
+.practice-results {
+    min-width: 0;
+
+    color: inherit;
+
+    font-size: 13px;
+    line-height: 18px;
+}
+
+.practice-results > p,
+.practice-results > dl,
+.practice-results > ul {
+    margin-block: 0;
+}
+
+.practice-results > ul {
+    padding-left: 20px;
+}
+
+.practice-results > :not(:first-child) {
+    margin-top: var(--practice-row-gap);
+}
+
+.practice-results > dl > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.practice-results dt::after {
+    content: ':';
+}
+
+.practice-results dd {
+    margin: 0;
+}
+
 /* Stats */
 
-.stats {
+.practice-stats {
     width: max-content;
     max-width: 100%;
     min-width: 0;
 
-    margin-bottom: 0;
+    margin: 0;
 
     color: #bbb;
 
@@ -185,32 +311,37 @@
     white-space: nowrap;
 }
 
-.stats,
+.practice-stats,
+.practice-results,
 .practice-result {
     font-variant-numeric: tabular-nums;
 }
 
-.stats > div {
+.practice-stats > div {
     display: flex;
     align-items: baseline;
 
     gap: 4px;
 }
 
-.stats > .adaptive-status-row:has(dd:empty) {
+.practice-stats > .adaptive-status-row:has(dd:empty) {
     display: none;
 }
 
-.stats dt,
-.stats dd {
+.practice-stats:empty {
+    display: none;
+}
+
+.practice-stats dt,
+.practice-stats dd {
     margin: 0;
 }
 
-.stats dt::after {
+.practice-stats dt::after {
     content: ':';
 }
 
-.stats dd {
+.practice-stats dd {
     color: var(--text);
     font-weight: 600;
 }
@@ -237,6 +368,13 @@
     line-height: inherit;
 
     text-decoration: underline;
+}
+
+@media (hover: hover) {
+    .link-button:hover:not(:disabled) {
+        background: transparent;
+        color: var(--text);
+    }
 }
 
 /* Answers */
@@ -312,14 +450,26 @@
 }
 
 .answer-prompt {
-    grid-column: 1 / -1;
-
     line-height: 1.4;
 }
 
 .answer-list {
     display: grid;
     row-gap: 5px;
+}
+
+.answer-actions {
+    width: var(--control-width);
+    max-width: 100%;
+
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--button-gap);
+}
+
+.answer-actions .icon-button {
+    width: 100%;
+    min-width: 0;
 }
 
 .answer-play {
@@ -336,4 +486,42 @@
     padding: 0 7px;
 
     white-space: nowrap;
+}
+
+@media (max-width: 800px) {
+    .practice-content-column-3,
+    .practice-content-column-4 {
+        width: calc(
+            var(--field-width) + var(--column-gap) + var(--control-width)
+        );
+    }
+}
+
+@media (max-width: 560px) {
+    .practice {
+        width: 100%;
+    }
+
+    .practice-row {
+        grid-template-columns: var(--control-width) minmax(0, 1fr);
+    }
+
+    .practice-content-column-2,
+    .practice-content-column-3,
+    .practice-content-column-4 {
+        width: 100%;
+    }
+
+    .practice-result {
+        white-space: normal;
+
+        overflow-wrap: anywhere;
+    }
+}
+
+@media (max-width: 340px) {
+    .practice-content-column-3,
+    .practice-content-column-4 {
+        width: 100%;
+    }
 }
