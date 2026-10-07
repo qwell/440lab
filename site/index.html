@@ -179,7 +179,7 @@
                         "@type": "WebPageElement",
                         "@id": "https://440lab.com/#pitch",
                         "name": "Pitch",
-                        "description": "Ear-training exercises for pitch placement and absolute-frequency memory.",
+                        "description": "Ear-training exercises for pitch placement and pitch memory.",
                         "isPartOf": {
                             "@id": "https://440lab.com/#webpage"
                         }
@@ -293,7 +293,7 @@
                             "Melodic interval identification",
                             "Chord-quality recognition",
                             "Major, minor, diminished, and augmented triad identification",
-                            "Absolute-frequency memory"
+                            "Pitch memory"
                         ],
                         "assesses": [
                             "Pitch discrimination",
@@ -420,7 +420,6 @@
                             "diminished chords",
                             "augmented chords",
                             "absolute pitch memory",
-                            "frequency memory",
                             "pitch recall",
                             "cents",
                             "A4 reference pitch",
@@ -955,12 +954,47 @@
 
                         <button
                             class="icon-button"
-                            data-action="global-audio-stop"
+                            data-action="tuner-stop"
                             type="button"
                             aria-label="Stop reference tone"
                             title="Stop"
                         >
                             <span aria-hidden="true">■</span>
+                        </button>
+
+                        <button
+                            class="icon-button global-mic-button"
+                            data-action="global-microphone-toggle"
+                            type="button"
+                            aria-label="Enable microphone"
+                            aria-pressed="false"
+                            title="Enable microphone"
+                        >
+                            <svg
+                                class="global-mic-icon global-mic-icon-on"
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 640 640"
+                                fill="currentColor"
+                                aria-hidden="true"
+                            >
+                                <!-- !Font Awesome Free v7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc. -->
+                                <path
+                                    d="M320 64C267 64 224 107 224 160L224 288C224 341 267 384 320 384C373 384 416 341 416 288L416 160C416 107 373 64 320 64zM176 248C176 234.7 165.3 224 152 224C138.7 224 128 234.7 128 248L128 288C128 385.9 201.3 466.7 296 478.5L296 528L248 528C234.7 528 224 538.7 224 552C224 565.3 234.7 576 248 576L392 576C405.3 576 416 565.3 416 552C416 538.7 405.3 528 392 528L344 528L344 478.5C438.7 466.7 512 385.9 512 288L512 248C512 234.7 501.3 224 488 224C474.7 224 464 234.7 464 248L464 288C464 367.5 399.5 432 320 432C240.5 432 176 367.5 176 288L176 248z"
+                                />
+                            </svg>
+
+                            <svg
+                                class="global-mic-icon global-mic-icon-off"
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 640 640"
+                                fill="currentColor"
+                                aria-hidden="true"
+                            >
+                                <!-- !Font Awesome Free v7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc. -->
+                                <path
+                                    d="M73 39.1C63.6 29.7 48.4 29.7 39.1 39.1C29.8 48.5 29.7 63.7 39 73.1L567 601.1C576.4 610.5 591.6 610.5 600.9 601.1C610.2 591.7 610.3 576.5 600.9 567.2L456.7 422.8C490.9 388.2 512 340.6 512 288L512 248C512 234.7 501.3 224 488 224C474.7 224 464 234.7 464 248L464 288C464 327.3 448.3 362.9 422.7 388.9L388.8 355C405.6 337.7 416 314 416 288L416 160C416 107 373 64 320 64C267 64 224 107 224 160L224 190.2L73 39.2zM371.3 473.1L329.9 431.7C326.6 431.9 323.4 432 320.1 432C240.6 432 176.1 367.5 176.1 288L176.1 277.8L132.5 234.2C129.7 238.1 128.1 242.9 128.1 248L128.1 288C128.1 385.9 201.4 466.7 296.1 478.5L296.1 528L248.1 528C234.8 528 224.1 538.7 224.1 552C224.1 565.3 234.8 576 248.1 576L392.1 576C405.4 576 416.1 565.3 416.1 552C416.1 538.7 405.4 528 392.1 528L344.1 528L344.1 478.5C353.4 477.3 362.5 475.5 371.4 473.1z"
+                                />
+                            </svg>
                         </button>
                     </div>
                 </div>
@@ -1521,6 +1555,20 @@
                                 </select>
                             </div>
                         </div>
+                        <div class="field">
+                            <label for="rhythm-sheet-pitches">Pitches</label>
+                            <div class="control-row">
+                                <select
+                                    id="rhythm-sheet-pitches"
+                                    data-control="rhythm-sheet-pitches"
+                                >
+                                    <option value="natural" selected>
+                                        natural
+                                    </option>
+                                    <option value="chromatic">chromatic</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
 
                     <details class="practice-guide">
@@ -1865,9 +1913,9 @@
                 <!-- Pitch Memory -->
                 <div data-mode-panel="memory" hidden>
                     <h3 class="blurb">
-                        Recall an unfamiliar melody's exact opening frequency
-                        after a delay, or recall a target after interfering
-                        tones. No note names or familiar recordings are used.
+                        Recall an unfamiliar melody's exact opening pitch after
+                        a delay, or recall a target after interfering tones. No
+                        note names or familiar recordings are used.
                     </h3>
                     <div class="practice">
                         <div class="practice-content-column-3">
@@ -1881,14 +1929,14 @@
                             <p class="practice-note">
                                 Microphone responses accept the nearest octave.
                                 Slider adjustments within 50 cents keep octave
-                                matching; larger adjustments use the exact
-                                frequency.
+                                matching; larger adjustments use the selected
+                                pitch.
                             </p>
 
-                            <div id="pitch-memory-frequency-response" hidden>
-                                <label for="pitch-memory-frequency">
-                                    Response frequency (<span
-                                        data-output="pitch-memory-response-frequency"
+                            <div id="pitch-memory-pitch-response" hidden>
+                                <label for="pitch-memory-pitch">
+                                    Response pitch (<span
+                                        data-output="pitch-memory-response-pitch"
                                     ></span
                                     >)
                                     <span
@@ -1900,24 +1948,22 @@
                                         ⓘ
                                     </span>
                                 </label>
-                                <div class="pitch-memory-frequency-scale">
+                                <div class="pitch-memory-pitch-scale">
                                     <input
-                                        id="pitch-memory-frequency"
-                                        data-control="pitch-memory-frequency"
+                                        id="pitch-memory-pitch"
+                                        data-control="pitch-memory-pitch"
                                         type="range"
                                         step="any"
                                     />
-                                    <span
-                                        class="pitch-memory-frequency-markers"
-                                    >
+                                    <span class="pitch-memory-pitch-markers">
                                         <span
-                                            class="pitch-memory-frequency-marker state-background is-target"
+                                            class="pitch-memory-pitch-marker state-background is-target"
                                             data-output="pitch-memory-target-marker"
-                                            title="Target frequency"
+                                            title="Target pitch"
                                             hidden
                                         ></span>
                                         <span
-                                            class="pitch-memory-frequency-marker state-background"
+                                            class="pitch-memory-pitch-marker state-background"
                                             data-output="pitch-memory-response-marker"
                                             title="Your response"
                                             hidden
@@ -1968,7 +2014,7 @@
                                 <button
                                     data-action="pitch-memory-response-play"
                                     type="button"
-                                    title="Start the currently selected response frequency"
+                                    title="Start the currently selected response pitch"
                                     disabled
                                 >
                                     Start
@@ -2035,8 +2081,8 @@
                                 <span
                                     class="info-tip"
                                     tabindex="0"
-                                    aria-label="Novel melody tests recall of an unfamiliar melody's opening frequency after a delay. Interference tests recall of a single target after unrelated tones."
-                                    data-tooltip="Novel melody tests recall of an unfamiliar melody's opening frequency after a delay. Interference tests recall of a single target after unrelated tones."
+                                    aria-label="Novel melody tests recall of an unfamiliar melody's opening pitch after a delay. Interference tests recall of a single target after unrelated tones."
+                                    data-tooltip="Novel melody tests recall of an unfamiliar melody's opening pitch after a delay. Interference tests recall of a single target after unrelated tones."
                                 >
                                     ⓘ
                                 </span>
