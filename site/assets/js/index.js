@@ -1,29 +1,409 @@
 'use strict';
 
-const DEFAULT_REFERENCE_A4 = 440;
-const DEFAULT_MIDI = 69;
+const PREFERENCES_KEY = '440Lab.preferences.v1';
+
+const STATS_KEYS = {
+    pitch: '440Lab.pitchStats.v1',
+    match: '440Lab.matchStats.v1',
+    interval: '440Lab.intervalStats.v1',
+    chord: '440Lab.chordStats.v1',
+};
+
+const TRIAL_KEYS = {
+    pitchMemory: '440Lab.pitchMemoryTrial.v2',
+};
+
+const TRIAL_ADVANCE_DELAY = 3000;
+const ADAPTIVE_WINDOW_SIZE = 5;
+const ADAPTIVE_NARROW_FACTOR = 0.8;
+const ADAPTIVE_WIDEN_FACTOR = 1.25;
 const SEMITONES_PER_OCTAVE = 12;
+const CENTS_PER_SEMITONE = 100;
+const CENTS_PER_OCTAVE = SEMITONES_PER_OCTAVE * CENTS_PER_SEMITONE;
+
+const PITCH_CLASS_NAMES = [
+    { natural: 'C' },
+    { sharp: 'C♯', flat: 'D♭' },
+    { natural: 'D' },
+    { sharp: 'D♯', flat: 'E♭' },
+    { natural: 'E' },
+    { natural: 'F' },
+    { sharp: 'F♯', flat: 'G♭' },
+    { natural: 'G' },
+    { sharp: 'G♯', flat: 'A♭' },
+    { natural: 'A' },
+    { sharp: 'A♯', flat: 'B♭' },
+    { natural: 'B' },
+];
+
+const MIDI_NOTES = {
+    A0: 21,
+    'A#0': 22,
+    B0: 23,
+    C1: 24,
+    'C#1': 25,
+    D1: 26,
+    'D#1': 27,
+    E1: 28,
+    F1: 29,
+    'F#1': 30,
+    G1: 31,
+    'G#1': 32,
+    A1: 33,
+    'A#1': 34,
+    B1: 35,
+    C2: 36,
+    'C#2': 37,
+    D2: 38,
+    'D#2': 39,
+    E2: 40,
+    F2: 41,
+    'F#2': 42,
+    G2: 43,
+    'G#2': 44,
+    A2: 45,
+    'A#2': 46,
+    B2: 47,
+    C3: 48,
+    'C#3': 49,
+    D3: 50,
+    'D#3': 51,
+    E3: 52,
+    F3: 53,
+    'F#3': 54,
+    G3: 55,
+    'G#3': 56,
+    A3: 57,
+    'A#3': 58,
+    B3: 59,
+    C4: 60,
+    'C#4': 61,
+    D4: 62,
+    'D#4': 63,
+    E4: 64,
+    F4: 65,
+    'F#4': 66,
+    G4: 67,
+    'G#4': 68,
+    A4: 69,
+    'A#4': 70,
+    B4: 71,
+    C5: 72,
+    'C#5': 73,
+    D5: 74,
+    'D#5': 75,
+    E5: 76,
+    F5: 77,
+    'F#5': 78,
+    G5: 79,
+    'G#5': 80,
+    A5: 81,
+    'A#5': 82,
+    B5: 83,
+    C6: 84,
+    'C#6': 85,
+    D6: 86,
+    'D#6': 87,
+    E6: 88,
+    F6: 89,
+    'F#6': 90,
+    G6: 91,
+    'G#6': 92,
+    A6: 93,
+    'A#6': 94,
+    B6: 95,
+    C7: 96,
+    'C#7': 97,
+    D7: 98,
+    'D#7': 99,
+    E7: 100,
+    F7: 101,
+    'F#7': 102,
+    G7: 103,
+    'G#7': 104,
+    A7: 105,
+    'A#7': 106,
+    B7: 107,
+};
+
+const DEFAULT_A4_FREQUENCY = 440;
+const MINIMUM_SUPPORTED_MIDI = MIDI_NOTES.A0;
+const MAXIMUM_SUPPORTED_MIDI = MIDI_NOTES.B7;
+const DEFAULT_VOLUME = 0.8;
+const VOICE_GAIN = 0.25;
+
+const INTERVAL_LEVELS = {
+    starter: 0,
+    common: 1,
+    all: 2,
+};
+
+const INTERVALS = [
+    { semitones: 0, name: 'Unison', level: INTERVAL_LEVELS['starter'] },
+    { semitones: 1, name: 'Minor 2nd', level: INTERVAL_LEVELS['all'] },
+    { semitones: 2, name: 'Major 2nd', level: INTERVAL_LEVELS['common'] },
+    { semitones: 3, name: 'Minor 3rd', level: INTERVAL_LEVELS['all'] },
+    { semitones: 4, name: 'Major 3rd', level: INTERVAL_LEVELS['starter'] },
+    { semitones: 5, name: 'Perfect 4th', level: INTERVAL_LEVELS['common'] },
+    { semitones: 6, name: 'Tritone', level: INTERVAL_LEVELS['all'] },
+    { semitones: 7, name: 'Perfect 5th', level: INTERVAL_LEVELS['starter'] },
+    { semitones: 8, name: 'Minor 6th', level: INTERVAL_LEVELS['all'] },
+    { semitones: 9, name: 'Major 6th', level: INTERVAL_LEVELS['common'] },
+    { semitones: 10, name: 'Minor 7th', level: INTERVAL_LEVELS['common'] },
+    { semitones: 11, name: 'Major 7th', level: INTERVAL_LEVELS['all'] },
+    { semitones: 12, name: 'Octave', level: INTERVAL_LEVELS['starter'] },
+];
+
+const CHORD_QUALITIES = {
+    major: [0, 4, 7],
+    minor: [0, 3, 7],
+    diminished: [0, 3, 6],
+    augmented: [0, 4, 8],
+};
 
 const TUNER_ANALYSIS_INTERVAL_MS = 50;
-const TUNER_SMOOTHING = 0.18;
+const TUNER_CENTS_SMOOTHING = 0.18;
 const TUNER_MIN_RMS = 0.006;
 const TUNER_STABLE_FRAMES = 3;
 const TUNER_YIN_THRESHOLD = 0.15;
-const TUNER_HISTORY_LENGTH = 5;
-const TUNER_ANALYSIS_FFT_SIZE = 8192;
+const TUNER_FREQUENCY_SAMPLE_LIMIT = 5;
 const TUNER_ANALYSIS_SAMPLE_STRIDE = 2;
 const TUNER_PLOT_SECONDS = 8;
 const TUNER_PLOT_PADDING_SEMITONES = 7;
 
-const TUNER_MIN_HZ = 12;
-const TUNER_MAX_HZ = 5000;
+const TUNER_INSTRUMENTS = [
+    {
+        name: 'guitar',
+        tunings: [
+            [
+                'standard',
+                [
+                    MIDI_NOTES.E2,
+                    MIDI_NOTES.A2,
+                    MIDI_NOTES.D3,
+                    MIDI_NOTES.G3,
+                    MIDI_NOTES.B3,
+                    MIDI_NOTES.E4,
+                ],
+            ],
+            [
+                'drop D',
+                [
+                    MIDI_NOTES.D2,
+                    MIDI_NOTES.A2,
+                    MIDI_NOTES.D3,
+                    MIDI_NOTES.G3,
+                    MIDI_NOTES.B3,
+                    MIDI_NOTES.E4,
+                ],
+            ],
+            [
+                'DADGAD',
+                [
+                    MIDI_NOTES.D2,
+                    MIDI_NOTES.A2,
+                    MIDI_NOTES.D3,
+                    MIDI_NOTES.G3,
+                    MIDI_NOTES.A3,
+                    MIDI_NOTES.D4,
+                ],
+            ],
+            [
+                'open G',
+                [
+                    MIDI_NOTES.D2,
+                    MIDI_NOTES.G2,
+                    MIDI_NOTES.D3,
+                    MIDI_NOTES.G3,
+                    MIDI_NOTES.B3,
+                    MIDI_NOTES.D4,
+                ],
+            ],
+            [
+                'open D',
+                [
+                    MIDI_NOTES.D2,
+                    MIDI_NOTES.A2,
+                    MIDI_NOTES.D3,
+                    MIDI_NOTES['F#3'],
+                    MIDI_NOTES.A3,
+                    MIDI_NOTES.D4,
+                ],
+            ],
+            [
+                'half step down',
+                [
+                    MIDI_NOTES['D#2'],
+                    MIDI_NOTES['G#2'],
+                    MIDI_NOTES['C#3'],
+                    MIDI_NOTES['F#3'],
+                    MIDI_NOTES['A#3'],
+                    MIDI_NOTES['D#4'],
+                ],
+                'flat',
+            ],
+        ],
+    },
+    {
+        name: 'bass guitar',
+        tunings: [
+            [
+                'standard (4 strings)',
+                [MIDI_NOTES.E1, MIDI_NOTES.A1, MIDI_NOTES.D2, MIDI_NOTES.G2],
+            ],
+            [
+                'drop D',
+                [MIDI_NOTES.D1, MIDI_NOTES.A1, MIDI_NOTES.D2, MIDI_NOTES.G2],
+            ],
+            [
+                'standard (5 strings)',
+                [
+                    MIDI_NOTES.B0,
+                    MIDI_NOTES.E1,
+                    MIDI_NOTES.A1,
+                    MIDI_NOTES.D2,
+                    MIDI_NOTES.G2,
+                ],
+            ],
+            [
+                'standard (6 strings)',
+                [
+                    MIDI_NOTES.B0,
+                    MIDI_NOTES.E1,
+                    MIDI_NOTES.A1,
+                    MIDI_NOTES.D2,
+                    MIDI_NOTES.G2,
+                    MIDI_NOTES.C3,
+                ],
+            ],
+        ],
+    },
+    {
+        name: 'violin',
+        tunings: [
+            [
+                'standard',
+                [MIDI_NOTES.G3, MIDI_NOTES.D4, MIDI_NOTES.A4, MIDI_NOTES.E5],
+            ],
+        ],
+    },
+    {
+        name: 'viola',
+        tunings: [
+            [
+                'standard',
+                [MIDI_NOTES.C3, MIDI_NOTES.G3, MIDI_NOTES.D4, MIDI_NOTES.A4],
+            ],
+        ],
+    },
+    {
+        name: 'cello',
+        tunings: [
+            [
+                'standard',
+                [MIDI_NOTES.C2, MIDI_NOTES.G2, MIDI_NOTES.D3, MIDI_NOTES.A3],
+            ],
+        ],
+    },
+    {
+        name: 'double bass',
+        tunings: [
+            [
+                'standard (4 strings)',
+                [MIDI_NOTES.E1, MIDI_NOTES.A1, MIDI_NOTES.D2, MIDI_NOTES.G2],
+            ],
+            [
+                'standard (5 strings)',
+                [
+                    MIDI_NOTES.B0,
+                    MIDI_NOTES.E1,
+                    MIDI_NOTES.A1,
+                    MIDI_NOTES.D2,
+                    MIDI_NOTES.G2,
+                ],
+            ],
+        ],
+    },
+    {
+        name: 'ukulele',
+        tunings: [
+            [
+                'standard (high G)',
+                [MIDI_NOTES.G4, MIDI_NOTES.C4, MIDI_NOTES.E4, MIDI_NOTES.A4],
+            ],
+            [
+                'low G',
+                [MIDI_NOTES.G3, MIDI_NOTES.C4, MIDI_NOTES.E4, MIDI_NOTES.A4],
+            ],
+            [
+                'baritone',
+                [MIDI_NOTES.D3, MIDI_NOTES.G3, MIDI_NOTES.B3, MIDI_NOTES.E4],
+            ],
+        ],
+    },
+    {
+        name: 'banjo',
+        tunings: [
+            [
+                'open G (5 strings)',
+                [
+                    MIDI_NOTES.G4,
+                    MIDI_NOTES.D3,
+                    MIDI_NOTES.G3,
+                    MIDI_NOTES.B3,
+                    MIDI_NOTES.D4,
+                ],
+            ],
+            [
+                'double C',
+                [
+                    MIDI_NOTES.G4,
+                    MIDI_NOTES.C3,
+                    MIDI_NOTES.G3,
+                    MIDI_NOTES.C4,
+                    MIDI_NOTES.D4,
+                ],
+            ],
+            [
+                'sawmill',
+                [
+                    MIDI_NOTES.G4,
+                    MIDI_NOTES.D3,
+                    MIDI_NOTES.G3,
+                    MIDI_NOTES.C4,
+                    MIDI_NOTES.D4,
+                ],
+            ],
+            [
+                'tenor',
+                [MIDI_NOTES.C3, MIDI_NOTES.G3, MIDI_NOTES.D4, MIDI_NOTES.A4],
+            ],
+        ],
+    },
+    {
+        name: 'mandolin',
+        tunings: [
+            [
+                'standard (paired)',
+                [
+                    MIDI_NOTES.G3,
+                    MIDI_NOTES.G3,
+                    MIDI_NOTES.D4,
+                    MIDI_NOTES.D4,
+                    MIDI_NOTES.A4,
+                    MIDI_NOTES.A4,
+                    MIDI_NOTES.E5,
+                    MIDI_NOTES.E5,
+                ],
+            ],
+        ],
+    },
+];
 
 const RHYTHM_LOOKAHEAD_MS = 25;
 const RHYTHM_SCHEDULE_AHEAD_SECONDS = 0.1;
 const RHYTHM_CLICK_DURATION = 0.035;
-const RHYTHM_NORMAL_HZ = 800;
-const RHYTHM_GROUP_HZ = 1000;
-const RHYTHM_FIRST_HZ = 1200;
+const RHYTHM_CLICK_FREQUENCIES = [800, 1000, 1200];
 
 const RHYTHM_NOTE_VALUES = [
     { value: 1, name: 'whole', symbol: '𝅝', rest: '𝄻' },
@@ -31,6 +411,9 @@ const RHYTHM_NOTE_VALUES = [
     { value: 4, name: 'quarter', symbol: '𝅘𝅥', rest: '𝄽' },
     { value: 8, name: 'eighth', symbol: '𝅘𝅥𝅮', rest: '𝄾' },
     { value: 16, name: 'sixteenth', symbol: '𝅘𝅥𝅯', rest: '𝄿' },
+    { value: 32, name: 'thirty-second', symbol: '𝅘𝅥𝅰', rest: '𝅀' },
+    { value: 64, name: 'sixty-fourth', symbol: '𝅘𝅥𝅱', rest: '𝅁' },
+    { value: 128, name: 'hundred twenty-eighth', symbol: '𝅘𝅥𝅲', rest: '𝅂' },
 ];
 const RHYTHM_DOT_MULTIPLIER = 1.5;
 const RHYTHM_COMPOUND_SUBDIVISIONS = 3;
@@ -38,12 +421,12 @@ const RHYTHM_COMPOUND_SUBDIVISIONS = 3;
 const SHEET_REM_PER_QUARTER = 5.5;
 const SHEET_BAR_PADDING_REM = 1.25;
 const SHEET_BAR_GLIDE_SECONDS = 0.15;
-const SHEET_PLAY_LINE_REM = 2;
 const SHEET_EIGHTH_PATTERN_RATE = 0.2;
 const SHEET_SIXTEENTH_PATTERN_RATE = 0.05;
 const SHEET_SIXTEENTH_PAIR_RATE = 0.7;
 const SHEET_SUSTAINED_PATTERN_RATE = 0.6;
 const SHEET_TIE_RATE = 0.35;
+
 const RHYTHM_METERS = {
     '2/4': [2, 0],
     '3/4': [2, 0, 0],
@@ -67,181 +450,41 @@ const RHYTHM_SIGNATURE_SYMBOLS = {
 const SHEET_CLEFS = {
     treble: {
         symbol: '𝄞',
-        minimumMidi: 60,
-        maximumMidi: 81,
-        bottomLineDiatonic: 30,
+        minimumMidi: MIDI_NOTES.C4,
+        maximumMidi: MIDI_NOTES.A5,
+        bottomLineMidi: MIDI_NOTES.E4,
     },
     bass: {
         symbol: '𝄢',
-        minimumMidi: 36,
-        maximumMidi: 57,
-        bottomLineDiatonic: 18,
+        minimumMidi: MIDI_NOTES.C2,
+        maximumMidi: MIDI_NOTES.A3,
+        bottomLineMidi: MIDI_NOTES.G2,
     },
     alto: {
         symbol: '𝄡',
-        minimumMidi: 48,
-        maximumMidi: 69,
-        bottomLineDiatonic: 24,
+        minimumMidi: MIDI_NOTES.C3,
+        maximumMidi: MIDI_NOTES.A4,
+        bottomLineMidi: MIDI_NOTES.F3,
     },
     tenor: {
         symbol: '𝄡',
-        minimumMidi: 43,
-        maximumMidi: 64,
-        bottomLineDiatonic: 22,
+        minimumMidi: MIDI_NOTES.G2,
+        maximumMidi: MIDI_NOTES.E4,
+        bottomLineMidi: MIDI_NOTES.D3,
     },
 };
-const NATURAL_PITCH_CLASSES = [0, 2, 4, 5, 7, 9, 11];
-const SHEET_CORRECT_CENTS = 50;
+
+const SHEET_CORRECT_CENTS = 25;
 const SHEET_ANALYSIS_INTERVAL_MS = 50;
+const SHEET_FREQUENCY_SAMPLE_LIMIT = 3;
 const SHEET_NOTE_CUE_DURATION = 0.09;
 const SHEET_NOTE_CUE_VOLUME = 0.45;
 
-const PREFERENCES_KEY = '440Lab.preferences.v1';
-
-const STATS_KEYS = {
-    pitch: '440Lab.pitchStats.v1',
-    match: '440Lab.matchStats.v1',
-    interval: '440Lab.intervalStats.v1',
-    chord: '440Lab.chordStats.v1',
-};
-
-const PITCH_MEMORY_TRIAL_KEY = '440Lab.pitchMemoryTrial.v1';
-const PITCH_MEMORY_MIN_HZ = 98; // G2
-const PITCH_MEMORY_MAX_HZ = 987.77; // B5
-const PITCH_MEMORY_CORRECT_CENTS = 50;
-const PITCH_MEMORY_MIC_ADJUSTMENT_CENTS = 50;
+const PITCH_MEMORY_CORRECT_CENTS = 25;
+const PITCH_MEMORY_MICROPHONE_ADJUSTMENT_CENTS = 50;
+const PITCH_MEMORY_FREQUENCY_SAMPLE_LIMIT = 9;
 const PITCH_MEMORY_RANGE_CENTS =
-    1200 * Math.log2(PITCH_MEMORY_MAX_HZ / PITCH_MEMORY_MIN_HZ);
-const TRIAL_ADVANCE_DELAY = 3000;
-const ADAPTIVE_WINDOW_SIZE = 5;
-const ADAPTIVE_NARROW_FACTOR = 0.8;
-const ADAPTIVE_WIDEN_FACTOR = 1.25;
-const DEFAULT_VOLUME = 0.8;
-const VOICE_GAIN = 0.25;
-
-const NOTE_NAMES = [
-    'C',
-    'C♯ / D♭',
-    'D',
-    'D♯ / E♭',
-    'E',
-    'F',
-    'F♯ / G♭',
-    'G',
-    'G♯ / A♭',
-    'A',
-    'A♯ / B♭',
-    'B',
-];
-
-const TUNER_ACCIDENTAL_NAMES = {
-    sharp: {
-        1: 'C♯',
-        3: 'D♯',
-        6: 'F♯',
-        8: 'G♯',
-        10: 'A♯',
-    },
-    flat: {
-        1: 'D♭',
-        3: 'E♭',
-        6: 'G♭',
-        8: 'A♭',
-        10: 'B♭',
-    },
-};
-
-const CHORD_QUALITIES = {
-    major: [0, 4, 7],
-    minor: [0, 3, 7],
-    diminished: [0, 3, 6],
-    augmented: [0, 4, 8],
-};
-
-const INTERVALS = [
-    { semitones: 0, name: 'Unison', shortName: 'Unison' },
-    { semitones: 1, name: 'Minor second', shortName: 'Minor 2nd' },
-    { semitones: 2, name: 'Major second', shortName: 'Major 2nd' },
-    { semitones: 3, name: 'Minor third', shortName: 'Minor 3rd' },
-    { semitones: 4, name: 'Major third', shortName: 'Major 3rd' },
-    { semitones: 5, name: 'Perfect fourth', shortName: 'Perfect 4th' },
-    { semitones: 6, name: 'Tritone' },
-    { semitones: 7, name: 'Perfect fifth', shortName: 'Perfect 5th' },
-    { semitones: 8, name: 'Minor sixth', shortName: 'Minor 6th' },
-    { semitones: 9, name: 'Major sixth', shortName: 'Major 6th' },
-    { semitones: 10, name: 'Minor seventh', shortName: 'Minor 7th' },
-    { semitones: 11, name: 'Major seventh', shortName: 'Major 7th' },
-    { semitones: 12, name: 'Octave', shortName: 'Octave' },
-];
-
-const INTERVAL_LEVELS = {
-    starter: [3, 4, 7, 12],
-    common: [2, 3, 4, 5, 7, 8, 9, 12],
-    all: INTERVALS.map(({ semitones }) => semitones),
-};
-
-const TUNER_INSTRUMENTS = [
-    {
-        name: 'guitar',
-        tunings: [
-            ['standard', [40, 45, 50, 55, 59, 64]],
-            ['drop D', [38, 45, 50, 55, 59, 64]],
-            ['DADGAD', [38, 45, 50, 55, 57, 62]],
-            ['open G', [38, 43, 50, 55, 59, 62]],
-            ['open D', [38, 45, 50, 54, 57, 62]],
-            ['half step down', [39, 44, 49, 54, 58, 63], 'flat'],
-        ],
-    },
-    {
-        name: 'bass guitar',
-        tunings: [
-            ['standard (4 strings)', [28, 33, 38, 43]],
-            ['drop D', [26, 33, 38, 43]],
-            ['standard (5 strings)', [23, 28, 33, 38, 43]],
-            ['standard (6 strings)', [23, 28, 33, 38, 43, 48]],
-        ],
-    },
-    {
-        name: 'violin',
-        tunings: [['standard', [55, 62, 69, 76]]],
-    },
-    {
-        name: 'viola',
-        tunings: [['standard', [48, 55, 62, 69]]],
-    },
-    {
-        name: 'cello',
-        tunings: [['standard', [36, 43, 50, 57]]],
-    },
-    {
-        name: 'double bass',
-        tunings: [
-            ['standard (4 strings)', [28, 33, 38, 43]],
-            ['standard (5 strings)', [23, 28, 33, 38, 43]],
-        ],
-    },
-    {
-        name: 'ukulele',
-        tunings: [
-            ['standard (high G)', [67, 60, 64, 69]],
-            ['low G', [55, 60, 64, 69]],
-            ['baritone', [50, 55, 59, 64]],
-        ],
-    },
-    {
-        name: 'banjo',
-        tunings: [
-            ['open G (5 strings)', [67, 50, 55, 59, 62]],
-            ['double C', [67, 48, 55, 60, 62]],
-            ['sawmill', [67, 50, 55, 60, 62]],
-            ['tenor', [48, 55, 62, 69]],
-        ],
-    },
-    {
-        name: 'mandolin',
-        tunings: [['standard (paired)', [55, 55, 62, 62, 69, 69, 76, 76]]],
-    },
-];
+    (MAXIMUM_SUPPORTED_MIDI - MINIMUM_SUPPORTED_MIDI) * CENTS_PER_SEMITONE;
 
 function clamp(value, minimum, maximum) {
     return Math.min(maximum, Math.max(minimum, value));
@@ -284,6 +527,14 @@ function median(values) {
         : (sorted[middle - 1] + sorted[middle]) / 2;
 }
 
+function addRollingSample(samples, sample, limit) {
+    samples.push(sample);
+
+    if (samples.length > limit) {
+        samples.splice(0, samples.length - limit);
+    }
+}
+
 function shuffle(items) {
     const result = [...items];
 
@@ -296,70 +547,60 @@ function shuffle(items) {
     return result;
 }
 
-function frequencyFromCents(referenceHz, cents) {
-    return referenceHz * 2 ** (cents / 1200);
+function frequencyFromCents(referenceFrequency, cents) {
+    return referenceFrequency * 2 ** (cents / CENTS_PER_OCTAVE);
 }
 
-function centsBetween(frequencyHz, referenceHz) {
-    return 1200 * Math.log2(frequencyHz / referenceHz);
+function centsBetween(frequency, referenceFrequency) {
+    return CENTS_PER_OCTAVE * Math.log2(frequency / referenceFrequency);
 }
 
-function nearestOctaveFrequency(frequencyHz, referenceHz) {
-    const octaveOffset = Math.round(Math.log2(referenceHz / frequencyHz));
+function nearestOctaveFrequency(frequency, referenceFrequency) {
+    const octaveOffset = Math.round(Math.log2(referenceFrequency / frequency));
 
-    return frequencyHz * 2 ** octaveOffset;
+    return frequency * 2 ** octaveOffset;
 }
 
-function getReferenceA4() {
-    return readNumber(getControl('global-reference-a4'), DEFAULT_REFERENCE_A4);
+function getReferenceFrequency() {
+    return readNumber(getControl('global-reference-a4'), DEFAULT_A4_FREQUENCY);
 }
 
-function midiFrequency(midi) {
+function frequencyFromMidi(midi) {
     return (
-        getReferenceA4() * 2 ** ((midi - DEFAULT_MIDI) / SEMITONES_PER_OCTAVE)
+        getReferenceFrequency() *
+        2 ** ((midi - MIDI_NOTES.A4) / SEMITONES_PER_OCTAVE)
     );
 }
 
-function midiFromFrequency(frequencyHz) {
+function midiFromFrequency(frequency) {
     return (
-        DEFAULT_MIDI +
-        SEMITONES_PER_OCTAVE * Math.log2(frequencyHz / getReferenceA4())
+        MIDI_NOTES.A4 +
+        SEMITONES_PER_OCTAVE * Math.log2(frequency / getReferenceFrequency())
     );
 }
 
-function midiToNoteName(midi) {
-    const roundedMidi = Math.round(midi);
-    const pitchClass =
-        ((roundedMidi % SEMITONES_PER_OCTAVE) + SEMITONES_PER_OCTAVE) %
-        SEMITONES_PER_OCTAVE;
-    const octave = Math.floor(roundedMidi / SEMITONES_PER_OCTAVE) - 1;
-
-    return `${NOTE_NAMES[pitchClass]}${octave}`;
+function pitchClassFromMidi(midi) {
+    return (
+        ((Math.round(midi) % SEMITONES_PER_OCTAVE) + SEMITONES_PER_OCTAVE) %
+        SEMITONES_PER_OCTAVE
+    );
 }
 
-function midiToTunerNoteName(midi, accidental = 'sharp') {
+function pitchClassName(pitchClass, accidental = null) {
+    const names = PITCH_CLASS_NAMES[pitchClass];
+
+    return (
+        names.natural ?? names[accidental] ?? `${names.sharp} / ${names.flat}`
+    );
+}
+
+function noteNameFromMidi(midi, accidental = null) {
     const roundedMidi = Math.round(midi);
-    const pitchClass =
-        ((roundedMidi % SEMITONES_PER_OCTAVE) + SEMITONES_PER_OCTAVE) %
-        SEMITONES_PER_OCTAVE;
+    const pitchClass = pitchClassFromMidi(roundedMidi);
     const octave = Math.floor(roundedMidi / SEMITONES_PER_OCTAVE) - 1;
-    const noteName =
-        TUNER_ACCIDENTAL_NAMES[accidental][pitchClass] ??
-        NOTE_NAMES[pitchClass];
+    const noteName = pitchClassName(pitchClass, accidental);
 
     return `${noteName}${octave}`;
-}
-
-function tunerTargetNoteName() {
-    const instrument = TUNER_INSTRUMENTS[getControl('tuner-instrument').value];
-    const tuning = instrument?.tunings[getControl('tuner-variation').value];
-    const accidental = tuning?.[2] ?? 'sharp';
-
-    return midiToTunerNoteName(tunerTargetMidi, accidental);
-}
-
-function selectedNoteFrequency(select) {
-    return midiFrequency(Number(select.value));
 }
 
 function getControl(name, root = document) {
@@ -390,6 +631,26 @@ function getModuleActions(module, action, root = document) {
     );
 }
 
+function getNoteControl(name) {
+    return document.querySelector(`[data-note="${name}"]`);
+}
+
+function getWaveform(name) {
+    return document.querySelector(`[data-waveform="${name}"]`);
+}
+
+function tunerTargetNoteName() {
+    const instrument = TUNER_INSTRUMENTS[getControl('tuner-instrument').value];
+    const tuning = instrument?.tunings[getControl('tuner-variation').value];
+    const accidental = tuning?.[2] ?? 'sharp';
+
+    return noteNameFromMidi(tunerTargetMidi, accidental);
+}
+
+function selectedNoteFrequency(noteControl) {
+    return frequencyFromMidi(Number(noteControl.value));
+}
+
 function synchronizeSharedControl(control) {
     const name = control?.dataset?.control;
 
@@ -415,14 +676,6 @@ function getModePanels(name) {
     return document.querySelectorAll(
         `[data-panel="${name}"] [data-mode-panel]`
     );
-}
-
-function getNote(name) {
-    return document.querySelector(`[data-note="${name}"]`);
-}
-
-function getWaveform(name) {
-    return document.querySelector(`[data-waveform="${name}"]`);
 }
 
 const storage = {
@@ -476,21 +729,21 @@ const storage = {
 
 function savePreferences() {
     storage.save(PREFERENCES_KEY, {
-        a4: getReferenceA4(),
+        a4: getReferenceFrequency(),
         volume: Number(getControl('global-volume').value),
     });
 }
 
 function restorePreferences() {
     const preferences = storage.load(PREFERENCES_KEY, {});
-    const referenceA4Input = getControl('global-reference-a4');
+    const referenceFrequencyInput = getControl('global-reference-a4');
     const volumeInput = getControl('global-volume');
 
     if (Number.isFinite(preferences.a4)) {
-        referenceA4Input.value = clamp(
+        referenceFrequencyInput.value = clamp(
             preferences.a4,
-            Number(referenceA4Input.min),
-            Number(referenceA4Input.max)
+            Number(referenceFrequencyInput.min),
+            Number(referenceFrequencyInput.max)
         ).toFixed(3);
     }
 
@@ -525,10 +778,6 @@ function saveStats(name) {
     }
 
     storage.save(STATS_KEYS[name], moduleStats);
-}
-
-function clearStats(name) {
-    storage.remove(STATS_KEYS[name]);
 }
 
 function createAutoAdvance(elements, advance) {
@@ -656,13 +905,13 @@ const audio = (() => {
         parameter.linearRampToValueAtTime(target, now + seconds);
     }
 
-    function createVoice(frequencyHz, waveform) {
+    function createVoice(frequency, waveform) {
         const audioContext = ensureContext();
         const oscillator = audioContext.createOscillator();
         const gain = audioContext.createGain();
 
         oscillator.type = waveform;
-        oscillator.frequency.value = frequencyHz;
+        oscillator.frequency.value = frequency;
 
         oscillator.connect(gain);
         gain.connect(masterGain);
@@ -686,9 +935,9 @@ const audio = (() => {
         }
     }
 
-    function playContinuous(frequencyHz, waveform, volume = 1) {
+    function playContinuous(frequency, waveform, volume = 1) {
         const { audioContext, oscillator, gain } = createVoice(
-            frequencyHz,
+            frequency,
             waveform
         );
 
@@ -743,14 +992,14 @@ const audio = (() => {
     }
 
     function playTransient(
-        frequencyHz,
+        frequency,
         waveform,
         durationSeconds,
         volume = 1,
         delaySeconds = 0
     ) {
         const { audioContext, oscillator, gain } = createVoice(
-            frequencyHz,
+            frequency,
             waveform
         );
 
@@ -760,7 +1009,7 @@ const audio = (() => {
 
         const targetGain = VOICE_GAIN * clamp(volume, 0, 1);
 
-        oscillator.frequency.setValueAtTime(frequencyHz, startTime);
+        oscillator.frequency.setValueAtTime(frequency, startTime);
 
         gain.gain.setValueAtTime(0, startTime);
 
@@ -820,12 +1069,12 @@ const audio = (() => {
         transientVoices.clear();
     }
 
-    function createAnalyser(stream, fftSize = 2048) {
+    function createAnalyser(stream, sampleWindowSize = 2048) {
         const audioContext = ensureContext();
         const source = audioContext.createMediaStreamSource(stream);
         const analyser = audioContext.createAnalyser();
 
-        analyser.fftSize = fftSize;
+        analyser.fftSize = sampleWindowSize;
         analyser.smoothingTimeConstant = 0;
 
         source.connect(analyser);
@@ -851,9 +1100,13 @@ const MICROPHONE_STATES = Object.freeze({
     UNPROMPTED: 'unprompted',
     DENIED: 'denied',
     LISTENING: 'listening',
-    STOPPED: 'stopped',
+    PAUSED: 'paused',
 });
-const MICROPHONE_FAILURE_MESSAGES = Object.freeze({
+const MICROPHONE_MESSAGES = Object.freeze({
+    REQUESTING: 'Requesting microphone access...',
+    LISTENING: 'Listening...',
+    PAUSED: 'Microphone paused',
+    NO_STABLE_PITCH: 'No stable pitch',
     DENIED: 'Microphone permission denied',
     NOT_FOUND: 'No microphone found',
     UNAVAILABLE: 'Microphone access unavailable',
@@ -863,8 +1116,13 @@ const MICROPHONE_FAILURE_MESSAGES = Object.freeze({
 let microphoneStream = null;
 let microphoneRequest = null;
 let microphoneState = MICROPHONE_STATES.UNPROMPTED;
-let requestedMicrophoneState = MICROPHONE_STATES.STOPPED;
-let microphoneFailureMessage = MICROPHONE_FAILURE_MESSAGES.FAILED;
+let microphoneRequestState = MICROPHONE_STATES.PAUSED;
+let microphoneFailureMessage = MICROPHONE_MESSAGES.FAILED;
+let activeMicrophoneInput = null;
+let microphoneConnection = null;
+let microphoneAnalysis = null;
+let microphoneAnalysisFrame = null;
+let microphoneInputRequestId = 0;
 
 function microphoneStreamConnected() {
     return Boolean(
@@ -876,41 +1134,41 @@ function microphoneStreamConnected() {
 
 function microphoneErrorMessage(error) {
     if (error?.name === 'NotAllowedError') {
-        return MICROPHONE_FAILURE_MESSAGES.DENIED;
+        return MICROPHONE_MESSAGES.DENIED;
     }
     if (error?.name === 'NotFoundError') {
-        return MICROPHONE_FAILURE_MESSAGES.NOT_FOUND;
+        return MICROPHONE_MESSAGES.NOT_FOUND;
     }
     if (error?.name === 'NotSupportedError') {
-        return MICROPHONE_FAILURE_MESSAGES.UNAVAILABLE;
+        return MICROPHONE_MESSAGES.UNAVAILABLE;
     }
 
-    return MICROPHONE_FAILURE_MESSAGES.FAILED;
+    return MICROPHONE_MESSAGES.FAILED;
 }
 
 function renderMicrophoneState(state, failureMessage = null) {
     microphoneState = state;
     if (state === MICROPHONE_STATES.DENIED) {
-        microphoneFailureMessage =
-            failureMessage ?? MICROPHONE_FAILURE_MESSAGES.DENIED;
+        microphoneFailureMessage = failureMessage ?? MICROPHONE_MESSAGES.DENIED;
     }
 
-    const button = getAction('global-microphone-toggle');
     const labels = {
         [MICROPHONE_STATES.UNPROMPTED]: 'Enable microphone',
         [MICROPHONE_STATES.DENIED]: 'Retry microphone access',
-        [MICROPHONE_STATES.LISTENING]: 'Stop microphone',
-        [MICROPHONE_STATES.STOPPED]: 'Start microphone',
+        [MICROPHONE_STATES.LISTENING]: 'Pause microphone',
+        [MICROPHONE_STATES.PAUSED]: 'Start microphone',
     };
     const label = labels[state];
 
-    button.dataset.microphoneState = state;
-    button.setAttribute(
-        'aria-pressed',
-        String(state === MICROPHONE_STATES.LISTENING)
-    );
-    button.setAttribute('aria-label', label);
-    button.title = label;
+    for (const button of getActions('global-microphone-toggle')) {
+        button.dataset.microphoneState = state;
+        button.setAttribute(
+            'aria-pressed',
+            String(state === MICROPHONE_STATES.LISTENING)
+        );
+        button.setAttribute('aria-label', label);
+        button.title = label;
+    }
 }
 
 function setMicrophoneTracksEnabled(enabled) {
@@ -956,31 +1214,32 @@ async function requestMicrophoneStream() {
 async function setMicrophoneState(requestedState) {
     if (
         requestedState !== MICROPHONE_STATES.LISTENING &&
-        requestedState !== MICROPHONE_STATES.STOPPED
+        requestedState !== MICROPHONE_STATES.PAUSED
     ) {
         throw new TypeError(`Invalid microphone state: ${requestedState}`);
     }
 
-    requestedMicrophoneState = requestedState;
+    microphoneRequestState = requestedState;
 
-    if (requestedState === MICROPHONE_STATES.STOPPED) {
+    if (requestedState === MICROPHONE_STATES.PAUSED) {
+        deactivateActiveMicrophoneInput('microphone-paused');
         setMicrophoneTracksEnabled(false);
 
         if (microphoneStreamConnected()) {
-            renderMicrophoneState(MICROPHONE_STATES.STOPPED);
+            renderMicrophoneState(MICROPHONE_STATES.PAUSED);
             return microphoneState;
         }
 
         const permission = await microphonePermissionState();
 
-        if (requestedMicrophoneState !== MICROPHONE_STATES.STOPPED) {
+        if (microphoneRequestState !== MICROPHONE_STATES.PAUSED) {
             return microphoneState;
         }
 
         if (permission === 'denied') {
             renderMicrophoneState(
                 MICROPHONE_STATES.DENIED,
-                MICROPHONE_FAILURE_MESSAGES.DENIED
+                MICROPHONE_MESSAGES.DENIED
             );
             return microphoneState;
         }
@@ -994,8 +1253,8 @@ async function setMicrophoneState(requestedState) {
     try {
         await requestMicrophoneStream();
     } catch (error) {
-        if (requestedMicrophoneState === MICROPHONE_STATES.LISTENING) {
-            requestedMicrophoneState = MICROPHONE_STATES.STOPPED;
+        if (microphoneRequestState === MICROPHONE_STATES.LISTENING) {
+            microphoneRequestState = MICROPHONE_STATES.PAUSED;
         }
         renderMicrophoneState(
             MICROPHONE_STATES.DENIED,
@@ -1004,96 +1263,185 @@ async function setMicrophoneState(requestedState) {
         return microphoneState;
     }
 
-    const listening = requestedMicrophoneState === MICROPHONE_STATES.LISTENING;
+    const listening = microphoneRequestState === MICROPHONE_STATES.LISTENING;
     setMicrophoneTracksEnabled(listening);
     renderMicrophoneState(
-        listening ? MICROPHONE_STATES.LISTENING : MICROPHONE_STATES.STOPPED
+        listening ? MICROPHONE_STATES.LISTENING : MICROPHONE_STATES.PAUSED
     );
 
     return microphoneState;
 }
 
-async function startMicrophoneInput(input, fftSize) {
-    const requestId = ++input.requestId;
+function createMicrophoneInput({
+    minimumMidi,
+    maximumMidi,
+    sampleIntervalMs,
+    processFrame,
+    onDeactivate,
+    initialState = {},
+}) {
+    const input = {
+        minimumMidi,
+        maximumMidi,
+        sampleIntervalMs,
+        processFrame,
+        onDeactivate,
+        ...initialState,
+    };
+
+    return Object.assign(input, {
+        activate: () => activateMicrophoneInput(input),
+        active: () => activeMicrophoneInput === input,
+        deactivate: (reason) => deactivateMicrophoneInput(input, reason),
+    });
+}
+
+function microphoneSampleWindowSize(input, sampleRate) {
+    const minimumSamples = Math.ceil(
+        (2 * sampleRate) / frequencyFromMidi(input.minimumMidi)
+    );
+
+    return 2 ** Math.ceil(Math.log2(minimumSamples));
+}
+
+function cancelMicrophoneAnalysis() {
+    if (microphoneAnalysisFrame !== null) {
+        cancelAnimationFrame(microphoneAnalysisFrame);
+        microphoneAnalysisFrame = null;
+    }
+
+    microphoneAnalysis = null;
+}
+
+function processMicrophoneInputFrame(time) {
+    const analysis = microphoneAnalysis;
+
+    if (!analysis || activeMicrophoneInput !== analysis.input) {
+        return;
+    }
+
+    const samplesUpdated =
+        time - analysis.lastSampleTime >= analysis.input.sampleIntervalMs;
+
+    if (samplesUpdated) {
+        analysis.lastSampleTime = time;
+        analysis.analyser.getFloatTimeDomainData(analysis.buffer);
+    }
+
+    analysis.input.processFrame({
+        time,
+        samples: analysis.buffer,
+        sampleRate: analysis.sampleRate,
+        samplesUpdated,
+    });
+
+    if (microphoneAnalysis === analysis) {
+        microphoneAnalysisFrame = requestAnimationFrame(
+            processMicrophoneInputFrame
+        );
+    }
+}
+
+function connectMicrophoneInput(input) {
+    cancelMicrophoneAnalysis();
+
+    if (microphoneConnection?.stream !== microphoneStream) {
+        microphoneConnection?.source.disconnect();
+
+        const connection = audio.createAnalyser(microphoneStream);
+
+        microphoneConnection = {
+            stream: microphoneStream,
+            source: connection.source,
+            analyser: connection.analyser,
+            sampleRate: connection.sampleRate,
+        };
+    }
+
+    microphoneConnection.analyser.fftSize = microphoneSampleWindowSize(
+        input,
+        microphoneConnection.sampleRate
+    );
+
+    microphoneAnalysis = {
+        input,
+        analyser: microphoneConnection.analyser,
+        sampleRate: microphoneConnection.sampleRate,
+        buffer: new Float32Array(microphoneConnection.analyser.fftSize),
+        lastSampleTime: 0,
+    };
+    microphoneAnalysisFrame = requestAnimationFrame(
+        processMicrophoneInputFrame
+    );
+}
+
+function deactivateMicrophoneInput(input, reason = 'deactivated') {
+    if (activeMicrophoneInput !== input) {
+        return;
+    }
+
+    microphoneInputRequestId += 1;
+    cancelMicrophoneAnalysis();
+    activeMicrophoneInput = null;
+    input.onDeactivate?.({ reason });
+}
+
+async function activateMicrophoneInput(input) {
+    if (activeMicrophoneInput !== input) {
+        activeMicrophoneInput?.deactivate('input-replaced');
+        activeMicrophoneInput = input;
+    }
+
+    const requestId = ++microphoneInputRequestId;
     const state = await setMicrophoneState(MICROPHONE_STATES.LISTENING);
 
     if (
-        requestId !== input.requestId ||
-        state !== MICROPHONE_STATES.LISTENING
+        requestId !== microphoneInputRequestId ||
+        activeMicrophoneInput !== input
     ) {
         return false;
     }
-
-    const stream = microphoneStream;
-
-    if (input.stream === stream && input.analyser) {
-        return true;
+    if (state !== MICROPHONE_STATES.LISTENING) {
+        input.deactivate('microphone-unavailable');
+        return false;
     }
 
-    input.source?.disconnect();
+    const sampleWindowChanged =
+        microphoneConnection &&
+        microphoneConnection.analyser.fftSize !==
+            microphoneSampleWindowSize(input, microphoneConnection.sampleRate);
 
-    const connection = audio.createAnalyser(stream, fftSize);
-
-    input.stream = stream;
-    input.source = connection.source;
-    input.analyser = connection.analyser;
-    input.sampleRate = connection.sampleRate;
-    input.buffer = new Float32Array(input.analyser.fftSize);
+    if (
+        microphoneAnalysis?.input !== input ||
+        microphoneConnection?.stream !== microphoneStream ||
+        sampleWindowChanged
+    ) {
+        try {
+            connectMicrophoneInput(input);
+        } catch (error) {
+            input.deactivate('analysis-failed');
+            throw error;
+        }
+    }
 
     return true;
 }
 
-function microphoneInputConnected(input) {
-    return Boolean(
-        input.stream === microphoneStream &&
-        input.analyser &&
-        input.stream
-            ?.getAudioTracks()
-            .some((track) => track.readyState === 'live')
-    );
+function deactivateActiveMicrophoneInput(reason) {
+    activeMicrophoneInput?.deactivate(reason);
 }
 
-function pauseMicrophoneInput(input) {
-    input.requestId += 1;
-}
-
-function pauseMicrophone() {
-    void setMicrophoneState(MICROPHONE_STATES.STOPPED);
-    stopAllAudio();
-    if (pitchMemory.trial && pitchMemory.trial.state !== 'complete') {
-        stopPitchMemoryAudio();
-    }
-    stopTunerMic();
-    stopSheetMic();
-    stopPitchMemoryMic();
-}
-
-async function startGlobalMicrophone() {
-    if (
-        (await setMicrophoneState(MICROPHONE_STATES.LISTENING)) !==
-        MICROPHONE_STATES.LISTENING
-    ) {
-        return;
-    }
-
-    const activeSection = document.querySelector('.nav-item.is-active')?.dataset
-        .section;
-    if (activeSection === 'tuner') {
-        await startTunerMic();
-    } else if (activeSection === 'rhythm' && sheetMusicEnabled()) {
-        await startSheetMic();
-    } else if (isPitchMemoryActive(activeSection)) {
-        await startPitchMemoryMic();
-    }
+function stopMicrophone() {
+    void setMicrophoneState(MICROPHONE_STATES.PAUSED);
 }
 
 function toggleGlobalMicrophone() {
-    if (requestedMicrophoneState === MICROPHONE_STATES.LISTENING) {
-        pauseMicrophone();
+    if (microphoneRequestState === MICROPHONE_STATES.LISTENING) {
+        stopMicrophone();
         return;
     }
 
-    void startGlobalMicrophone();
+    void activateCurrentPracticeMicrophone();
 }
 
 let masterVolume = DEFAULT_VOLUME;
@@ -1172,8 +1520,12 @@ function clearTunerTarget() {
         button.setAttribute('aria-pressed', 'false');
     }
     resetTunerTracking(true);
-    tunerMic.lastValidTime = 0;
-    resetTunerDetection(tunerMic.stream ? 'Listening...' : 'Microphone off');
+    tunerMicrophoneInput.lastValidTime = 0;
+    resetTunerDetection(
+        tunerMicrophoneInput.active()
+            ? MICROPHONE_MESSAGES.LISTENING
+            : MICROPHONE_MESSAGES.PAUSED
+    );
 }
 
 function updateTunerStrings() {
@@ -1190,7 +1542,7 @@ function updateTunerStrings() {
         instrument.tunings[getControl('tuner-variation').value];
     notes.forEach((midi, index) => {
         const button = document.createElement('button');
-        const noteName = midiToTunerNoteName(midi, accidental);
+        const noteName = noteNameFromMidi(midi, accidental);
 
         button.type = 'button';
         button.textContent = noteName;
@@ -1201,7 +1553,7 @@ function updateTunerStrings() {
         button.setAttribute('aria-pressed', 'false');
         button.addEventListener('click', () => {
             const wasPlaying = tunerVoice !== null && tunerTargetMidi === midi;
-            stopGeneratedAudio();
+            stopAllAudio();
 
             if (tunerTargetMidi !== midi) {
                 tunerTargetMidi = midi;
@@ -1218,14 +1570,16 @@ function updateTunerStrings() {
             }
 
             tunerVoice = audio.playContinuous(
-                midiFrequency(midi),
+                frequencyFromMidi(midi),
                 getWaveform('tuner').value
             );
             button.classList.add('is-playing');
             resetTunerTracking(true);
-            tunerMic.lastValidTime = 0;
+            tunerMicrophoneInput.lastValidTime = 0;
             resetTunerDetection(
-                tunerMic.stream ? 'Listening...' : 'Microphone off'
+                tunerMicrophoneInput.active()
+                    ? MICROPHONE_MESSAGES.LISTENING
+                    : MICROPHONE_MESSAGES.PAUSED
             );
         });
         container.append(button);
@@ -1235,35 +1589,22 @@ function updateTunerStrings() {
 function renderTunerString() {
     getOutput('tuner-closest').textContent = tunerTargetNoteName();
     getOutput('tuner-target').textContent =
-        `${midiFrequency(tunerTargetMidi).toFixed(3)} Hz`;
+        `${frequencyFromMidi(tunerTargetMidi).toFixed(3)} Hz`;
 }
 
 let tunerVoice = null;
-let tunerStartRequest = null;
 
-async function playTuner() {
-    stopGeneratedAudio();
+function playTuner() {
+    stopAllAudio();
     clearTunerTarget();
 
-    const request = startTunerMic();
-    tunerStartRequest = request;
-
-    await request;
-
-    if (request !== tunerStartRequest) {
-        return;
-    }
-
-    tunerStartRequest = null;
     tunerVoice = audio.playContinuous(
-        selectedNoteFrequency(getNote('tuner')),
+        selectedNoteFrequency(getNoteControl('tuner')),
         getWaveform('tuner').value
     );
 }
 
 function stopTuner() {
-    tunerStartRequest = null;
-
     if (!tunerVoice) {
         return;
     }
@@ -1276,18 +1617,18 @@ function stopTuner() {
     }
 
     if (tunerTargetMidi !== null) {
-        setTunerStatus(tunerMic.stream ? 'Listening...' : 'Microphone off');
+        setTunerStatus(
+            tunerMicrophoneInput.active()
+                ? MICROPHONE_MESSAGES.LISTENING
+                : MICROPHONE_MESSAGES.PAUSED
+        );
     }
 }
 
-function stopGeneratedAudio() {
+function stopAllAudio() {
     stopTuner();
     stopRhythm();
     audio.stopTransient();
-}
-
-function stopAllAudio() {
-    stopGeneratedAudio();
 }
 
 // Notes
@@ -1296,7 +1637,7 @@ function createNoteOption(midi) {
     const option = document.createElement('option');
 
     option.value = String(midi);
-    option.textContent = midiToNoteName(midi);
+    option.textContent = noteNameFromMidi(midi);
 
     return option;
 }
@@ -1304,12 +1645,12 @@ function createNoteOption(midi) {
 function populateNoteSelector(select) {
     const options = [];
 
-    for (let midi = 36; midi <= 84; midi += 1) {
+    for (let midi = MIDI_NOTES.C2; midi <= MIDI_NOTES.C6; midi += 1) {
         options.push(createNoteOption(midi));
     }
 
     select.replaceChildren(...options);
-    select.value = String(DEFAULT_MIDI);
+    select.value = String(MIDI_NOTES.A4);
 }
 
 function initializeNotes() {
@@ -1340,6 +1681,21 @@ const sectionModes = {
 
 function isPitchMemoryActive(sectionName) {
     return sectionName === 'pitch' && sectionModes.pitch === 'memory';
+}
+
+async function activateCurrentPracticeMicrophone() {
+    const activeSection = document.querySelector('.nav-item.is-active')?.dataset
+        .section;
+
+    if (activeSection === 'tuner') {
+        await activateTunerMicrophone();
+    } else if (activeSection === 'rhythm' && sheetMusicEnabled()) {
+        await activateSheetMicrophone();
+    } else if (isPitchMemoryActive(activeSection)) {
+        await activatePitchMemoryMicrophone();
+    } else {
+        await setMicrophoneState(MICROPHONE_STATES.LISTENING);
+    }
 }
 
 function sectionHash(sectionName) {
@@ -1398,36 +1754,25 @@ function activateSection(button, updateUrl = true) {
     }
 
     stopAllAudio();
-
-    if (sectionName !== 'tuner') {
-        stopTunerMic();
-    }
-
-    if (sectionName !== 'rhythm') {
-        stopSheetMic();
-    }
+    deactivateActiveMicrophoneInput('page-changed');
 
     if (
         pitchMemoryActive &&
         pitchMemory.trial &&
-        requestedMicrophoneState === MICROPHONE_STATES.LISTENING
+        microphoneRequestState === MICROPHONE_STATES.LISTENING
     ) {
-        void startPitchMemoryMic();
-    } else if (!pitchMemoryActive) {
-        stopPitchMemoryMic();
-    }
-
-    if (
+        void activatePitchMemoryMicrophone();
+    } else if (
         sectionName === 'tuner' &&
-        requestedMicrophoneState === MICROPHONE_STATES.LISTENING
+        microphoneRequestState === MICROPHONE_STATES.LISTENING
     ) {
-        void startTunerMic();
+        void activateTunerMicrophone();
     } else if (
         sectionName === 'rhythm' &&
         sheetMusicEnabled() &&
-        requestedMicrophoneState === MICROPHONE_STATES.LISTENING
+        microphoneRequestState === MICROPHONE_STATES.LISTENING
     ) {
-        void startSheetMic();
+        void activateSheetMicrophone();
     }
 
     cancelPitchAdvance();
@@ -1665,29 +2010,26 @@ function initializeTooltips() {
 
 // Tuning
 
-const tunerMic = {
-    stream: null,
-    source: null,
-    analyser: null,
-    sampleRate: 0,
-    buffer: null,
-    frame: null,
+const tunerMicrophoneInput = createMicrophoneInput({
+    minimumMidi: MINIMUM_SUPPORTED_MIDI,
+    maximumMidi: MAXIMUM_SUPPORTED_MIDI,
+    sampleIntervalMs: TUNER_ANALYSIS_INTERVAL_MS,
+    processFrame: processTunerMicrophoneFrame,
+    onDeactivate: handleTunerMicrophoneDeactivation,
+    initialState: {
+        smoothedCents: null,
+        smoothedNoteMidi: null,
 
-    requestId: 0,
+        pendingMidi: null,
+        pendingFrames: 0,
 
-    smoothedCents: null,
-    smoothedNoteMidi: null,
+        lastValidTime: 0,
 
-    pendingMidi: null,
-    pendingFrames: 0,
-
-    lastAnalysisTime: 0,
-    lastValidTime: 0,
-
-    history: [],
-    plot: [],
-    plotCenterMidi: DEFAULT_MIDI,
-};
+        detectedFrequencies: [],
+        plotSamples: [],
+        plotCenterMidi: MIDI_NOTES.A4,
+    },
+});
 
 function setTunerStatus(text) {
     if (tunerVoice !== null && tunerTargetMidi !== null) {
@@ -1697,18 +2039,18 @@ function setTunerStatus(text) {
 }
 
 function resetTunerTracking(resetPending) {
-    tunerMic.history = [];
+    tunerMicrophoneInput.detectedFrequencies = [];
 
-    tunerMic.smoothedCents = null;
-    tunerMic.smoothedNoteMidi = null;
+    tunerMicrophoneInput.smoothedCents = null;
+    tunerMicrophoneInput.smoothedNoteMidi = null;
 
     if (resetPending) {
-        tunerMic.pendingMidi = null;
-        tunerMic.pendingFrames = 0;
+        tunerMicrophoneInput.pendingMidi = null;
+        tunerMicrophoneInput.pendingFrames = 0;
     }
 }
 
-function resetTunerDetection(status = 'Microphone off') {
+function resetTunerDetection(status = MICROPHONE_MESSAGES.PAUSED) {
     if (tunerTargetMidi !== null) {
         renderTunerString();
     } else {
@@ -1752,21 +2094,23 @@ function renderTunerHistory(time = performance.now()) {
     context.clearRect(0, 0, width, height);
 
     const cutoff = time - TUNER_PLOT_SECONDS * 1000;
-    tunerMic.plot = tunerMic.plot.filter((sample) => sample.time >= cutoff);
-    const visibleMidis = tunerMic.plot.map((sample) =>
-        midiFromFrequency(sample.frequencyHz)
+    tunerMicrophoneInput.plotSamples = tunerMicrophoneInput.plotSamples.filter(
+        (sample) => sample.time >= cutoff
+    );
+    const visibleMidis = tunerMicrophoneInput.plotSamples.map((sample) =>
+        midiFromFrequency(sample.frequency)
     );
     const minimumMidi =
         Math.floor(
             visibleMidis.length
                 ? Math.min(...visibleMidis)
-                : tunerMic.plotCenterMidi
+                : tunerMicrophoneInput.plotCenterMidi
         ) - TUNER_PLOT_PADDING_SEMITONES;
     const maximumMidi =
         Math.ceil(
             visibleMidis.length
                 ? Math.max(...visibleMidis)
-                : tunerMic.plotCenterMidi
+                : tunerMicrophoneInput.plotCenterMidi
         ) + TUNER_PLOT_PADDING_SEMITONES;
     const midiRange = maximumMidi - minimumMidi;
     const labelWidth = 34;
@@ -1795,7 +2139,7 @@ function renderTunerHistory(time = performance.now()) {
             0;
         if (octaveBoundary) {
             context.fillStyle = mutedColor;
-            context.fillText(midiToNoteName(midi), labelWidth - 6, y);
+            context.fillText(noteNameFromMidi(midi), labelWidth - 6, y);
         }
         context.globalAlpha = octaveBoundary ? 1 : 0.3;
         context.strokeStyle = gridColor;
@@ -1817,8 +2161,8 @@ function renderTunerHistory(time = performance.now()) {
     context.beginPath();
     let previousTime = null;
     let previousInRange = false;
-    for (const sample of tunerMic.plot) {
-        const exactMidi = midiFromFrequency(sample.frequencyHz);
+    for (const sample of tunerMicrophoneInput.plotSamples) {
+        const exactMidi = midiFromFrequency(sample.frequency);
         const x =
             labelWidth +
             ((sample.time - cutoff) / (TUNER_PLOT_SECONDS * 1000)) * plotWidth;
@@ -1846,29 +2190,23 @@ function initializeTunerHistory() {
     observer.observe(canvas);
 }
 
-function stopTunerMic() {
-    if (tunerMic.frame !== null) {
-        cancelAnimationFrame(tunerMic.frame);
-
-        tunerMic.frame = null;
-    }
-
-    pauseMicrophoneInput(tunerMic);
-
-    tunerMic.lastAnalysisTime = 0;
-
-    tunerMic.lastValidTime = 0;
+function handleTunerMicrophoneDeactivation({ reason }) {
+    tunerMicrophoneInput.lastValidTime = 0;
 
     resetTunerTracking(true);
 
     resetTunerDetection();
+
+    if (reason === 'microphone-paused') {
+        stopTuner();
+    }
 }
 
 function detectPitchYin(
     samples,
     sampleRate,
-    minimumHz,
-    maximumHz,
+    minimumFrequency,
+    maximumFrequency,
     threshold = TUNER_YIN_THRESHOLD,
     sampleStride = 1
 ) {
@@ -1889,11 +2227,11 @@ function detectPitchYin(
 
     const minimumPeriod = Math.max(
         2,
-        Math.floor(analysisSampleRate / maximumHz)
+        Math.floor(analysisSampleRate / maximumFrequency)
     );
 
     const maximumPeriod = Math.min(
-        Math.floor(analysisSampleRate / minimumHz),
+        Math.floor(analysisSampleRate / minimumFrequency),
         Math.floor(sampleLength / 2)
     );
 
@@ -1990,71 +2328,73 @@ function detectPitchYin(
     return analysisSampleRate / refinedPeriod;
 }
 
-function nearestMusicalNote(frequencyHz) {
+function nearestNoteFromFrequency(frequency) {
     /*
      * MIDI 69 is A4.
      * The user's global A4 reference is
      * respected here.
      */
-    const exactMidi = midiFromFrequency(frequencyHz);
+    const exactMidi = midiFromFrequency(frequency);
 
     const midi = Math.round(exactMidi);
 
-    const targetHz = midiFrequency(midi);
+    const targetFrequency = frequencyFromMidi(midi);
 
     return {
         midi,
 
-        name: midiToNoteName(midi),
+        noteName: noteNameFromMidi(midi),
 
-        targetHz,
+        targetFrequency,
 
-        cents: centsBetween(frequencyHz, targetHz),
+        cents: centsBetween(frequency, targetFrequency),
     };
 }
 
-function renderTunerDetection(frequencyHz) {
-    const targetHz =
-        tunerTargetMidi === null ? null : midiFrequency(tunerTargetMidi);
-    const scoredFrequencyHz =
-        targetHz === null
-            ? frequencyHz
-            : nearestOctaveFrequency(frequencyHz, targetHz);
+function renderTunerDetection(frequency) {
+    const targetFrequency =
+        tunerTargetMidi === null ? null : frequencyFromMidi(tunerTargetMidi);
+    const scoredFrequency =
+        targetFrequency === null
+            ? frequency
+            : nearestOctaveFrequency(frequency, targetFrequency);
     const nearest =
-        targetHz === null
-            ? nearestMusicalNote(frequencyHz)
+        targetFrequency === null
+            ? nearestNoteFromFrequency(frequency)
             : {
                   midi: tunerTargetMidi,
-                  name: tunerTargetNoteName(),
-                  targetHz,
-                  cents: centsBetween(scoredFrequencyHz, targetHz),
+                  noteName: tunerTargetNoteName(),
+                  targetFrequency,
+                  cents: centsBetween(scoredFrequency, targetFrequency),
               };
 
-    if (tunerMic.smoothedNoteMidi !== nearest.midi) {
-        tunerMic.smoothedNoteMidi = nearest.midi;
+    if (tunerMicrophoneInput.smoothedNoteMidi !== nearest.midi) {
+        tunerMicrophoneInput.smoothedNoteMidi = nearest.midi;
 
-        tunerMic.smoothedCents = nearest.cents;
+        tunerMicrophoneInput.smoothedCents = nearest.cents;
     } else {
-        tunerMic.smoothedCents +=
-            (nearest.cents - tunerMic.smoothedCents) * TUNER_SMOOTHING;
+        tunerMicrophoneInput.smoothedCents +=
+            (nearest.cents - tunerMicrophoneInput.smoothedCents) *
+            TUNER_CENTS_SMOOTHING;
     }
 
-    const cents = tunerMic.smoothedCents;
+    const cents = tunerMicrophoneInput.smoothedCents;
 
     const limitedCents = clamp(cents, -50, 50);
 
     const percent = limitedCents + 50;
 
-    getOutput('tuner-closest').textContent = nearest.name;
+    getOutput('tuner-closest').textContent = nearest.noteName;
 
-    getOutput('tuner-target').textContent = `${nearest.targetHz.toFixed(3)} Hz`;
+    getOutput('tuner-target').textContent =
+        `${nearest.targetFrequency.toFixed(3)} Hz`;
 
     const detectedNote =
         tunerTargetMidi === null
             ? ''
-            : `${nearestMusicalNote(frequencyHz).name} · `;
+            : `${nearestNoteFromFrequency(frequency).noteName} · `;
     getOutput('tuner-detected').textContent =
-        `${detectedNote}${frequencyHz.toFixed(3)} Hz detected`;
+        `${detectedNote}${frequency.toFixed(3)} Hz detected`;
 
     getOutput('tuner-cents').textContent = `${signed(cents, 1)} cents`;
 
@@ -2064,110 +2404,101 @@ function renderTunerDetection(frequencyHz) {
     needle.style.left = `${percent}%`;
     needle.classList.add('is-visible');
     needle.classList.toggle('is-in-tune', inTune);
-    setTunerStatus('Listening...');
+    setTunerStatus(MICROPHONE_MESSAGES.LISTENING);
 }
 
-function analyzeTunerMic(time) {
-    if (!tunerMic.analyser || !tunerMic.buffer) {
-        return;
-    }
-
-    if (time - tunerMic.lastAnalysisTime >= TUNER_ANALYSIS_INTERVAL_MS) {
-        tunerMic.lastAnalysisTime = time;
-
-        tunerMic.analyser.getFloatTimeDomainData(tunerMic.buffer);
-
-        const frequencyHz = detectPitchYin(
-            tunerMic.buffer,
-            tunerMic.sampleRate,
-            TUNER_MIN_HZ,
-            TUNER_MAX_HZ,
+function processTunerMicrophoneFrame({
+    time,
+    samples,
+    sampleRate,
+    samplesUpdated,
+}) {
+    if (samplesUpdated) {
+        const frequency = detectPitchYin(
+            samples,
+            sampleRate,
+            frequencyFromMidi(tunerMicrophoneInput.minimumMidi),
+            frequencyFromMidi(tunerMicrophoneInput.maximumMidi),
             TUNER_YIN_THRESHOLD,
             TUNER_ANALYSIS_SAMPLE_STRIDE
         );
 
-        if (frequencyHz !== null) {
-            const nearest = nearestMusicalNote(frequencyHz);
+        if (frequency !== null) {
+            const nearest = nearestNoteFromFrequency(frequency);
 
-            if (nearest.midi !== tunerMic.pendingMidi) {
-                tunerMic.pendingMidi = nearest.midi;
+            if (nearest.midi !== tunerMicrophoneInput.pendingMidi) {
+                tunerMicrophoneInput.pendingMidi = nearest.midi;
 
-                tunerMic.pendingFrames = 1;
+                tunerMicrophoneInput.pendingFrames = 1;
 
-                tunerMic.history = [];
+                tunerMicrophoneInput.detectedFrequencies = [];
             } else {
-                tunerMic.pendingFrames += 1;
+                tunerMicrophoneInput.pendingFrames += 1;
             }
 
-            if (tunerMic.pendingFrames >= TUNER_STABLE_FRAMES) {
-                tunerMic.lastValidTime = time;
+            if (tunerMicrophoneInput.pendingFrames >= TUNER_STABLE_FRAMES) {
+                tunerMicrophoneInput.lastValidTime = time;
 
-                tunerMic.history.push(frequencyHz);
+                addRollingSample(
+                    tunerMicrophoneInput.detectedFrequencies,
+                    frequency,
+                    TUNER_FREQUENCY_SAMPLE_LIMIT
+                );
 
-                if (tunerMic.history.length > TUNER_HISTORY_LENGTH) {
-                    tunerMic.history.shift();
-                }
-
-                const detectedHz = median(tunerMic.history);
-                const exactMidi = midiFromFrequency(detectedHz);
-                tunerMic.plotCenterMidi = exactMidi;
-                tunerMic.plot.push({ time, frequencyHz: detectedHz });
-                renderTunerDetection(detectedHz);
+                const detectedFrequency = median(
+                    tunerMicrophoneInput.detectedFrequencies
+                );
+                const exactMidi = midiFromFrequency(detectedFrequency);
+                tunerMicrophoneInput.plotCenterMidi = exactMidi;
+                tunerMicrophoneInput.plotSamples.push({
+                    time,
+                    frequency: detectedFrequency,
+                });
+                renderTunerDetection(detectedFrequency);
             }
         }
 
-        if (time - tunerMic.lastValidTime > 400) {
-            resetTunerTracking(frequencyHz === null);
+        if (time - tunerMicrophoneInput.lastValidTime > 400) {
+            resetTunerTracking(frequency === null);
 
-            resetTunerDetection('No stable pitch');
+            resetTunerDetection(MICROPHONE_MESSAGES.NO_STABLE_PITCH);
         }
     }
 
     renderTunerHistory(time);
-
-    tunerMic.frame = requestAnimationFrame(analyzeTunerMic);
 }
 
-async function startTunerMic() {
-    if (microphoneInputConnected(tunerMic)) {
-        if (
-            (await setMicrophoneState(MICROPHONE_STATES.LISTENING)) !==
-            MICROPHONE_STATES.LISTENING
-        ) {
-            return false;
-        }
-        if (tunerMic.frame === null) {
-            tunerMic.frame = requestAnimationFrame(analyzeTunerMic);
-        }
-        setTunerStatus('Listening...');
-        return true;
+async function activateTunerMicrophone() {
+    const active = tunerMicrophoneInput.active();
+    if (!active) {
+        resetTunerDetection(MICROPHONE_MESSAGES.REQUESTING);
     }
 
-    resetTunerDetection('Requesting microphone access...');
-
     try {
-        if (!(await startMicrophoneInput(tunerMic, TUNER_ANALYSIS_FFT_SIZE))) {
+        if (!(await tunerMicrophoneInput.activate())) {
             if (microphoneState === MICROPHONE_STATES.DENIED) {
                 resetTunerDetection(microphoneFailureMessage);
             }
             return false;
         }
 
-        tunerMic.lastAnalysisTime = 0;
+        if (active) {
+            setTunerStatus(MICROPHONE_MESSAGES.LISTENING);
+            return true;
+        }
 
-        tunerMic.lastValidTime = performance.now();
+        tunerMicrophoneInput.lastValidTime = performance.now();
 
-        tunerMic.plot = [];
+        tunerMicrophoneInput.plotSamples = [];
         renderTunerHistory();
 
         resetTunerTracking(true);
 
-        setTunerStatus('Listening...');
+        setTunerStatus(MICROPHONE_MESSAGES.LISTENING);
 
-        tunerMic.frame = requestAnimationFrame(analyzeTunerMic);
         return true;
     } catch {
-        resetTunerDetection(MICROPHONE_FAILURE_MESSAGES.FAILED);
+        resetTunerDetection(MICROPHONE_MESSAGES.FAILED);
         return false;
     }
 }
@@ -2205,22 +2536,22 @@ const sheetMusic = {
     holdSpans: [],
     currentHold: null,
     starting: false,
-    mic: {
-        requestId: 0,
-        stream: null,
-        source: null,
-        analyser: null,
-        sampleRate: 0,
-        buffer: null,
-        frame: null,
-        lastAnalysisTime: 0,
+};
+
+const sheetMicrophoneInput = createMicrophoneInput({
+    minimumMidi: MINIMUM_SUPPORTED_MIDI,
+    maximumMidi: MAXIMUM_SUPPORTED_MIDI,
+    sampleIntervalMs: SHEET_ANALYSIS_INTERVAL_MS,
+    processFrame: processSheetMicrophoneFrame,
+    onDeactivate: handleSheetMicrophoneDeactivation,
+    initialState: {
         stableFrames: 0,
         silentFrames: 0,
-        frequencies: [],
+        detectedFrequencies: [],
         voiceStartedAt: null,
         silenceStartedAt: null,
     },
-};
+});
 
 // Rhythm: sheet music
 
@@ -2228,15 +2559,41 @@ function sheetMusicEnabled() {
     return sectionModes.rhythm === 'sheet';
 }
 
-function midiToDiatonicPosition(midi) {
+function diatonicPositionFromMidi(midi) {
     const roundedMidi = Math.round(midi);
-    const pitchClass =
-        ((roundedMidi % SEMITONES_PER_OCTAVE) + SEMITONES_PER_OCTAVE) %
-        SEMITONES_PER_OCTAVE;
-    const naturalIndex = NATURAL_PITCH_CLASSES.indexOf(pitchClass);
+    const pitchClass = pitchClassFromMidi(roundedMidi);
+    const naturalIndex =
+        PITCH_CLASS_NAMES.slice(0, pitchClass + 1).filter(
+            ({ natural }) => natural
+        ).length - 1;
     const octave = Math.floor(roundedMidi / SEMITONES_PER_OCTAVE) - 1;
 
     return octave * 7 + naturalIndex;
+}
+
+function diatonicPositionFromFrequency(frequency) {
+    const midi = midiFromFrequency(frequency);
+    let lowerMidi = Math.floor(midi);
+    let upperMidi = Math.ceil(midi);
+
+    while (!PITCH_CLASS_NAMES[pitchClassFromMidi(lowerMidi)].natural) {
+        lowerMidi -= 1;
+    }
+    while (!PITCH_CLASS_NAMES[pitchClassFromMidi(upperMidi)].natural) {
+        upperMidi += 1;
+    }
+
+    const lowerPosition = diatonicPositionFromMidi(lowerMidi);
+    if (lowerMidi === upperMidi) {
+        return lowerPosition;
+    }
+
+    const progress = (midi - lowerMidi) / (upperMidi - lowerMidi);
+
+    return (
+        lowerPosition +
+        (diatonicPositionFromMidi(upperMidi) - lowerPosition) * progress
+    );
 }
 
 function sheetClef() {
@@ -2245,10 +2602,11 @@ function sheetClef() {
 
 function randomSheetMidi(previousMidi = null) {
     const clef = sheetClef();
+    const chromatic = getControl('rhythm-sheet-pitches').value === 'chromatic';
     const pitches = [];
 
     for (let midi = clef.minimumMidi; midi <= clef.maximumMidi; midi += 1) {
-        if (NATURAL_PITCH_CLASSES.includes(midi % SEMITONES_PER_OCTAVE)) {
+        if (chromatic || PITCH_CLASS_NAMES[pitchClassFromMidi(midi)].natural) {
             pitches.push(midi);
         }
     }
@@ -2534,7 +2892,7 @@ function addRhythmTie() {
 }
 
 function newRhythmPhrase() {
-    stopGeneratedAudio();
+    stopAllAudio();
     sheetMusic.signature = getControl('shared-time-signature').value;
     sheetMusic.meter = rhythmMeter(sheetMusic.signature);
     const { units, denominator } = sheetMusic.meter;
@@ -2576,7 +2934,7 @@ function newRhythmPhrase() {
                     midi,
                     attack: null,
                     release: null,
-                    pitchHz: null,
+                    pitchFrequency: null,
                     pitchError: null,
                     pitchSamples: [],
                 });
@@ -2682,6 +3040,17 @@ function sheetPlaybackPosition(position) {
     const easedProgress = progress * progress * (3 - 2 * progress);
 
     return writtenPosition + SHEET_BAR_PADDING_REM * 2 * easedProgress;
+}
+
+function sheetPlayLinePosition() {
+    const buttons = document.querySelector(
+        '[data-mode-panel="sheet"] .practice-buttons'
+    );
+    const rootFontSize = Number.parseFloat(
+        getComputedStyle(document.documentElement).fontSize
+    );
+
+    return buttons.getBoundingClientRect().width / rootFontSize;
 }
 
 function rhythmBeamGroups(writtenNotes) {
@@ -2809,11 +3178,31 @@ function renderRhythmScore() {
             segmentIndex,
             staffStep: note.rest
                 ? null
-                : midiToDiatonicPosition(note.midi) -
-                  clefDefinition.bottomLineDiatonic,
+                : diatonicPositionFromMidi(note.midi) -
+                  diatonicPositionFromMidi(clefDefinition.bottomLineMidi),
             value: rhythmNoteValue(segment),
         }))
     );
+    const activeAccidentals = new Map();
+
+    for (const writtenNote of writtenNotes) {
+        if (writtenNote.note.rest || writtenNote.segmentIndex > 0) {
+            continue;
+        }
+
+        const bar = Math.floor(writtenNote.segment.beat / units);
+        const staffPosition = diatonicPositionFromMidi(writtenNote.note.midi);
+        const accidentalKey = `${bar}:${staffPosition}`;
+        const sharpened =
+            !PITCH_CLASS_NAMES[pitchClassFromMidi(writtenNote.note.midi)]
+                .natural;
+        const activeAccidental = activeAccidentals.get(accidentalKey) ?? false;
+
+        if (sharpened !== activeAccidental) {
+            writtenNote.accidental = sharpened ? '♯' : '♮';
+            activeAccidentals.set(accidentalKey, sharpened);
+        }
+    }
     const beamMembership = new Map();
     const beamGroups = rhythmBeamGroups(writtenNotes);
     const beamLayouts = new Map();
@@ -2903,7 +3292,9 @@ function renderRhythmScore() {
         element.dataset.rhythmSheetNoteIndex = String(noteIndex);
         element.style.left = `${x}rem`;
         element.style.width = `${width}rem`;
-        const pitchName = note.rest ? '' : `${midiToTunerNoteName(note.midi)} `;
+        const pitchName = note.rest
+            ? ''
+            : `${noteNameFromMidi(note.midi, 'sharp')} `;
         const tied = rhythmSegments(note).length > 1 ? ' tied' : '';
         element.title = `${pitchName}${rhythmNoteName(segment)} ${note.rest ? 'rest' : `note${tied}`} - ${rhythmDurationLabel(segment.duration)} ${rhythmDurationUnit()}`;
         const symbol = document.createElement('span');
@@ -2922,6 +3313,14 @@ function renderRhythmScore() {
                 symbol.textContent = '𝅘';
             } else {
                 symbol.textContent = value.symbol;
+            }
+            if (writtenNote.accidental) {
+                const accidental = document.createElement('span');
+                accidental.className = 'rhythm-sheet-note-accidental';
+                accidental.setAttribute('aria-hidden', 'true');
+                accidental.style.setProperty('--staff-step', String(staffStep));
+                accidental.textContent = writtenNote.accidental;
+                element.append(accidental);
             }
             if (value.dotted) {
                 const dot = document.createElement('span');
@@ -3027,8 +3426,8 @@ function renderRhythmScore() {
         const segments = rhythmSegments(note);
         const staffStep = note.rest
             ? null
-            : midiToDiatonicPosition(note.midi) -
-              clefDefinition.bottomLineDiatonic;
+            : diatonicPositionFromMidi(note.midi) -
+              diatonicPositionFromMidi(clefDefinition.bottomLineMidi);
 
         if (segments.length > 1) {
             const tie = document.createElement('span');
@@ -3045,13 +3444,18 @@ function renderRhythmScore() {
     });
     const playLine = document.createElement('span');
     playLine.className = 'rhythm-sheet-play-line';
-    score.replaceChildren(staff, lane, playLine);
-    lane.style.transform = `translateX(${SHEET_PLAY_LINE_REM - sheetPlaybackPosition(-units - 1)}rem)`;
+    const pitchLine = document.createElement('span');
+    pitchLine.id = 'rhythm-sheet-pitch-line';
+    pitchLine.className = 'rhythm-sheet-pitch-line';
+    pitchLine.hidden = true;
+    pitchLine.setAttribute('aria-hidden', 'true');
+    score.replaceChildren(staff, lane, playLine, pitchLine);
+    lane.style.transform = `translateX(${sheetPlayLinePosition() - sheetPlaybackPosition(-units - 1)}rem)`;
     document.getElementById('rhythm-sheet-description').textContent =
         sheetMusic.phrase
             .map(
                 (note) =>
-                    `${rhythmNotePosition(note)}: ${note.rest ? '' : `${midiToTunerNoteName(note.midi)} `}${rhythmWrittenName(note)} ${note.rest ? 'rest' : 'note'}, ${rhythmDurationLabel(note.duration)} ${rhythmDurationUnit()}.`
+                    `${rhythmNotePosition(note)}: ${note.rest ? '' : `${noteNameFromMidi(note.midi, 'sharp')} `}${rhythmWrittenName(note)} ${note.rest ? 'rest' : 'note'}, ${rhythmDurationLabel(note.duration)} ${rhythmDurationUnit()}.`
             )
             .join(' ');
     document.getElementById('rhythm-sheet-meter-help').textContent = compound
@@ -3066,121 +3470,120 @@ function playRhythmInputSound() {
     audio.playTransient(520, 'triangle', 0.055, 0.5);
 }
 
-function pauseSheetMic() {
-    const mic = sheetMusic.mic;
-
-    if (mic.frame !== null) {
-        cancelAnimationFrame(mic.frame);
-        mic.frame = null;
-    }
-
+function handleSheetMicrophoneDeactivation({ reason }) {
     if (sheetMusic.input === 'microphone') {
         releaseRhythm('microphone');
     }
 
-    mic.lastAnalysisTime = 0;
-    mic.stableFrames = 0;
-    mic.silentFrames = 0;
-    mic.frequencies = [];
-    mic.voiceStartedAt = null;
-    mic.silenceStartedAt = null;
+    sheetMicrophoneInput.stableFrames = 0;
+    sheetMicrophoneInput.silentFrames = 0;
+    sheetMicrophoneInput.detectedFrequencies = [];
+    sheetMicrophoneInput.voiceStartedAt = null;
+    sheetMicrophoneInput.silenceStartedAt = null;
+    renderSheetPitch();
+
+    if (reason === 'microphone-paused' && rhythm.running) {
+        stopRhythm();
+    }
 }
 
-function stopSheetMic() {
-    pauseSheetMic();
-    pauseMicrophoneInput(sheetMusic.mic);
-}
-
-function addSheetPitchSample(frequencyHz) {
-    if (!sheetMusic.held || !Number.isFinite(frequencyHz)) {
+function addSheetPitchSample(frequency) {
+    if (!sheetMusic.held || !Number.isFinite(frequency)) {
         return;
     }
 
-    sheetMusic.held.pitchSamples.push(frequencyHz);
+    sheetMusic.held.pitchSamples.push(frequency);
 }
 
-function analyzeSheetMic(time) {
-    const mic = sheetMusic.mic;
-
-    if (!mic.analyser) {
+function renderSheetPitch(frequency = null) {
+    const line = document.getElementById('rhythm-sheet-pitch-line');
+    if (!line) {
         return;
     }
 
-    if (time - mic.lastAnalysisTime >= SHEET_ANALYSIS_INTERVAL_MS) {
-        mic.lastAnalysisTime = time;
-        mic.analyser.getFloatTimeDomainData(mic.buffer);
-        const frequencyHz = detectPitchYin(
-            mic.buffer,
-            mic.sampleRate,
-            55,
-            1100,
-            TUNER_YIN_THRESHOLD,
-            TUNER_ANALYSIS_SAMPLE_STRIDE
+    const midi = Number.isFinite(frequency)
+        ? midiFromFrequency(frequency)
+        : null;
+    const clef = SHEET_CLEFS[sheetMusic.clef];
+    const visible = midi !== null;
+    line.hidden = !visible;
+
+    if (visible) {
+        const visibleFrequency = frequencyFromMidi(
+            clamp(midi, clef.minimumMidi, clef.maximumMidi)
         );
-        const position = sheetMusic.active
-            ? (audio.currentTime() - sheetMusic.origin) / sheetMusic.interval
-            : -Infinity;
-
-        if (frequencyHz === null) {
-            mic.stableFrames = 0;
-            mic.frequencies = [];
-            mic.voiceStartedAt = null;
-            mic.silentFrames += 1;
-            mic.silenceStartedAt ??= audio.currentTime();
-
-            if (mic.silentFrames >= 2 && sheetMusic.input === 'microphone') {
-                releaseRhythm('microphone', mic.silenceStartedAt);
-            }
-        } else {
-            if (mic.stableFrames === 0) {
-                mic.voiceStartedAt = audio.currentTime();
-            }
-            mic.silentFrames = 0;
-            mic.silenceStartedAt = null;
-            mic.stableFrames += 1;
-            mic.frequencies.push(frequencyHz);
-            mic.frequencies = mic.frequencies.slice(-3);
-            const stableFrequency = median(mic.frequencies);
-
-            if (
-                sheetMusic.input === null &&
-                position >= -0.25 &&
-                mic.stableFrames >= 2
-            ) {
-                pressRhythm('microphone', stableFrequency, mic.voiceStartedAt);
-            } else if (sheetMusic.input === 'microphone') {
-                addSheetPitchSample(stableFrequency);
-            }
-        }
+        const staffStep =
+            diatonicPositionFromFrequency(visibleFrequency) -
+            diatonicPositionFromMidi(clef.bottomLineMidi);
+        line.style.setProperty('--staff-step', String(staffStep));
     }
-
-    mic.frame = requestAnimationFrame(analyzeSheetMic);
 }
 
-async function startSheetMic() {
-    const mic = sheetMusic.mic;
-    if (microphoneInputConnected(mic)) {
+function processSheetMicrophoneFrame({ samples, sampleRate, samplesUpdated }) {
+    if (!samplesUpdated) {
+        return;
+    }
+
+    const microphone = sheetMicrophoneInput;
+
+    const frequency = detectPitchYin(
+        samples,
+        sampleRate,
+        frequencyFromMidi(sheetMicrophoneInput.minimumMidi),
+        frequencyFromMidi(sheetMicrophoneInput.maximumMidi),
+        TUNER_YIN_THRESHOLD,
+        TUNER_ANALYSIS_SAMPLE_STRIDE
+    );
+    const position = sheetMusic.active
+        ? (audio.currentTime() - sheetMusic.origin) / sheetMusic.interval
+        : -Infinity;
+
+    if (frequency === null) {
+        microphone.stableFrames = 0;
+        microphone.detectedFrequencies = [];
+        microphone.voiceStartedAt = null;
+        microphone.silentFrames += 1;
+        microphone.silenceStartedAt ??= audio.currentTime();
+
+        if (microphone.silentFrames >= 2) {
+            renderSheetPitch();
+            if (sheetMusic.input === 'microphone') {
+                releaseRhythm('microphone', microphone.silenceStartedAt);
+            }
+        }
+    } else {
+        if (microphone.stableFrames === 0) {
+            microphone.voiceStartedAt = audio.currentTime();
+        }
+        microphone.silentFrames = 0;
+        microphone.silenceStartedAt = null;
+        microphone.stableFrames += 1;
+        addRollingSample(
+            microphone.detectedFrequencies,
+            frequency,
+            SHEET_FREQUENCY_SAMPLE_LIMIT
+        );
+        const stableFrequency = median(microphone.detectedFrequencies);
+        renderSheetPitch(microphone.stableFrames >= 2 ? stableFrequency : null);
+
         if (
-            (await setMicrophoneState(MICROPHONE_STATES.LISTENING)) !==
-            MICROPHONE_STATES.LISTENING
+            sheetMusic.input === null &&
+            position >= -0.25 &&
+            microphone.stableFrames >= 2
         ) {
-            return false;
+            pressRhythm(
+                'microphone',
+                stableFrequency,
+                microphone.voiceStartedAt
+            );
+        } else if (sheetMusic.input === 'microphone') {
+            addSheetPitchSample(stableFrequency);
         }
-        if (mic.frame === null) {
-            mic.frame = requestAnimationFrame(analyzeSheetMic);
-        }
-
-        return true;
     }
+}
 
-    const started = await startMicrophoneInput(mic, TUNER_ANALYSIS_FFT_SIZE);
-    if (!started) {
-        return false;
-    }
-    mic.lastAnalysisTime = 0;
-    mic.frame = requestAnimationFrame(analyzeSheetMic);
-
-    return true;
+async function activateSheetMicrophone() {
+    return sheetMicrophoneInput.activate();
 }
 
 function updateRhythmMode() {
@@ -3188,11 +3591,11 @@ function updateRhythmMode() {
     for (const panel of getModePanels('rhythm')) {
         panel.hidden = panel.dataset.modePanel !== mode;
     }
-    stopGeneratedAudio();
+    stopAllAudio();
     if (!sheetMusicEnabled()) {
-        stopSheetMic();
-    } else if (requestedMicrophoneState === MICROPHONE_STATES.LISTENING) {
-        void startSheetMic();
+        sheetMicrophoneInput.deactivate('mode-changed');
+    } else if (microphoneRequestState === MICROPHONE_STATES.LISTENING) {
+        void activateSheetMicrophone();
     }
     if (
         sheetMusicEnabled() &&
@@ -3214,7 +3617,7 @@ function startSheetMusic() {
     for (const note of sheetMusic.phrase) {
         note.attack = null;
         note.release = null;
-        note.pitchHz = null;
+        note.pitchFrequency = null;
         note.pitchError = null;
         note.pitchSamples = [];
     }
@@ -3231,34 +3634,96 @@ function rhythmOffset(value) {
     return `${rounded >= 0 ? '+' : ''}${rounded} ms`;
 }
 
+function clearRhythmFeedback() {
+    const lane = document.getElementById('rhythm-sheet-lane');
+
+    for (const element of lane.querySelectorAll(
+        '.rhythm-sheet-feedback-section'
+    )) {
+        element.remove();
+    }
+}
+
+function renderRhythmFeedback(position) {
+    const lane = document.getElementById('rhythm-sheet-lane');
+    clearRhythmFeedback();
+
+    const appendSection = (start, end, state, endsNote) => {
+        if (end <= start) {
+            return;
+        }
+
+        const element = document.createElement('span');
+        const width = sheetPlaybackPosition(end) - sheetPlaybackPosition(start);
+        element.className = `rhythm-sheet-feedback-section is-${state}`;
+        element.style.left = `${sheetPlaybackPosition(start)}rem`;
+        element.style.width = endsNote
+            ? `calc(${width}rem - 1px)`
+            : `${width}rem`;
+        lane.append(element);
+    };
+
+    for (const note of sheetMusic.phrase) {
+        if (note.rest || position <= note.beat) {
+            continue;
+        }
+
+        const noteEnd = note.beat + note.duration;
+        const elapsedEnd = Math.min(position, noteEnd);
+        const holds = sheetMusic.holdSpans
+            .filter((hold) => hold.note === note)
+            .sort((left, right) => left.start - right.start);
+        const detectedFrequency = note.pitchSamples.length
+            ? median(note.pitchSamples)
+            : note.pitchFrequency;
+        const pitchMissed =
+            Number.isFinite(detectedFrequency) &&
+            Math.abs(
+                centsBetween(detectedFrequency, frequencyFromMidi(note.midi))
+            ) > SHEET_CORRECT_CENTS;
+        let cursor = note.beat;
+
+        for (const hold of holds) {
+            const holdStart = clamp(hold.start, note.beat, elapsedEnd);
+            const holdEnd = clamp(hold.end, note.beat, elapsedEnd);
+
+            appendSection(cursor, holdStart, 'missed', false);
+            appendSection(
+                Math.max(cursor, holdStart),
+                holdEnd,
+                pitchMissed ? 'pitch-missed' : 'correct',
+                holdEnd === noteEnd
+            );
+            cursor = Math.max(cursor, holdEnd);
+        }
+
+        appendSection(cursor, elapsedEnd, 'missed', elapsedEnd === noteEnd);
+    }
+}
+
 function updateRhythmHold(position, released = false) {
     const hold = sheetMusic.currentHold;
     if (!hold) {
         return;
     }
     hold.end = Math.max(hold.start, position);
-    hold.element.style.width = `${sheetPlaybackPosition(hold.end) - sheetPlaybackPosition(hold.start)}rem`;
     if (released) {
         sheetMusic.currentHold = null;
     }
 }
 
 function beginRhythmHold(position) {
-    const element = document.createElement('span');
-    element.className = 'rhythm-sheet-held-section';
-    element.style.left = `${sheetPlaybackPosition(position)}rem`;
-    element.style.width = '0rem';
-    document.getElementById('rhythm-sheet-lane').append(element);
-    const hold = { start: position, end: position, element, spurious: false };
+    const hold = {
+        start: position,
+        end: position,
+        note: null,
+        spurious: false,
+    };
     sheetMusic.holdSpans.push(hold);
     sheetMusic.currentHold = hold;
 }
 
-function pressRhythm(
-    input,
-    frequencyHz = null,
-    inputTime = audio.currentTime()
-) {
+function pressRhythm(input, frequency = null, inputTime = audio.currentTime()) {
     if (!sheetMusic.active || sheetMusic.input !== null) {
         return;
     }
@@ -3294,10 +3759,11 @@ function pressRhythm(
         return;
     }
     note.attack = (position - note.beat) * sheetMusic.interval * 1000;
+    sheetMusic.currentHold.note = note;
     sheetMusic.held = note;
-    addSheetPitchSample(frequencyHz);
+    addSheetPitchSample(frequency);
     showRhythmSheetResult(
-        `Attack: ${rhythmOffset(note.attack)} - target ${midiToTunerNoteName(note.midi)}.`
+        `Attack: ${rhythmOffset(note.attack)} - target ${noteNameFromMidi(note.midi, 'sharp')}.`
     );
 }
 
@@ -3317,10 +3783,10 @@ function releaseRhythm(input, inputTime = audio.currentTime()) {
                 (note.beat + note.duration) * sheetMusic.interval) *
             1000;
         if (note.pitchSamples.length) {
-            note.pitchHz = median(note.pitchSamples);
+            note.pitchFrequency = median(note.pitchSamples);
             note.pitchError = centsBetween(
-                note.pitchHz,
-                midiFrequency(note.midi)
+                note.pitchFrequency,
+                frequencyFromMidi(note.midi)
             );
         }
         const pitchResult =
@@ -3454,7 +3920,7 @@ function finishSheetMusic() {
                 note.pitchError === null
                     ? ''
                     : `, ${signed(note.pitchError, 0)} cents`;
-            detail.textContent = `${midiToTunerNoteName(note.midi)} - ${timing}${pitch}`;
+            detail.textContent = `${noteNameFromMidi(note.midi, 'sharp')} - ${timing}${pitch}`;
             holds.append(detail);
         }
 
@@ -3476,11 +3942,13 @@ function finishSheetMusic() {
         results.append(item);
     }
     showRhythmSheetReport();
+    clearRhythmFeedback();
     sheetMusic.active = false;
-    stopGeneratedAudio();
+    renderSheetPitch();
+    stopAllAudio();
     const { units } = sheetMusic.meter;
     document.getElementById('rhythm-sheet-lane').style.transform =
-        `translateX(${SHEET_PLAY_LINE_REM - sheetPlaybackPosition(-units - 1)}rem)`;
+        `translateX(${sheetPlayLinePosition() - sheetPlaybackPosition(-units - 1)}rem)`;
     document.getElementById('rhythm-sheet-count-label').textContent =
         `Complete - durations in ${rhythmDurationUnit()}`;
 }
@@ -3499,8 +3967,9 @@ function drawSheetMusic() {
         label.textContent = `Play - durations in ${rhythmDurationUnit()}`;
     }
     document.getElementById('rhythm-sheet-lane').style.transform =
-        `translateX(${SHEET_PLAY_LINE_REM - sheetPlaybackPosition(position)}rem)`;
+        `translateX(${sheetPlayLinePosition() - sheetPlaybackPosition(position)}rem)`;
     updateRhythmHold(position);
+    renderRhythmFeedback(position);
     sheetMusic.phrase.forEach((note, index) => {
         const active =
             position >= note.beat && position < note.beat + note.duration;
@@ -3524,7 +3993,7 @@ function stopSheetMusic() {
             true
         );
     }
-    pauseSheetMic();
+    sheetMicrophoneInput.deactivate('exercise-stopped');
     cancelAnimationFrame(sheetMusic.frame);
     sheetMusic.frame = null;
     if (sheetMusic.active) {
@@ -3532,6 +4001,7 @@ function stopSheetMusic() {
             `Stopped - durations in ${rhythmDurationUnit()}`;
     }
     sheetMusic.active = false;
+    renderSheetPitch();
     sheetMusic.input = null;
     sheetMusic.held = null;
     document
@@ -3634,7 +4104,7 @@ function recordRhythmTimingTap() {
 
 function restartRhythm() {
     if (rhythm.running) {
-        stopGeneratedAudio();
+        stopAllAudio();
         startRhythm();
     }
 }
@@ -3654,7 +4124,7 @@ function scheduleSheetNoteCues(now) {
 
         if (!note.rest) {
             audio.playTransient(
-                midiFrequency(note.midi),
+                frequencyFromMidi(note.midi),
                 'triangle',
                 SHEET_NOTE_CUE_DURATION,
                 SHEET_NOTE_CUE_VOLUME,
@@ -3696,12 +4166,7 @@ function scheduleRhythm() {
         }
         const accent = pattern[rhythm.beatIndex];
 
-        const frequency =
-            accent === 2
-                ? RHYTHM_FIRST_HZ
-                : accent === 1
-                  ? RHYTHM_GROUP_HZ
-                  : RHYTHM_NORMAL_HZ;
+        const frequency = RHYTHM_CLICK_FREQUENCIES[accent];
 
         const volume = accent === 2 ? 0.9 : accent === 1 ? 0.75 : 0.6;
 
@@ -3741,16 +4206,16 @@ async function startRhythm() {
     if (sheetMusicEnabled()) {
         clearRhythmSheetResults();
         document.getElementById('rhythm-sheet-count-label').textContent =
-            'Requesting microphone access...';
+            MICROPHONE_MESSAGES.REQUESTING;
         try {
-            const started = await startSheetMic();
+            const started = await activateSheetMicrophone();
             if (
                 !started ||
                 !sheetMusicEnabled() ||
                 document.getElementById('rhythm-panel').hidden
             ) {
                 sheetMusic.starting = false;
-                stopSheetMic();
+                sheetMicrophoneInput.deactivate('activation-cancelled');
                 if (microphoneState === MICROPHONE_STATES.DENIED) {
                     document.getElementById(
                         'rhythm-sheet-count-label'
@@ -3760,7 +4225,7 @@ async function startRhythm() {
             }
         } catch {
             document.getElementById('rhythm-sheet-count-label').textContent =
-                `${MICROPHONE_FAILURE_MESSAGES.FAILED}.`;
+                `${MICROPHONE_MESSAGES.FAILED}.`;
         }
     }
 
@@ -4123,7 +4588,9 @@ function clearPitchPlacementResult() {
 }
 
 function createPitchPlacementTrial() {
-    const rootHz = selectedNoteFrequency(getNote('pitch-placement'));
+    const rootFrequency = selectedNoteFrequency(
+        getNoteControl('pitch-placement')
+    );
 
     const semitones = Number(getControl('pitch-placement-interval').value);
 
@@ -4137,11 +4604,12 @@ function createPitchPlacementTrial() {
     const magnitude =
         minimumCents + Math.random() * (maximumCents - minimumCents);
 
-    const correctTargetHz = rootHz * 2 ** (semitones / 12);
+    const correctTargetFrequency =
+        rootFrequency * 2 ** (semitones / SEMITONES_PER_OCTAVE);
 
     return {
-        rootHz,
-        correctTargetHz,
+        rootFrequency,
+        correctTargetFrequency,
 
         mistuneCents: Math.random() < 0.5 ? -magnitude : magnitude,
 
@@ -4181,17 +4649,20 @@ function playPitchPlacementTrial() {
         });
     }
 
-    const { rootHz, correctTargetHz, mistuneCents } = pitch.trial;
+    const { rootFrequency, correctTargetFrequency, mistuneCents } = pitch.trial;
 
     const waveform = getWaveform('pitch-placement').value;
 
     const duration = readNumber(getControl('pitch-placement-duration'), 1);
 
-    const targetHz = frequencyFromCents(correctTargetHz, mistuneCents);
+    const targetFrequency = frequencyFromCents(
+        correctTargetFrequency,
+        mistuneCents
+    );
 
-    audio.playTransient(rootHz, waveform, duration);
+    audio.playTransient(rootFrequency, waveform, duration);
 
-    audio.playTransient(targetHz, waveform, duration, 1, duration + 0.1);
+    audio.playTransient(targetFrequency, waveform, duration, 1, duration + 0.1);
 }
 
 function commitPitchPlacement(answer) {
@@ -4211,12 +4682,12 @@ function commitPitchPlacement(answer) {
 
     const correct = answer === direction;
 
-    const mistunedHz = frequencyFromCents(
-        trial.correctTargetHz,
+    const mistunedFrequency = frequencyFromCents(
+        trial.correctTargetFrequency,
         trial.mistuneCents
     );
 
-    const errorHz = mistunedHz - trial.correctTargetHz;
+    const frequencyError = mistunedFrequency - trial.correctTargetFrequency;
 
     setPitchPlacementAnswerState({
         disabled: true,
@@ -4250,7 +4721,7 @@ function commitPitchPlacement(answer) {
         correct,
         `${direction} - ` +
             `${signed(trial.mistuneCents, 2)} cents ` +
-            `(${signed(errorHz, 3)} Hz)`
+            `(${signed(frequencyError, 3)} Hz)`
     );
 
     schedulePitchAdvance();
@@ -4259,31 +4730,31 @@ function commitPitchPlacement(answer) {
 // Pitch: memory
 
 const pitchMemory = {
-    trial: storage.load(PITCH_MEMORY_TRIAL_KEY, null),
+    trial: storage.load(TRIAL_KEYS.pitchMemory, null),
     timer: null,
     countdown: null,
     replayTimer: null,
     responseVoice: null,
     responseMethod: 'oscillator',
-    mic: {
-        stream: null,
-        source: null,
-        analyser: null,
-        sampleRate: 0,
-        buffer: null,
-        frame: null,
-        lastAnalysis: 0,
-        frequencies: [],
-        detectedHz: null,
-        requestId: 0,
-    },
 };
+
+const pitchMemoryMicrophoneInput = createMicrophoneInput({
+    minimumMidi: MINIMUM_SUPPORTED_MIDI,
+    maximumMidi: MAXIMUM_SUPPORTED_MIDI,
+    sampleIntervalMs: TUNER_ANALYSIS_INTERVAL_MS,
+    processFrame: processPitchMemoryMicrophoneFrame,
+    onDeactivate: handlePitchMemoryMicrophoneDeactivation,
+    initialState: {
+        detectedFrequencies: [],
+        detectedFrequency: null,
+    },
+});
 
 function savePitchMemoryState() {
     if (pitchMemory.trial && pitchMemory.trial.state !== 'complete') {
-        storage.save(PITCH_MEMORY_TRIAL_KEY, pitchMemory.trial);
+        storage.save(TRIAL_KEYS.pitchMemory, pitchMemory.trial);
     } else {
-        storage.remove(PITCH_MEMORY_TRIAL_KEY);
+        storage.remove(TRIAL_KEYS.pitchMemory);
     }
 }
 
@@ -4315,16 +4786,19 @@ function seededRandom(seed) {
 }
 
 function randomPitchMemoryFrequency(random = Math.random) {
-    return (
-        PITCH_MEMORY_MIN_HZ *
-        (PITCH_MEMORY_MAX_HZ / PITCH_MEMORY_MIN_HZ) ** random()
-    );
+    const minimumFrequency = frequencyFromMidi(MINIMUM_SUPPORTED_MIDI);
+    const maximumFrequency = frequencyFromMidi(MAXIMUM_SUPPORTED_MIDI);
+
+    return minimumFrequency * (maximumFrequency / minimumFrequency) ** random();
 }
 
-function getPitchMemoryFrequencyFromSlider() {
-    const cents = Number(getControl('pitch-memory-frequency').value);
+function getPitchMemoryResponseFrequency() {
+    const cents = Number(getControl('pitch-memory-pitch').value);
 
-    return PITCH_MEMORY_MIN_HZ * 2 ** (cents / 1200);
+    return (
+        frequencyFromMidi(MINIMUM_SUPPORTED_MIDI) *
+        2 ** (cents / CENTS_PER_OCTAVE)
+    );
 }
 
 function getPitchMemoryRefreshButton() {
@@ -4334,7 +4808,7 @@ function getPitchMemoryRefreshButton() {
 }
 
 function hidePitchMemoryResponses() {
-    document.getElementById('pitch-memory-frequency-response').hidden =
+    document.getElementById('pitch-memory-pitch-response').hidden =
         !pitchMemory.trial;
     const response = document.getElementById('pitch-memory-response-actions');
 
@@ -4342,28 +4816,36 @@ function hidePitchMemoryResponses() {
     getAction('pitch-memory-submit', response).disabled = true;
 }
 
-function pitchMemoryFrequencyToSliderValue(frequencyHz) {
+function pitchMemorySliderValueForFrequency(frequency) {
     return clamp(
-        1200 * Math.log2(frequencyHz / PITCH_MEMORY_MIN_HZ),
+        CENTS_PER_OCTAVE *
+            Math.log2(frequency / frequencyFromMidi(MINIMUM_SUPPORTED_MIDI)),
         0,
         PITCH_MEMORY_RANGE_CENTS
     );
 }
 
-function initializePitchMemoryFrequencySlider() {
-    const slider = getControl('pitch-memory-frequency');
+function initializePitchMemorySlider() {
+    const slider = getControl('pitch-memory-pitch');
     slider.min = '0';
     slider.max = String(PITCH_MEMORY_RANGE_CENTS);
     slider.value = String(PITCH_MEMORY_RANGE_CENTS / 2);
 }
 
-function renderPitchMemoryResponseFrequency() {
-    getOutput('pitch-memory-response-frequency').textContent =
-        `${getPitchMemoryFrequencyFromSlider().toFixed(3)} Hz`;
+function formatPitchAndCents(frequency) {
+    const note = nearestNoteFromFrequency(frequency);
+
+    return `${noteNameFromMidi(note.midi, 'sharp')} ${signed(note.cents, 0)}¢`;
 }
 
-function clearPitchMemoryFrequencyMarkers() {
-    getControl('pitch-memory-frequency').classList.remove('has-result');
+function renderPitchMemoryResponsePitch() {
+    getOutput('pitch-memory-response-pitch').textContent = formatPitchAndCents(
+        getPitchMemoryResponseFrequency()
+    );
+}
+
+function clearPitchMemoryPitchMarkers() {
+    getControl('pitch-memory-pitch').classList.remove('has-result');
 
     for (const name of [
         'pitch-memory-target-marker',
@@ -4376,27 +4858,29 @@ function clearPitchMemoryFrequencyMarkers() {
     }
 }
 
-function showPitchMemoryFrequencyMarkers(result) {
+function showPitchMemoryPitchMarkers(result) {
     const targetMarker = getOutput('pitch-memory-target-marker');
     const responseMarker = getOutput('pitch-memory-response-marker');
-    const responseHz =
+    const responseFrequency =
         result.method === 'microphone'
-            ? result.scoredResponseHz
-            : result.responseHz;
+            ? result.scoredResponseFrequency
+            : result.responseFrequency;
+    const minimumFrequency = frequencyFromMidi(MINIMUM_SUPPORTED_MIDI);
+    const maximumFrequency = frequencyFromMidi(MAXIMUM_SUPPORTED_MIDI);
     const position = (frequency) =>
         clamp(
-            Math.log2(frequency / PITCH_MEMORY_MIN_HZ) /
-                Math.log2(PITCH_MEMORY_MAX_HZ / PITCH_MEMORY_MIN_HZ),
+            Math.log2(frequency / minimumFrequency) /
+                Math.log2(maximumFrequency / minimumFrequency),
             0,
             1
         );
 
-    targetMarker.style.left = `${position(result.targetHz) * 100}%`;
-    responseMarker.style.left = `${position(responseHz) * 100}%`;
+    targetMarker.style.left = `${position(result.targetFrequency) * 100}%`;
+    responseMarker.style.left = `${position(responseFrequency) * 100}%`;
     const correct = result.absoluteErrorCents < PITCH_MEMORY_CORRECT_CENTS;
     responseMarker.classList.toggle('is-correct', correct);
     responseMarker.classList.toggle('is-incorrect', !correct);
-    getControl('pitch-memory-frequency').classList.add('has-result');
+    getControl('pitch-memory-pitch').classList.add('has-result');
     targetMarker.hidden = false;
     responseMarker.hidden = false;
 }
@@ -4424,94 +4908,68 @@ function stopPitchMemoryResponseTone() {
     }
 }
 
-function stopPitchMemoryMic() {
-    if (!pitchMemory?.mic) {
-        return;
-    }
-
-    const mic = pitchMemory.mic;
-
-    if (mic.frame !== null) {
-        cancelAnimationFrame(mic.frame);
-        mic.frame = null;
-    }
-
-    pauseMicrophoneInput(mic);
-    mic.frequencies = [];
-    mic.detectedHz = null;
-}
-
-function analyzePitchMemoryMic(time) {
-    const mic = pitchMemory.mic;
-
-    if (!mic.analyser || !mic.buffer) {
-        return;
-    }
+function handlePitchMemoryMicrophoneDeactivation({ reason }) {
+    pitchMemoryMicrophoneInput.detectedFrequencies = [];
+    pitchMemoryMicrophoneInput.detectedFrequency = null;
 
     if (
-        pitchMemory.trial?.state === 'responding' &&
-        time - mic.lastAnalysis >= TUNER_ANALYSIS_INTERVAL_MS
+        reason === 'microphone-paused' &&
+        pitchMemory.trial &&
+        pitchMemory.trial.state !== 'complete'
     ) {
-        mic.lastAnalysis = time;
-        mic.analyser.getFloatTimeDomainData(mic.buffer);
+        stopPitchMemoryAudio();
+    }
+}
 
-        const frequencyHz = detectPitchYin(
-            mic.buffer,
-            mic.sampleRate,
-            80,
-            1400
+function processPitchMemoryMicrophoneFrame({
+    samples,
+    sampleRate,
+    samplesUpdated,
+}) {
+    const microphone = pitchMemoryMicrophoneInput;
+
+    if (samplesUpdated && pitchMemory.trial?.state === 'responding') {
+        const frequency = detectPitchYin(
+            samples,
+            sampleRate,
+            frequencyFromMidi(microphone.minimumMidi),
+            frequencyFromMidi(microphone.maximumMidi)
         );
 
-        if (frequencyHz === null) {
-            mic.frequencies = [];
+        if (frequency === null) {
+            microphone.detectedFrequencies = [];
         } else {
-            mic.frequencies.push(frequencyHz);
+            addRollingSample(
+                microphone.detectedFrequencies,
+                frequency,
+                PITCH_MEMORY_FREQUENCY_SAMPLE_LIMIT
+            );
 
-            if (mic.frequencies.length > 9) {
-                mic.frequencies.shift();
-            }
-
-            mic.detectedHz = median(mic.frequencies);
+            microphone.detectedFrequency = median(
+                microphone.detectedFrequencies
+            );
             pitchMemory.responseMethod = 'microphone';
 
-            getOutput('pitch-memory-response-frequency').textContent =
-                `${mic.detectedHz.toFixed(3)} Hz`;
-            getControl('pitch-memory-frequency').value = String(
-                pitchMemoryFrequencyToSliderValue(mic.detectedHz)
+            getOutput('pitch-memory-response-pitch').textContent =
+                formatPitchAndCents(microphone.detectedFrequency);
+            getControl('pitch-memory-pitch').value = String(
+                pitchMemorySliderValueForFrequency(microphone.detectedFrequency)
             );
         }
     }
-
-    mic.frame = requestAnimationFrame(analyzePitchMemoryMic);
 }
 
-async function startPitchMemoryMic() {
+async function activatePitchMemoryMicrophone() {
     const refreshButton = getPitchMemoryRefreshButton();
-
-    stopTunerMic();
-
-    const mic = pitchMemory.mic;
-
-    if (microphoneInputConnected(mic)) {
-        if (
-            (await setMicrophoneState(MICROPHONE_STATES.LISTENING)) !==
-            MICROPHONE_STATES.LISTENING
-        ) {
-            return;
-        }
-        if (mic.frame === null) {
-            mic.frame = requestAnimationFrame(analyzePitchMemoryMic);
-        }
-        refreshButton.disabled = false;
-        setPitchMemoryStatus('Microphone enabled.');
-        return;
-    }
+    const active = pitchMemoryMicrophoneInput.active();
 
     refreshButton.disabled = false;
-    setPitchMemoryStatus('Requesting microphone access...');
+    if (!active) {
+        setPitchMemoryStatus(MICROPHONE_MESSAGES.REQUESTING);
+    }
 
     try {
-        if (!(await startMicrophoneInput(mic, 4096))) {
+        if (!(await pitchMemoryMicrophoneInput.activate())) {
             if (microphoneState === MICROPHONE_STATES.DENIED) {
                 setPitchMemoryStatus(
                     `${microphoneFailureMessage}; adjust the tone manually.`
@@ -4520,19 +4978,23 @@ async function startPitchMemoryMic() {
             return;
         }
 
-        mic.lastAnalysis = 0;
-        mic.frequencies = [];
-        mic.detectedHz = null;
+        if (active) {
+            refreshButton.disabled = false;
+            setPitchMemoryStatus(MICROPHONE_MESSAGES.LISTENING);
+            return;
+        }
+
+        pitchMemoryMicrophoneInput.detectedFrequencies = [];
+        pitchMemoryMicrophoneInput.detectedFrequency = null;
         refreshButton.disabled = false;
 
-        getOutput('pitch-memory-response-frequency').textContent =
-            'No stable pitch';
-        setPitchMemoryStatus('Microphone enabled.');
-        mic.frame = requestAnimationFrame(analyzePitchMemoryMic);
+        getOutput('pitch-memory-response-pitch').textContent =
+            MICROPHONE_MESSAGES.NO_STABLE_PITCH;
+        setPitchMemoryStatus(MICROPHONE_MESSAGES.LISTENING);
     } catch {
         refreshButton.disabled = false;
         setPitchMemoryStatus(
-            `${MICROPHONE_FAILURE_MESSAGES.FAILED}; adjust the tone manually.`
+            `${MICROPHONE_MESSAGES.FAILED}; adjust the tone manually.`
         );
     }
 }
@@ -4551,24 +5013,24 @@ function showPitchMemoryResponse() {
     const response = document.getElementById('pitch-memory-response-actions');
 
     hidePitchMemoryResponses();
-    document.getElementById('pitch-memory-frequency-response').hidden = false;
+    document.getElementById('pitch-memory-pitch-response').hidden = false;
     response.hidden = false;
     const random = seededRandom(pitchMemory.trial.seed ^ 0xa55a5aa5);
-    const targetCents = pitchMemoryFrequencyToSliderValue(
-        pitchMemory.trial.targetHz
+    const targetCents = pitchMemorySliderValueForFrequency(
+        pitchMemory.trial.targetFrequency
     );
     const direction = random() < 0.5 ? -1 : 1;
     const offset = direction * (300 + random() * 900);
 
     pitchMemory.responseMethod = 'oscillator';
-    pitchMemory.mic.detectedHz = null;
-    pitchMemory.mic.frequencies = [];
-    getControl('pitch-memory-frequency').value = String(
+    pitchMemoryMicrophoneInput.detectedFrequency = null;
+    pitchMemoryMicrophoneInput.detectedFrequencies = [];
+    getControl('pitch-memory-pitch').value = String(
         clamp(targetCents + offset, 0, PITCH_MEMORY_RANGE_CENTS)
     );
-    renderPitchMemoryResponseFrequency();
-    clearPitchMemoryFrequencyMarkers();
-    getControl('pitch-memory-frequency').disabled = false;
+    renderPitchMemoryResponsePitch();
+    clearPitchMemoryPitchMarkers();
+    getControl('pitch-memory-pitch').disabled = false;
     getAction('pitch-memory-response-play').disabled = false;
     getAction('pitch-memory-response-stop').disabled = false;
     getAction('pitch-memory-submit', response).disabled = false;
@@ -4621,26 +5083,21 @@ function schedulePitchMemoryResponse() {
 
 function playInterferenceSequence(random, count) {
     for (let index = 0; index < count; index += 1) {
-        let frequencyHz = randomPitchMemoryFrequency(random);
+        let frequency = randomPitchMemoryFrequency(random);
 
         while (
-            Math.abs(centsBetween(frequencyHz, pitchMemory.trial.targetHz)) <
-            200
+            Math.abs(
+                centsBetween(frequency, pitchMemory.trial.targetFrequency)
+            ) < 200
         ) {
-            frequencyHz = randomPitchMemoryFrequency(random);
+            frequency = randomPitchMemoryFrequency(random);
         }
 
-        audio.playTransient(
-            frequencyHz,
-            'sine',
-            0.12,
-            0.7,
-            1.45 + index * 0.18
-        );
+        audio.playTransient(frequency, 'sine', 0.12, 0.7, 1.45 + index * 0.18);
     }
 }
 
-function playNovelPitchMemoryMelody(random, startingHz) {
+function playNovelPitchMemoryMelody(random, startingFrequency) {
     const intervals = [0];
     let semitones = 0;
 
@@ -4654,7 +5111,7 @@ function playNovelPitchMemoryMelody(random, startingHz) {
 
     intervals.forEach((interval, index) => {
         audio.playTransient(
-            startingHz * 2 ** (interval / 12),
+            startingFrequency * 2 ** (interval / SEMITONES_PER_OCTAVE),
             'sine',
             0.3,
             0.75,
@@ -4697,13 +5154,18 @@ function playPitchMemoryStimulus() {
             1000;
     getAction('pitch-memory-stop').disabled = false;
 
-    // Consume the value originally used to select targetHz.
+    // Consume the value originally used to select targetFrequency.
     randomPitchMemoryFrequency(random);
 
     if (pitchMemory.trial.type === 'novel') {
-        playNovelPitchMemoryMelody(random, pitchMemory.trial.targetHz);
+        playNovelPitchMemoryMelody(random, pitchMemory.trial.targetFrequency);
     } else {
-        audio.playTransient(pitchMemory.trial.targetHz, 'sine', 1.2, 0.8);
+        audio.playTransient(
+            pitchMemory.trial.targetFrequency,
+            'sine',
+            1.2,
+            0.8
+        );
         playInterferenceSequence(random, conditionValue);
     }
 
@@ -4739,7 +5201,7 @@ function newPitchMemoryTrial() {
     cancelPitchMemoryTrial(false);
 
     const type = getControl('pitch-memory-type').value;
-    void startPitchMemoryMic();
+    void activatePitchMemoryMicrophone();
 
     const seed = randomSeed();
     const random = seededRandom(seed);
@@ -4753,7 +5215,7 @@ function newPitchMemoryTrial() {
             type === 'novel'
                 ? `${delaySeconds}s delay`
                 : `${distractors} distractors`,
-        targetHz: randomPitchMemoryFrequency(random),
+        targetFrequency: randomPitchMemoryFrequency(random),
         seed,
         encodedAt: Date.now(),
         encodingEndsAt: Date.now() + (type === 'novel' ? 3000 : 1200),
@@ -4765,7 +5227,7 @@ function newPitchMemoryTrial() {
     };
 
     hidePitchMemoryResponses();
-    clearPitchMemoryFrequencyMarkers();
+    clearPitchMemoryPitchMarkers();
     getOutput('pitch-memory-result').textContent = '';
     setPitchMemoryReplayEnabled(true);
     getAction('pitch-memory-stop').disabled = false;
@@ -4819,7 +5281,7 @@ function stopPitchMemoryAudio() {
         pitchMemory.trial.state = 'stopped';
         getAction('pitch-memory-stop').disabled = true;
         hidePitchMemoryResponses();
-        setPitchMemoryStatus('Trial paused.');
+        setPitchMemoryStatus('Trial stopped.');
         savePitchMemoryState();
     }
 }
@@ -4836,23 +5298,23 @@ function playPitchMemoryResponse() {
     stopPitchMemoryResponseTone();
     pitchMemory.responseMethod = 'oscillator';
     pitchMemory.responseVoice = audio.playContinuous(
-        getPitchMemoryFrequencyFromSlider(),
+        getPitchMemoryResponseFrequency(),
         'sine',
         0.8
     );
 }
 
 function updatePitchMemoryResponseTone() {
-    const responseHz = getPitchMemoryFrequencyFromSlider();
-    const detectedHz = pitchMemory.mic.detectedHz;
+    const responseFrequency = getPitchMemoryResponseFrequency();
+    const detectedFrequency = pitchMemoryMicrophoneInput.detectedFrequency;
     pitchMemory.responseMethod =
-        Number.isFinite(detectedHz) &&
-        Math.abs(centsBetween(responseHz, detectedHz)) <=
-            PITCH_MEMORY_MIC_ADJUSTMENT_CENTS
+        Number.isFinite(detectedFrequency) &&
+        Math.abs(centsBetween(responseFrequency, detectedFrequency)) <=
+            PITCH_MEMORY_MICROPHONE_ADJUSTMENT_CENTS
             ? 'microphone'
             : 'oscillator';
-    renderPitchMemoryResponseFrequency();
-    pitchMemory.responseVoice?.setFrequency(responseHz);
+    renderPitchMemoryResponsePitch();
+    pitchMemory.responseVoice?.setFrequency(responseFrequency);
 }
 
 function submitPitchMemoryResponse() {
@@ -4861,28 +5323,31 @@ function submitPitchMemoryResponse() {
     }
 
     const method = pitchMemory.responseMethod;
-    const responseHz = getPitchMemoryFrequencyFromSlider();
+    const responseFrequency = getPitchMemoryResponseFrequency();
 
-    if (!Number.isFinite(responseHz) || responseHz <= 0) {
+    if (!Number.isFinite(responseFrequency) || responseFrequency <= 0) {
         return;
     }
 
-    const scoredResponseHz =
+    const scoredResponseFrequency =
         method === 'microphone'
-            ? nearestOctaveFrequency(responseHz, pitchMemory.trial.targetHz)
-            : responseHz;
+            ? nearestOctaveFrequency(
+                  responseFrequency,
+                  pitchMemory.trial.targetFrequency
+              )
+            : responseFrequency;
     const errorCents = centsBetween(
-        scoredResponseHz,
-        pitchMemory.trial.targetHz
+        scoredResponseFrequency,
+        pitchMemory.trial.targetFrequency
     );
     const result = {
         timestamp: new Date().toISOString(),
         type: pitchMemory.trial.type,
         method,
         condition: pitchMemory.trial.condition,
-        targetHz: pitchMemory.trial.targetHz,
-        responseHz,
-        scoredResponseHz,
+        targetFrequency: pitchMemory.trial.targetFrequency,
+        responseFrequency,
+        scoredResponseFrequency,
         errorCents,
         absoluteErrorCents: Math.abs(errorCents),
         responseTimeMs: Date.now() - pitchMemory.trial.responseStartedAt,
@@ -4908,12 +5373,12 @@ function submitPitchMemoryResponse() {
 
     getOutput('pitch-memory-result').textContent =
         result.method === 'microphone'
-            ? `Target ${result.targetHz.toFixed(3)} Hz; response ${result.responseHz.toFixed(3)} Hz; octave-adjusted ${result.scoredResponseHz.toFixed(3)} Hz; error ${signed(result.errorCents, 1)} cents.`
-            : `Target ${result.targetHz.toFixed(3)} Hz; response ${result.responseHz.toFixed(3)} Hz; error ${signed(result.errorCents, 1)} cents.`;
+            ? `Target ${formatPitchAndCents(result.targetFrequency)}; response ${formatPitchAndCents(result.responseFrequency)}; octave-adjusted ${formatPitchAndCents(result.scoredResponseFrequency)}; error ${signed(result.errorCents, 1)} cents.`
+            : `Target ${formatPitchAndCents(result.targetFrequency)}; response ${formatPitchAndCents(result.responseFrequency)}; error ${signed(result.errorCents, 1)} cents.`;
 
-    showPitchMemoryFrequencyMarkers(result);
+    showPitchMemoryPitchMarkers(result);
 
-    getControl('pitch-memory-frequency').disabled = true;
+    getControl('pitch-memory-pitch').disabled = true;
     getAction('pitch-memory-response-play').disabled = true;
     getAction('pitch-memory-response-stop').disabled = true;
     getAction(
@@ -4955,9 +5420,9 @@ function updatePitchMode() {
         updatePitchMemoryControls();
         if (
             pitchMemory.trial &&
-            requestedMicrophoneState === MICROPHONE_STATES.LISTENING
+            microphoneRequestState === MICROPHONE_STATES.LISTENING
         ) {
-            void startPitchMemoryMic();
+            void activatePitchMemoryMicrophone();
         }
         return;
     }
@@ -4970,24 +5435,26 @@ function updatePitchMode() {
         cancelPitchMemoryTrial();
     }
 
-    stopPitchMemoryMic();
+    pitchMemoryMicrophoneInput.deactivate('mode-changed');
     newPitchPlacementTrial();
     renderPitchStats();
 }
 
 function restorePitchMemoryTrial() {
     const trial = pitchMemory.trial;
+    const minimumFrequency = frequencyFromMidi(MINIMUM_SUPPORTED_MIDI);
+    const maximumFrequency = frequencyFromMidi(MAXIMUM_SUPPORTED_MIDI);
 
     if (
         !trial ||
         !['novel', 'interference'].includes(trial.type) ||
         !['waiting', 'responding'].includes(trial.state) ||
-        !Number.isFinite(trial.targetHz) ||
-        trial.targetHz < PITCH_MEMORY_MIN_HZ ||
-        trial.targetHz > PITCH_MEMORY_MAX_HZ
+        !Number.isFinite(trial.targetFrequency) ||
+        trial.targetFrequency < minimumFrequency ||
+        trial.targetFrequency > maximumFrequency
     ) {
         pitchMemory.trial = null;
-        storage.remove(PITCH_MEMORY_TRIAL_KEY);
+        storage.remove(TRIAL_KEYS.pitchMemory);
         updatePitchMemoryControls();
         return;
     }
@@ -5198,7 +5665,9 @@ function newMatchTargetTrial() {
     cancelMatchAdvance();
     stopAllAudio();
 
-    const targetHz = selectedNoteFrequency(getNote('match-target'));
+    const targetFrequency = selectedNoteFrequency(
+        getNoteControl('match-target')
+    );
 
     const { minimum: minimumCents, maximum: maximumCents } = readRange(
         getControl('match-target-range-min'),
@@ -5214,7 +5683,7 @@ function newMatchTargetTrial() {
             (cents) => ({
                 cents,
 
-                frequencyHz: frequencyFromCents(targetHz, cents),
+                frequency: frequencyFromCents(targetFrequency, cents),
 
                 isTarget: Math.abs(cents) < 0.000001,
 
@@ -5322,7 +5791,7 @@ function createMatchTargetAnswerRow(answer, index) {
 
     details.append(
         document.createTextNode(
-            `${answer.frequencyHz.toFixed(3)} Hz, ` +
+            `${answer.frequency.toFixed(3)} Hz, ` +
                 `${signed(answer.cents, 2)} cents`
         )
     );
@@ -5353,7 +5822,7 @@ function playMatchTargetAnswer(index) {
     answer.played = true;
 
     audio.playTransient(
-        answer.frequencyHz,
+        answer.frequency,
 
         getWaveform('match-target').value,
 
@@ -5408,7 +5877,7 @@ function commitMatchTargetAnswer(index) {
 
     const correct = selected.isTarget;
     const errorCents = Math.abs(
-        centsBetween(selected.frequencyHz, target.frequencyHz)
+        centsBetween(selected.frequency, target.frequency)
     );
 
     stats.match.target.trials += 1;
@@ -5467,14 +5936,19 @@ const matchIdentification = { trial: null };
 
 function renderMatchIdentificationAnswers(selected = null) {
     const trial = matchIdentification.trial;
-    const buttons = NOTE_NAMES.map((name, pitchClass) => {
+    const buttons = PITCH_CLASS_NAMES.map((_, pitchClass) => {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'answer-option';
         button.dataset.matchIdentificationAnswer = String(pitchClass);
-        button.textContent = name;
+        button.textContent = pitchClassName(pitchClass);
         button.disabled = !trial?.played || trial.committed;
-        setAnswerOptionState(button, pitchClass, selected, trial?.midi % 12);
+        setAnswerOptionState(
+            button,
+            pitchClass,
+            selected,
+            trial?.midi % SEMITONES_PER_OCTAVE
+        );
         return button;
     });
     document
@@ -5491,7 +5965,9 @@ function newMatchIdentificationTrial(playImmediately = false) {
             ? 3 + Math.floor(Math.random() * 3)
             : Number(octaveValue);
     matchIdentification.trial = {
-        midi: (octave + 1) * 12 + Math.floor(Math.random() * 12),
+        midi:
+            (octave + 1) * SEMITONES_PER_OCTAVE +
+            Math.floor(Math.random() * SEMITONES_PER_OCTAVE),
         played: false,
         committed: false,
     };
@@ -5511,7 +5987,7 @@ function playMatchIdentificationTrial() {
     stopAllAudio();
     const trial = matchIdentification.trial;
     audio.playTransient(
-        midiFrequency(trial.midi),
+        frequencyFromMidi(trial.midi),
         getWaveform('match-identification').value,
         readNumber(getControl('match-identification-duration'), 1)
     );
@@ -5538,13 +6014,13 @@ function commitMatchIdentification(pitchClass) {
         trial.committed ||
         !Number.isInteger(pitchClass) ||
         pitchClass < 0 ||
-        pitchClass >= NOTE_NAMES.length
+        pitchClass >= PITCH_CLASS_NAMES.length
     ) {
         return;
     }
     audio.stopTransient();
     trial.committed = true;
-    const correct = pitchClass === trial.midi % 12;
+    const correct = pitchClass === trial.midi % SEMITONES_PER_OCTAVE;
     const typeStats = stats.match.identification;
     typeStats.trials += 1;
     typeStats.correct += correct ? 1 : 0;
@@ -5561,7 +6037,7 @@ function commitMatchIdentification(pitchClass) {
     renderPracticeResult(
         'match-identification-result',
         correct,
-        midiToNoteName(trial.midi)
+        noteNameFromMidi(trial.midi)
     );
     scheduleMatchAdvance();
 }
@@ -5644,12 +6120,10 @@ function scheduleIntervalAdvance() {
 }
 
 function enabledIntervals() {
-    const level = getControl('shared-interval-set').value;
-    const enabledSemitones = INTERVAL_LEVELS[level] || INTERVAL_LEVELS.starter;
+    const levelName = getControl('shared-interval-set').value;
+    const level = INTERVAL_LEVELS[levelName] ?? INTERVAL_LEVELS['starter'];
 
-    return INTERVALS.filter(({ semitones }) =>
-        enabledSemitones.includes(semitones)
-    );
+    return INTERVALS.filter((interval) => interval.level <= level);
 }
 
 function updateIntervalMode() {
@@ -5677,11 +6151,11 @@ function renderIntervalAnswers(selected = null, enabled = false) {
         button.dataset.intervalAnswer = String(answer.semitones);
         button.textContent =
             interval.trial.mode === 'construction'
-                ? midiToNoteName(
+                ? noteNameFromMidi(
                       interval.trial.rootMidi +
                           interval.trial.direction * answer.semitones
                   )
-                : answer.shortName || answer.name;
+                : answer.name;
         button.setAttribute(
             'aria-label',
             interval.trial.mode === 'construction'
@@ -5712,7 +6186,7 @@ function renderIntervalAnswers(selected = null, enabled = false) {
 
         prompt.replaceChildren(
             document.createTextNode(
-                `Start: ${midiToNoteName(interval.trial.rootMidi)}.`
+                `Start: ${noteNameFromMidi(interval.trial.rootMidi)}.`
             ),
             document.createElement('br'),
             document.createTextNode(`Build: ${intervalName}${direction}.`)
@@ -5757,15 +6231,16 @@ function createIntervalTrial(mode, playImmediately) {
         directionControl === 'random'
             ? Math.random() < 0.5
             : directionControl === 'ascending';
+
+    const distractors = shuffle(
+        choices.filter((candidate) => candidate !== target)
+    ).slice(0, 3);
     const answerSemitones =
         mode === 'construction'
             ? shuffle(INTERVALS).map(({ semitones }) => semitones)
-            : shuffle([
-                  ...shuffle(
-                      choices.filter((candidate) => candidate !== target)
-                  ).slice(0, 3),
-                  target,
-              ]).map(({ semitones }) => semitones);
+            : shuffle([...distractors, target]).map(
+                  ({ semitones }) => semitones
+              );
     const rootMidi = ascending
         ? 48 + Math.floor(Math.random() * 24)
         : 60 + Math.floor(Math.random() * 24);
@@ -5801,9 +6276,9 @@ function playIntervalTrial() {
     const duration = readNumber(getControl('shared-interval-duration'), 0.7);
     const waveform = getWaveform(`interval-${sectionModes.intervals}`).value;
 
-    audio.playTransient(midiFrequency(trial.rootMidi), waveform, duration);
+    audio.playTransient(frequencyFromMidi(trial.rootMidi), waveform, duration);
     audio.playTransient(
-        midiFrequency(trial.targetMidi),
+        frequencyFromMidi(trial.targetMidi),
         waveform,
         duration,
         1,
@@ -5882,8 +6357,8 @@ function commitInterval(semitones) {
 
     playedNotes.className = 'played-notes';
     playedNotes.textContent =
-        `${midiToNoteName(trial.rootMidi)} → ` +
-        midiToNoteName(trial.targetMidi);
+        `${noteNameFromMidi(trial.rootMidi)} → ` +
+        noteNameFromMidi(trial.targetMidi);
     getOutput(`${getIntervalExercise()}-result`).append(playedNotes);
 
     scheduleIntervalAdvance();
@@ -5989,7 +6464,9 @@ function newChordQualityTrial(playImmediately = false) {
     const qualities = Object.keys(CHORD_QUALITIES);
 
     chord.quality = qualities[Math.floor(Math.random() * qualities.length)];
-    chord.rootMidi = 48 + Math.floor(Math.random() * 24);
+    chord.rootMidi =
+        MIDI_NOTES.C3 +
+        Math.floor(Math.random() * (MIDI_NOTES.C5 - MIDI_NOTES.C3));
     chord.committed = false;
     chord.playedNotes = [];
 
@@ -6028,7 +6505,7 @@ function playChordQualityTrial() {
 
     intervals.forEach((semitones, index) => {
         audio.playTransient(
-            midiFrequency(chord.rootMidi + semitones),
+            frequencyFromMidi(chord.rootMidi + semitones),
             waveform,
             sequential ? 0.7 : 1.2,
             0.55,
@@ -6041,7 +6518,7 @@ function playChordQualityTrial() {
     }
 }
 
-function renderChordQualityStats() {
+function renderChordStats() {
     const { streak, trials, correct, best } = stats.chord.quality;
 
     const accuracy = trials > 0 ? (correct / trials) * 100 : 0;
@@ -6053,12 +6530,12 @@ function renderChordQualityStats() {
     getOutput('chord-best').textContent = best === null ? '--' : String(best);
 }
 
-function clearChordQualityStats() {
+function clearChordStats() {
     stats.chord.quality = defaultChordQualityStats();
 
-    clearStats('chord');
+    saveChordStats();
 
-    renderChordQualityStats();
+    renderChordStats();
 }
 
 function commitChordQuality(quality) {
@@ -6084,7 +6561,7 @@ function commitChordQuality(quality) {
     }
 
     saveChordStats();
-    renderChordQualityStats();
+    renderChordStats();
     renderChordQualityAnswers(quality, true);
 
     renderPracticeResult(
@@ -6097,7 +6574,7 @@ function commitChordQuality(quality) {
 
     playedNotes.className = 'played-notes';
     playedNotes.textContent = `Notes: ${chord.playedNotes
-        .map(midiToNoteName)
+        .map(noteNameFromMidi)
         .join(', ')}`;
     getOutput('chord-result').append(playedNotes);
 
@@ -6107,7 +6584,7 @@ function commitChordQuality(quality) {
 // Events
 
 function resetForReferenceChange() {
-    stopGeneratedAudio();
+    stopAllAudio();
     cancelPitchAdvance();
     cancelIntervalAdvance();
 
@@ -6142,7 +6619,7 @@ function initializeEvents() {
 
             if (tunerVoice) {
                 tunerVoice.setFrequency(
-                    selectedNoteFrequency(getNote('tuner'))
+                    selectedNoteFrequency(getNoteControl('tuner'))
                 );
             }
 
@@ -6155,7 +6632,8 @@ function initializeEvents() {
         'shared-time-signature',
         'rhythm-sheet-bars',
         'rhythm-sheet-note-values',
-        'rhythm-sheet-clef'
+        'rhythm-sheet-clef',
+        'rhythm-sheet-pitches'
     )) {
         control.addEventListener('change', () => {
             if (sheetMusicEnabled()) {
@@ -6197,7 +6675,7 @@ function initializeEvents() {
         });
         target.addEventListener('pointercancel', (event) => {
             if (sheetMusic.active && sheetMusic.input === event.pointerId) {
-                stopGeneratedAudio();
+                stopAllAudio();
             }
         });
         target.addEventListener('lostpointercapture', (event) => {
@@ -6230,7 +6708,7 @@ function initializeEvents() {
     });
     window.addEventListener('blur', () => {
         if (sheetMusic.active) {
-            stopGeneratedAudio();
+            stopAllAudio();
         }
     });
     const rhythmTimingTap = document.getElementById('rhythm-timing-tap');
@@ -6267,7 +6745,7 @@ function initializeEvents() {
     });
     document.addEventListener('visibilitychange', () => {
         if (document.hidden && rhythm.running) {
-            stopGeneratedAudio();
+            stopAllAudio();
         }
     });
 
@@ -6330,23 +6808,23 @@ function initializeEvents() {
     getControl('global-volume').addEventListener('input', updateVolume);
     getAction('global-volume-toggle').addEventListener('click', toggleVolume);
 
-    const referenceA4Input = getControl('global-reference-a4');
+    const referenceFrequencyInput = getControl('global-reference-a4');
 
-    referenceA4Input.addEventListener('input', () => {
+    referenceFrequencyInput.addEventListener('input', () => {
         resetForReferenceChange();
 
-        const a4 = Number(referenceA4Input.value);
+        const referenceFrequency = Number(referenceFrequencyInput.value);
 
         if (
-            Number.isFinite(a4) &&
-            a4 >= Number(referenceA4Input.min) &&
-            a4 <= Number(referenceA4Input.max)
+            Number.isFinite(referenceFrequency) &&
+            referenceFrequency >= Number(referenceFrequencyInput.min) &&
+            referenceFrequency <= Number(referenceFrequencyInput.max)
         ) {
             savePreferences();
         }
     });
-    referenceA4Input.addEventListener('change', () => {
-        normalizeNumberInput(referenceA4Input, DEFAULT_REFERENCE_A4);
+    referenceFrequencyInput.addEventListener('change', () => {
+        normalizeNumberInput(referenceFrequencyInput, DEFAULT_A4_FREQUENCY);
         resetForReferenceChange();
         savePreferences();
     });
@@ -6371,7 +6849,7 @@ function initializeEvents() {
 
     getAction('global-reference-reset').addEventListener('click', () => {
         getControl('global-reference-a4').value =
-            DEFAULT_REFERENCE_A4.toFixed(3);
+            DEFAULT_A4_FREQUENCY.toFixed(3);
 
         resetForReferenceChange();
         savePreferences();
@@ -6387,11 +6865,11 @@ function initializeEvents() {
     );
 
     getAction('tuner-play').addEventListener('click', playTuner);
+    getAction('tuner-stop').addEventListener('click', stopTuner);
 
-    getAction('global-microphone-toggle').addEventListener(
-        'click',
-        toggleGlobalMicrophone
-    );
+    for (const button of getActions('global-microphone-toggle')) {
+        button.addEventListener('click', toggleGlobalMicrophone);
+    }
 
     getControl('match-identification-octave').addEventListener(
         'change',
@@ -6465,7 +6943,7 @@ function initializeEvents() {
             }
         });
 
-    getControl('chord-playback').addEventListener('change', stopGeneratedAudio);
+    getControl('chord-playback').addEventListener('change', stopAllAudio);
 
     for (const control of getControls(
         'pitch-memory-type',
@@ -6488,7 +6966,7 @@ function initializeEvents() {
 
     getAction('pitch-memory-stop').addEventListener('click', () => {
         stopPitchMemoryAudio();
-        pauseMicrophone();
+        stopMicrophone();
     });
 
     getAction('pitch-memory-response-play').addEventListener(
@@ -6501,7 +6979,7 @@ function initializeEvents() {
         stopPitchMemoryResponseTone
     );
 
-    getControl('pitch-memory-frequency').addEventListener(
+    getControl('pitch-memory-pitch').addEventListener(
         'input',
         updatePitchMemoryResponseTone
     );
@@ -6520,7 +6998,8 @@ function initializeEvents() {
 
     for (const button of getActions('global-audio-stop')) {
         button.addEventListener('click', () => {
-            pauseMicrophone();
+            stopAllAudio();
+            stopMicrophone();
             cancelPitchAdvance();
             cancelMatchAdvance();
             cancelIntervalAdvance();
@@ -6529,7 +7008,7 @@ function initializeEvents() {
     }
 
     for (const waveform of document.querySelectorAll('[data-waveform]')) {
-        waveform.addEventListener('change', stopGeneratedAudio);
+        waveform.addEventListener('change', stopAllAudio);
     }
 
     document
@@ -6567,10 +7046,7 @@ function initializeEvents() {
         button.addEventListener('click', clearIntervalStats);
     }
 
-    getAction('chord-stats-clear').addEventListener(
-        'click',
-        clearChordQualityStats
-    );
+    getAction('chord-stats-clear').addEventListener('click', clearChordStats);
 }
 
 // Initialization
@@ -6578,7 +7054,7 @@ function initializeEvents() {
 function initialize() {
     restorePreferences();
     updateVolume();
-    initializePitchMemoryFrequencySlider();
+    initializePitchMemorySlider();
     initializeTooltips();
     initializeNotes();
     initializeTunerInstruments();
@@ -6598,11 +7074,11 @@ function initialize() {
     updateIntervalMode();
     newChordTrial();
 
-    renderChordQualityStats();
+    renderChordStats();
     renderMicrophoneState(MICROPHONE_STATES.UNPROMPTED);
-    void setMicrophoneState(MICROPHONE_STATES.STOPPED);
+    void setMicrophoneState(MICROPHONE_STATES.PAUSED);
     restorePitchMemoryTrial();
-    renderPitchMemoryResponseFrequency();
+    renderPitchMemoryResponsePitch();
 }
 
 initialize();
@@ -6626,6 +7102,6 @@ window.addEventListener('beforeunload', () => {
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () =>
-        navigator.serviceWorker.register('/service-worker.js')
+        navigator.serviceWorker.register('/service-worker.js').catch(() => {})
     );
 }
