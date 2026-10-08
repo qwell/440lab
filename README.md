@@ -62,7 +62,11 @@ The Tuning tab can play a selected reference note, detect live pitches through t
 - `nginx.conf.example` - optional nginx HTTPS configuration template with installation and Certbot instructions
 - `serve.js` - optional local static-file server
 - `site/index.html` - interface and application metadata
-- `site/assets/css/index.css` - styles and responsive layout
+- `site/assets/css/base.css` - shared variables and base element styles
+- `site/assets/css/controls.css` - shared settings, form control, tooltip, and icon button styles
+- `site/assets/css/tools.css` - tool-specific tuner, rhythm, pitch, and interval displays
+- `site/assets/css/layout.css` - page and panel layout
+- `site/assets/css/practice.css` - practice-tool styles
 - `site/assets/js/index.js` - audio, microphone pitch detection, metronome, exercises, and application logic
 
 ## Technologies
