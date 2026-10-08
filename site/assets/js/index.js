@@ -1112,6 +1112,14 @@ const MICROPHONE_MESSAGES = Object.freeze({
     UNAVAILABLE: 'Microphone access unavailable',
     FAILED: 'Could not start microphone',
 });
+const MICROPHONE_MEDIA_CONSTRAINTS = Object.freeze({
+    audio: Object.freeze({
+        autoGainControl: false,
+        echoCancellation: false,
+        noiseSuppression: false,
+    }),
+    video: false,
+});
 
 let microphoneStream = null;
 let microphoneRequest = null;
@@ -1199,7 +1207,7 @@ async function requestMicrophoneStream() {
     }
 
     microphoneRequest ??= navigator.mediaDevices
-        .getUserMedia({ audio: true, video: false })
+        .getUserMedia(MICROPHONE_MEDIA_CONSTRAINTS)
         .then((stream) => {
             microphoneStream = stream;
             return stream;
