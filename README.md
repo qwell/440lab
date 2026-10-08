@@ -43,19 +43,31 @@ Open `site/index.html` in a modern browser.
 
 Most features can run directly from a `file://` path without a web server. The microphone tuner requires microphone permission and may require HTTPS or localhost, depending on the browser.
 
+To serve the site locally instead, install the dependencies and run:
+
+```sh
+yarn serve
+```
+
+The site will be available at [http://localhost:3000/](http://localhost:3000/).
+
+For an nginx deployment with HTTPS, use `nginx.conf.example` and follow the installation instructions at the top of the file.
+
 Use the global A4 reference to change the tuning standard used throughout the application. The global volume control adjusts generated audio output.
 
 The Tuning tab can play a selected reference note, detect live pitches through the microphone, or do both at the same time. Pitch Memory microphone responses have the same permission and secure-context requirements as the tuner.
 
 ## Files
 
+- `nginx.conf.example` - optional nginx HTTPS configuration template with installation and Certbot instructions
+- `serve.js` - optional local static-file server
 - `site/index.html` - interface and application metadata
 - `site/assets/css/index.css` - styles and responsive layout
 - `site/assets/js/index.js` - audio, microphone pitch detection, metronome, exercises, and application logic
 
 ## Technologies
 
-Vanilla HTML, CSS, and JavaScript using browser APIs including:
+HTML, CSS, and JavaScript using browser APIs including:
 
 - Web Audio API
 - MediaDevices / `getUserMedia()`

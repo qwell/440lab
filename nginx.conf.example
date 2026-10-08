@@ -1,0 +1,55 @@
+# INSTALLATION
+#
+# 1) Replace every instance of {{ DOMAIN }} below with the apex domain name.
+#    If www. is not required, all instances (including the entire redirect block) can be safely removed.
+#
+# 2) Install and enable the nginx configuration.
+#    sudo cp nginx.conf.example /etc/nginx/sites-available/{{ DOMAIN }}.conf
+#    sudo ln -s /etc/nginx/sites-available/{{ DOMAIN }}.conf \
+#      /etc/nginx/sites-enabled/{{ DOMAIN }}.conf
+#
+#    Do not reload nginx yet; the referenced certificate files do not exist.
+#
+# 3) Create the site directory.  Site files must be added manually.
+#    sudo mkdir -p /var/www/{{ DOMAIN }}/site
+#    OR
+#    sudo git clone https://github.com/qwell/440lab.git /var/www/{{ DOMAIN }}/
+#
+# 4) Run the following command to obtain a new certificate.
+#    sudo certbot certonly --standalone --cert-name {{ DOMAIN }} -d {{ DOMAIN }} -d www.{{ DOMAIN }} \
+#      --pre-hook "systemctl stop nginx" --post-hook "systemctl start nginx"
+#
+#    For a staging certificate, add --test-cert.
+
+server {
+  listen 443 ssl;
+  listen [::]:443 ssl;
+  server_name {{ DOMAIN }} www.{{ DOMAIN }};
+
+  ssl_certificate /etc/letsencrypt/live/{{ DOMAIN }}/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/{{ DOMAIN }}/privkey.pem;
+
+  if ($host = www.{{ DOMAIN }}) {
+    return 301 https://{{ DOMAIN }}$request_uri;
+  }
+
+  root /var/www/{{ DOMAIN }}/site;
+
+  access_log /var/log/nginx/{{ DOMAIN }}.access.log;
+  error_log /var/log/nginx/{{ DOMAIN }}.error.log warn;
+
+  expires 1h;
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+
+  location / {
+    try_files $uri $uri/ =404;
+  }
+}
+
+server {
+  listen 80;
+  listen [::]:80;
+  server_name {{ DOMAIN }} www.{{ DOMAIN }};
+
+  return 301 https://{{ DOMAIN }}$request_uri;
+}
