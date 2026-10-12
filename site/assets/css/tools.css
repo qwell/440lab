@@ -26,7 +26,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    text-align: center;
+    text-align: left;
 }
 
 .tuner-header {
@@ -303,22 +303,185 @@
     font-size: 12px;
 }
 
-.rhythm-sheet-score {
-    --rhythm-sheet-beam-thickness: 0.24rem;
-    --rhythm-sheet-notehead-y: 5.25rem;
-    --rhythm-sheet-stem-length: 1.75rem;
-    --rhythm-sheet-beam-width-extension: 0.0625rem;
-    --rhythm-sheet-beam-stem-inset: 0.0625rem;
-    --rhythm-sheet-up-stem-x: 0.95rem;
-    --rhythm-sheet-up-beam-x: 0.95rem;
-    --rhythm-sheet-up-note-y: -0.125rem;
-    --rhythm-sheet-up-layout-y: 0.0625rem;
-    --rhythm-sheet-up-stem-note-inset: 0.125rem;
-    --rhythm-sheet-down-stem-x: 0.5rem;
-    --rhythm-sheet-down-beam-x: 0.5rem;
-    --rhythm-sheet-down-note-y: -0.0625rem;
-    --rhythm-sheet-down-layout-y: 0;
-    --rhythm-sheet-down-stem-note-inset: 0.0625rem;
+.midi-visualize-tracks {
+    --sheet-heading-gap: 2rem;
+    --sheet-play-line-position: 7rem;
+
+    display: grid;
+    gap: 16px;
+}
+
+.midi-visualize-track {
+    display: block;
+}
+
+.midi-visualize-track-body {
+    min-height: 0;
+}
+
+.midi-visualize-track-body,
+.midi-visualize-track-header {
+    display: grid;
+    grid-template-columns: 1.25rem minmax(0, 1fr);
+    column-gap: 0.3rem;
+}
+
+.midi-visualize-track .midi-visualize-track-body[hidden] {
+    display: none;
+}
+
+.midi-visualize-track-heading,
+.midi-visualize-track-content {
+    grid-column: 2;
+}
+
+.midi-visualize-track-toggle {
+    width: 100%;
+    height: auto;
+    min-height: 0;
+
+    min-width: 0;
+    padding: 0;
+
+    border: 0;
+    border-radius: var(--border-radius);
+
+    background: var(--correct);
+
+    cursor: pointer;
+}
+
+.midi-visualize-track-toggle[aria-pressed='false'] {
+    background: var(--incorrect);
+}
+
+@media (hover: hover) {
+    .midi-visualize-track-toggle:hover:not(:disabled) {
+        background: var(--correct);
+    }
+
+    .midi-visualize-track-toggle[aria-pressed='false']:hover:not(:disabled) {
+        background: var(--incorrect);
+    }
+}
+
+.midi-visualize-track-header {
+    margin-bottom: 5px;
+
+    align-items: center;
+}
+
+[data-action='midi-visualize-attach'] {
+    width: 32px;
+}
+
+[data-action='midi-visualize-play'] > span {
+    display: inline-block;
+    transform: scaleX(1.2);
+}
+
+.midi-visualize-time-row {
+    margin: 0 0 0.5rem;
+
+    display: flex;
+    gap: 0.6rem;
+
+    align-items: center;
+
+    color: var(--muted);
+
+    font-size: 0.75rem;
+    line-height: 1.25;
+
+    font-variant-numeric: tabular-nums;
+}
+
+.midi-visualize-time-row[hidden] {
+    display: none;
+}
+
+.midi-visualize-time-row > span {
+    height: 16px;
+
+    display: flex;
+    align-items: center;
+}
+
+.practice input.midi-visualize-seek {
+    flex: 1;
+
+    width: auto;
+    min-width: 3rem;
+    height: 16px;
+    margin: 0;
+    padding: 0;
+}
+
+.midi-visualize-track-heading {
+    margin: 0;
+
+    color: var(--muted);
+
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.midi-visualize-track-minimize {
+    width: 100%;
+    height: 1.25rem;
+    padding: 0;
+
+    font-size: 16px;
+    line-height: 1;
+}
+
+.midi-visualize-track-minimize > span {
+    display: block;
+
+    transform: translateY(-0.1rem);
+}
+
+.midi-visualize-track-scores {
+    display: grid;
+    gap: 4px;
+}
+
+.midi-visualize-track-scores:empty {
+    display: none;
+}
+
+.midi-visualize-track-scores[hidden] {
+    display: none;
+}
+
+.midi-visualize-track-content[hidden] {
+    display: none;
+}
+
+.midi-visualize-track-content > .practice-note {
+    margin-top: 0;
+}
+
+.midi-visualize-tracks .sheet-score {
+    height: 8rem;
+}
+
+.sheet-score {
+    --sheet-beam-thickness: 0.24rem;
+    --sheet-notehead-y: 5.25rem;
+    --sheet-stem-length: 1.75rem;
+    --sheet-beam-width-extension: 0.0625rem;
+    --sheet-beam-stem-inset: 0.0625rem;
+    --sheet-up-stem-x: 0.95rem;
+    --sheet-up-beam-x: 0.95rem;
+    --sheet-up-note-y: -0.125rem;
+    --sheet-up-layout-y: 0.0625rem;
+    --sheet-up-stem-note-inset: 0.125rem;
+    --sheet-down-stem-x: 0.5rem;
+    --sheet-down-beam-x: 0.5rem;
+    --sheet-down-note-y: -0.0625rem;
+    --sheet-down-layout-y: 0;
+    --sheet-down-stem-note-inset: 0.0625rem;
 
     position: relative;
 
@@ -335,7 +498,7 @@
     overflow: hidden;
 }
 
-.rhythm-sheet-staff {
+.sheet-staff {
     position: absolute;
     inset: 2.25rem 0 auto;
 
@@ -344,7 +507,7 @@
     pointer-events: none;
 }
 
-.rhythm-sheet-staff > span {
+.sheet-staff > span {
     position: absolute;
     right: 0;
     left: 0;
@@ -354,34 +517,34 @@
     background: var(--muted);
 }
 
-.rhythm-sheet-staff > span:nth-child(1) {
+.sheet-staff > span:nth-child(1) {
     top: 0;
 }
 
-.rhythm-sheet-staff > span:nth-child(2) {
+.sheet-staff > span:nth-child(2) {
     top: 0.75rem;
 }
 
-.rhythm-sheet-staff > span:nth-child(3) {
+.sheet-staff > span:nth-child(3) {
     top: 1.5rem;
 }
 
-.rhythm-sheet-staff > span:nth-child(4) {
+.sheet-staff > span:nth-child(4) {
     top: 2.25rem;
 }
 
-.rhythm-sheet-staff > span:nth-child(5) {
+.sheet-staff > span:nth-child(5) {
     top: 3rem;
 }
 
-.rhythm-sheet-lane {
+.sheet-lane {
     position: absolute;
     inset: 0;
 
     will-change: transform;
 }
 
-.rhythm-sheet-lane-note {
+.sheet-lane-note {
     position: absolute;
 
     top: 0;
@@ -391,7 +554,7 @@
     color: var(--text);
 }
 
-.rhythm-sheet-note-symbol {
+.sheet-note-symbol {
     position: absolute;
 
     top: calc(3.825rem - var(--staff-step, 3) * 0.375rem);
@@ -403,17 +566,17 @@
     white-space: nowrap;
 }
 
-.rhythm-sheet-note-symbol:not(.is-whole):not(.is-stem-down) {
+.sheet-note-symbol:not(.is-whole):not(.is-stem-down) {
     top: calc(3.8rem - var(--staff-step, 3) * 0.375rem);
 }
 
-.rhythm-sheet-note-symbol.is-stem-down {
+.sheet-note-symbol.is-stem-down {
     top: calc(5rem - var(--staff-step) * 0.375rem);
 
     transform: rotate(180deg);
 }
 
-.rhythm-sheet-note-symbol.is-beamed {
+.sheet-note-symbol.is-beamed {
     top: calc(3.725rem - var(--staff-step) * 0.375rem);
 
     font-family: 'Noto Music', serif;
@@ -421,11 +584,11 @@
     transform: none;
 }
 
-.rhythm-sheet-note-symbol.is-beamed.is-stem-down {
+.sheet-note-symbol.is-beamed.is-stem-down {
     top: calc(3.7875rem - var(--staff-step) * 0.375rem);
 }
 
-.rhythm-sheet-note-accidental {
+.sheet-note-accidental {
     position: absolute;
 
     top: calc(4.5rem - var(--staff-step) * 0.375rem);
@@ -435,18 +598,18 @@
     line-height: 1;
 }
 
-.rhythm-sheet-beam {
+.sheet-beam {
     position: absolute;
     z-index: 1;
 
-    height: var(--rhythm-sheet-beam-thickness);
+    height: var(--sheet-beam-thickness);
 
     background: var(--text);
 
     pointer-events: none;
 }
 
-.rhythm-sheet-beam-stem {
+.sheet-beam-stem {
     position: absolute;
     z-index: 1;
 
@@ -457,20 +620,26 @@
     pointer-events: none;
 }
 
-.rhythm-sheet-lane-note.is-rest .rhythm-sheet-note-symbol {
-    top: 2.6rem;
+.sheet-lane-note.is-rest .sheet-note-symbol {
+    top: 2.85rem;
 
-    font-size: 2.5rem;
+    font-size: 2rem;
 }
 
-.rhythm-sheet-lane-note.is-rest .rhythm-sheet-note-symbol.is-whole,
-.rhythm-sheet-lane-note.is-rest .rhythm-sheet-note-symbol.is-half {
-    top: 2.9rem;
+.sheet-lane-note.is-rest .sheet-note-symbol.is-whole,
+.sheet-lane-note.is-rest .sheet-note-symbol.is-half {
+    top: 3.1rem;
 
-    font-size: 2.25rem;
+    font-size: 1.75rem;
 }
 
-.rhythm-sheet-note-dot {
+.sheet-lane-note.is-rest .sheet-note-symbol.is-multiple-measure {
+    top: 3.15rem;
+
+    font-size: 1.5rem;
+}
+
+.sheet-note-dot {
     position: absolute;
 
     top: calc(5.1rem - var(--staff-step) * 0.375rem);
@@ -484,7 +653,26 @@
     background: currentcolor;
 }
 
-.rhythm-sheet-ledger-line {
+.sheet-note-octave {
+    position: absolute;
+    left: 0.25rem;
+
+    color: var(--muted);
+
+    font-family: system-ui, sans-serif;
+    font-size: 0.65rem;
+    line-height: 1;
+}
+
+.sheet-note-octave.is-above {
+    top: 0.25rem;
+}
+
+.sheet-note-octave.is-below {
+    bottom: 0.25rem;
+}
+
+.sheet-ledger-line {
     position: absolute;
 
     top: calc(5.25rem - var(--staff-step) * 0.375rem);
@@ -496,7 +684,7 @@
     background: var(--muted);
 }
 
-.rhythm-sheet-score-heading {
+.sheet-score-heading {
     position: absolute;
 
     top: 1.75rem;
@@ -512,11 +700,11 @@
 
     color: var(--text);
 
-    transform: translateX(calc(-100% - 1rem));
+    transform: translateX(calc(-100% - var(--sheet-heading-gap, 1rem)));
 }
 
-.rhythm-sheet-clef,
-.rhythm-sheet-barline {
+.sheet-clef,
+.sheet-barline {
     display: flex;
     align-items: center;
 
@@ -531,33 +719,34 @@
     transform-origin: center;
 }
 
-.rhythm-sheet-clef {
+.sheet-clef {
     flex: none;
 
     overflow: visible;
 }
 
-.rhythm-sheet-clef-bass {
+.sheet-clef-bass {
     font-size: 3rem;
 }
 
-.rhythm-sheet-clef-alto,
-.rhythm-sheet-clef-tenor {
+.sheet-clef-alto,
+.sheet-clef-tenor,
+.sheet-clef-percussion {
     font-size: 2.75rem;
 }
 
-.rhythm-sheet-clef-tenor {
+.sheet-clef-tenor {
     position: relative;
     top: -0.75rem;
 }
 
-.rhythm-sheet-signature {
+.sheet-signature {
     height: 3rem;
 
     overflow: hidden;
 }
 
-.rhythm-sheet-signature:not(.is-numeric) {
+.sheet-signature:not(.is-numeric) {
     display: flex;
     align-items: center;
 
@@ -565,7 +754,7 @@
     line-height: 1;
 }
 
-.rhythm-sheet-signature.is-numeric {
+.sheet-signature.is-numeric {
     display: grid;
     grid-template-rows: repeat(2, 1.5rem);
     align-content: center;
@@ -576,12 +765,12 @@
     line-height: 1.5rem;
 }
 
-.rhythm-sheet-lane-note.is-current,
-.rhythm-sheet-tie.is-current {
+.sheet-lane-note.is-current,
+.sheet-tie.is-current {
     color: var(--target);
 }
 
-.rhythm-sheet-tie {
+.sheet-tie {
     position: absolute;
     z-index: 1;
 
@@ -596,14 +785,14 @@
     pointer-events: none;
 }
 
-.rhythm-sheet-tie.is-above {
+.sheet-tie.is-above {
     top: calc(4.475rem - var(--staff-step) * 0.375rem);
 
     border-top-width: 2px;
     border-radius: 50% 50% 0 0;
 }
 
-.rhythm-sheet-tie.is-below {
+.sheet-tie.is-below {
     top: calc(5.225rem - var(--staff-step) * 0.375rem);
 
     border-bottom-width: 2px;
@@ -632,7 +821,7 @@
     pointer-events: none;
 }
 
-.rhythm-sheet-lane-note.is-rest .rhythm-sheet-duration-track {
+.sheet-lane-note.is-rest .rhythm-sheet-duration-track {
     background: transparent;
 }
 
@@ -648,7 +837,7 @@
     background: var(--incorrect);
 }
 
-.rhythm-sheet-count-marker {
+.sheet-count-marker {
     position: absolute;
     top: 0.15rem;
 
@@ -659,11 +848,11 @@
     transform: translateX(-50%);
 }
 
-.rhythm-sheet-play-line {
+.sheet-play-line {
     position: absolute;
 
     top: 2rem;
-    left: var(--control-width);
+    left: var(--sheet-play-line-position, var(--control-width));
 
     width: 1px;
     height: 3.5rem;
@@ -673,12 +862,12 @@
     pointer-events: none;
 }
 
-.rhythm-sheet-pitch-line {
+.sheet-pitch-line {
     position: absolute;
     z-index: 2;
 
     top: calc(5.25rem - var(--staff-step) * 0.375rem);
-    left: var(--control-width);
+    left: var(--sheet-play-line-position, var(--control-width));
 
     width: 2rem;
     height: 1px;
@@ -691,7 +880,7 @@
     pointer-events: none;
 }
 
-.rhythm-sheet-barline {
+.sheet-barline {
     position: absolute;
 
     top: 1.75rem;
@@ -705,7 +894,7 @@
     transform: translateX(-50%) scaleY(1.125);
 }
 
-.rhythm-sheet-score[aria-disabled='false'] {
+.sheet-score[aria-disabled='false'] {
     cursor: pointer;
     touch-action: none;
 }

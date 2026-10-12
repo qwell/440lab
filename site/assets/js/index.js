@@ -400,12 +400,110 @@ const TUNER_INSTRUMENTS = [
     },
 ];
 
-const RHYTHM_LOOKAHEAD_MS = 25;
-const RHYTHM_SCHEDULE_AHEAD_SECONDS = 0.1;
+const PLAYBACK_LOOKAHEAD_MS = 25;
+const PLAYBACK_SCHEDULE_AHEAD_SECONDS = 0.1;
+
 const RHYTHM_CLICK_DURATION = 0.035;
 const RHYTHM_CLICK_FREQUENCIES = [800, 1000, 1200];
 
-const RHYTHM_NOTE_VALUES = [
+const RHYTHM_SHEET_EIGHTH_PATTERN_RATE = 0.2;
+const RHYTHM_SHEET_SIXTEENTH_PATTERN_RATE = 0.05;
+const RHYTHM_SHEET_SIXTEENTH_PAIR_RATE = 0.7;
+const RHYTHM_SHEET_SUSTAINED_PATTERN_RATE = 0.6;
+const RHYTHM_SHEET_TIE_RATE = 0.35;
+
+const SHEET_DOT_MULTIPLIER = 1.5;
+const SHEET_COMPOUND_SUBDIVISIONS = 3;
+
+const SHEET_REM_PER_QUARTER = 5.5;
+const SHEET_BAR_PADDING_REM = 1.25;
+const SHEET_BAR_GLIDE_SECONDS = 0.15;
+const MIDI_MAX_LEDGER_LINES = 2;
+const MIDI_MAX_DISPLAY_LEDGER_LINES = 3;
+const MIDI_SHEET_REM_PER_QUARTER = 7.5;
+const MIDI_PERCUSSION_CHANNEL = 9;
+const MIDI_PERCUSSION_NOTATION = Object.freeze({
+    35: { name: 'Acoustic bass drum', staffStep: 1, voice: 'lower' },
+    36: { name: 'Bass drum', staffStep: 1, voice: 'lower' },
+    37: { name: 'Side stick', staffStep: 5, notehead: '𝅃', voice: 'lower' },
+    38: { name: 'Acoustic snare', staffStep: 5, voice: 'lower' },
+    39: { name: 'Hand clap', staffStep: 5, notehead: '𝅃', voice: 'lower' },
+    40: { name: 'Electric snare', staffStep: 5, voice: 'lower' },
+    41: { name: 'Low floor tom', staffStep: 0, voice: 'lower' },
+    42: { name: 'Closed hi-hat', staffStep: 9, notehead: '𝅃', voice: 'upper' },
+    43: { name: 'High floor tom', staffStep: 2, voice: 'lower' },
+    44: { name: 'Pedal hi-hat', staffStep: -1, notehead: '𝅃', voice: 'lower' },
+    45: { name: 'Low tom', staffStep: 3, voice: 'lower' },
+    46: { name: 'Open hi-hat', staffStep: 9, notehead: '𝅅', voice: 'upper' },
+    47: { name: 'Low-mid tom', staffStep: 4, voice: 'lower' },
+    48: { name: 'High-mid tom', staffStep: 6, voice: 'lower' },
+    49: {
+        name: 'Crash cymbal 1',
+        staffStep: 10,
+        notehead: '𝅃',
+        voice: 'upper',
+    },
+    50: { name: 'High tom', staffStep: 7, voice: 'lower' },
+    51: { name: 'Ride cymbal 1', staffStep: 8, notehead: '𝅃', voice: 'upper' },
+    52: {
+        name: 'Chinese cymbal',
+        staffStep: 10,
+        notehead: '𝅃',
+        voice: 'upper',
+    },
+    53: { name: 'Ride bell', staffStep: 8, voice: 'upper' },
+    54: { name: 'Tambourine', staffStep: 9, notehead: '𝅃', voice: 'upper' },
+    55: { name: 'Splash cymbal', staffStep: 10, notehead: '𝅃', voice: 'upper' },
+    56: { name: 'Cowbell', staffStep: 7, notehead: '𝅃', voice: 'upper' },
+    57: {
+        name: 'Crash cymbal 2',
+        staffStep: 10,
+        notehead: '𝅃',
+        voice: 'upper',
+    },
+    58: { name: 'Vibraslap', staffStep: 7, notehead: '𝅃', voice: 'upper' },
+    59: { name: 'Ride cymbal 2', staffStep: 8, notehead: '𝅃', voice: 'upper' },
+    60: { name: 'High bongo', staffStep: 7, voice: 'lower' },
+    61: { name: 'Low bongo', staffStep: 5, voice: 'lower' },
+    62: {
+        name: 'Muted high conga',
+        staffStep: 7,
+        notehead: '𝅃',
+        voice: 'lower',
+    },
+    63: { name: 'Open high conga', staffStep: 5, voice: 'lower' },
+    64: { name: 'Low conga', staffStep: 3, voice: 'lower' },
+    65: { name: 'High timbale', staffStep: 7, voice: 'lower' },
+    66: { name: 'Low timbale', staffStep: 5, voice: 'lower' },
+    67: { name: 'High agogo', staffStep: 7, voice: 'upper' },
+    68: { name: 'Low agogo', staffStep: 5, voice: 'upper' },
+    69: { name: 'Cabasa', staffStep: 9, notehead: '𝅃', voice: 'upper' },
+    70: { name: 'Maracas', staffStep: 9, notehead: '𝅃', voice: 'upper' },
+    71: { name: 'Short whistle', staffStep: 9, notehead: '𝅃', voice: 'upper' },
+    72: { name: 'Long whistle', staffStep: 9, notehead: '𝅅', voice: 'upper' },
+    73: { name: 'Short guiro', staffStep: 7, notehead: '𝅃', voice: 'upper' },
+    74: { name: 'Long guiro', staffStep: 7, notehead: '𝅅', voice: 'upper' },
+    75: { name: 'Claves', staffStep: 5, notehead: '𝅃', voice: 'upper' },
+    76: {
+        name: 'High wood block',
+        staffStep: 7,
+        notehead: '𝅃',
+        voice: 'upper',
+    },
+    77: { name: 'Low wood block', staffStep: 5, notehead: '𝅃', voice: 'upper' },
+    78: { name: 'Muted cuica', staffStep: 7, notehead: '𝅃', voice: 'upper' },
+    79: { name: 'Open cuica', staffStep: 7, notehead: '𝅅', voice: 'upper' },
+    80: {
+        name: 'Muted triangle',
+        staffStep: 10,
+        notehead: '𝅃',
+        voice: 'upper',
+    },
+    81: { name: 'Open triangle', staffStep: 10, notehead: '𝅅', voice: 'upper' },
+});
+const RHYTHM_SHEET_SCORE_SELECTOR = '#rhythm-sheet-score';
+
+const NOTE_VALUES = [
     { value: 1, name: 'whole', symbol: '𝅝', rest: '𝄻' },
     { value: 2, name: 'half', symbol: '𝅗𝅥', rest: '𝄼' },
     { value: 4, name: 'quarter', symbol: '𝅘𝅥', rest: '𝄽' },
@@ -415,19 +513,8 @@ const RHYTHM_NOTE_VALUES = [
     { value: 64, name: 'sixty-fourth', symbol: '𝅘𝅥𝅱', rest: '𝅁' },
     { value: 128, name: 'hundred twenty-eighth', symbol: '𝅘𝅥𝅲', rest: '𝅂' },
 ];
-const RHYTHM_DOT_MULTIPLIER = 1.5;
-const RHYTHM_COMPOUND_SUBDIVISIONS = 3;
 
-const SHEET_REM_PER_QUARTER = 5.5;
-const SHEET_BAR_PADDING_REM = 1.25;
-const SHEET_BAR_GLIDE_SECONDS = 0.15;
-const SHEET_EIGHTH_PATTERN_RATE = 0.2;
-const SHEET_SIXTEENTH_PATTERN_RATE = 0.05;
-const SHEET_SIXTEENTH_PAIR_RATE = 0.7;
-const SHEET_SUSTAINED_PATTERN_RATE = 0.6;
-const SHEET_TIE_RATE = 0.35;
-
-const RHYTHM_METERS = {
+const METERS = {
     '2/4': [2, 0],
     '3/4': [2, 0, 0],
     '4/4': [2, 0, 0, 0],
@@ -442,12 +529,12 @@ const RHYTHM_METERS = {
     '5/4': [2, 0, 0, 1, 0],
     '7/8': [2, 0, 1, 0, 1, 0, 0],
 };
-const RHYTHM_SIGNATURE_SYMBOLS = {
+const SIGNATURE_SYMBOLS = {
     '4/4': '𝄴',
     '2/2': '𝄵',
 };
 
-const SHEET_CLEFS = {
+const CLEFS = {
     treble: {
         symbol: '𝄞',
         minimumMidi: MIDI_NOTES.C4,
@@ -472,13 +559,17 @@ const SHEET_CLEFS = {
         maximumMidi: MIDI_NOTES.E4,
         bottomLineMidi: MIDI_NOTES.D3,
     },
+    percussion: {
+        symbol: '𝄥',
+        bottomLineMidi: MIDI_NOTES.C4,
+    },
 };
 
-const SHEET_CORRECT_CENTS = 25;
-const SHEET_ANALYSIS_INTERVAL_MS = 50;
-const SHEET_FREQUENCY_SAMPLE_LIMIT = 3;
-const SHEET_NOTE_CUE_DURATION = 0.09;
-const SHEET_NOTE_CUE_VOLUME = 0.45;
+const RHYTHM_SHEET_CORRECT_CENTS = 25;
+const RHYTHM_SHEET_ANALYSIS_INTERVAL_MS = 50;
+const RHYTHM_SHEET_FREQUENCY_SAMPLE_LIMIT = 3;
+const RHYTHM_SHEET_NOTE_CUE_DURATION = 0.09;
+const RHYTHM_SHEET_NOTE_CUE_VOLUME = 0.45;
 
 const PITCH_MEMORY_CORRECT_CENTS = 25;
 const PITCH_MEMORY_MICROPHONE_ADJUSTMENT_CENTS = 50;
@@ -488,6 +579,26 @@ const PITCH_MEMORY_RANGE_CENTS =
 
 function clamp(value, minimum, maximum) {
     return Math.min(maximum, Math.max(minimum, value));
+}
+
+function sheetPositionsEqual(left, right) {
+    const magnitude = Math.max(1, Math.abs(left), Math.abs(right));
+    return Math.abs(left - right) <= Number.EPSILON * magnitude;
+}
+
+function compareSheetPositions(left, right) {
+    if (sheetPositionsEqual(left, right)) {
+        return 0;
+    }
+    return left < right ? -1 : 1;
+}
+
+function sheetPositionFloor(position, unit = 1) {
+    const quotient = position / unit;
+    const nearest = Math.round(quotient);
+    return sheetPositionsEqual(quotient, nearest)
+        ? nearest
+        : Math.floor(quotient);
 }
 
 function readNumber(input, fallback) {
@@ -890,6 +1001,15 @@ const audio = (() => {
         return ensureContext().currentTime;
     }
 
+    function getContext() {
+        return ensureContext();
+    }
+
+    function getDestination() {
+        ensureContext();
+        return masterGain;
+    }
+
     function cancelAndHold(parameter, time) {
         const currentValue = parameter.value;
 
@@ -905,21 +1025,29 @@ const audio = (() => {
         parameter.linearRampToValueAtTime(target, now + seconds);
     }
 
-    function createVoice(frequency, waveform) {
+    function createVoice(frequency, waveform, pan = 0) {
         const audioContext = ensureContext();
         const oscillator = audioContext.createOscillator();
         const gain = audioContext.createGain();
+        const panner = audioContext.createStereoPanner?.() ?? null;
 
         oscillator.type = waveform;
         oscillator.frequency.value = frequency;
 
         oscillator.connect(gain);
-        gain.connect(masterGain);
+        if (panner) {
+            panner.pan.value = clamp(pan, -1, 1);
+            gain.connect(panner);
+            panner.connect(masterGain);
+        } else {
+            gain.connect(masterGain);
+        }
 
         return {
             audioContext,
             oscillator,
             gain,
+            panner,
         };
     }
 
@@ -936,7 +1064,7 @@ const audio = (() => {
     }
 
     function playContinuous(frequency, waveform, volume = 1) {
-        const { audioContext, oscillator, gain } = createVoice(
+        const { audioContext, oscillator, gain, panner } = createVoice(
             frequency,
             waveform
         );
@@ -982,6 +1110,7 @@ const audio = (() => {
                     () => {
                         oscillator.disconnect();
                         gain.disconnect();
+                        panner?.disconnect();
                     },
                     {
                         once: true,
@@ -996,11 +1125,13 @@ const audio = (() => {
         waveform,
         durationSeconds,
         volume = 1,
-        delaySeconds = 0
+        delaySeconds = 0,
+        pan = 0
     ) {
-        const { audioContext, oscillator, gain } = createVoice(
+        const { audioContext, oscillator, gain, panner } = createVoice(
             frequency,
-            waveform
+            waveform,
+            pan
         );
 
         const startTime = audioContext.currentTime + delaySeconds;
@@ -1052,6 +1183,7 @@ const audio = (() => {
 
                 oscillator.disconnect();
                 gain.disconnect();
+                panner?.disconnect();
             },
             {
                 once: true,
@@ -1088,6 +1220,8 @@ const audio = (() => {
 
     return {
         currentTime,
+        getContext,
+        getDestination,
         playContinuous,
         playTransient,
         stopTransient,
@@ -1636,6 +1770,7 @@ function stopTuner() {
 function stopAllAudio() {
     stopTuner();
     stopRhythm();
+    stopMidiVisualization();
     audio.stopTransient();
 }
 
@@ -1682,6 +1817,7 @@ function updateNoteReadouts() {
 
 const sectionModes = {
     rhythm: 'metronome',
+    midi: 'visualize',
     pitch: 'placement',
     match: 'target',
     intervals: 'recognition',
@@ -1697,8 +1833,8 @@ async function activateCurrentPracticeMicrophone() {
 
     if (activeSection === 'tuner') {
         await activateTunerMicrophone();
-    } else if (activeSection === 'rhythm' && sheetMusicEnabled()) {
-        await activateSheetMicrophone();
+    } else if (activeSection === 'rhythm' && rhythmSheetEnabled()) {
+        await activateRhythmSheetMicrophone();
     } else if (isPitchMemoryActive(activeSection)) {
         await activatePitchMemoryMicrophone();
     } else {
@@ -1711,6 +1847,7 @@ function sectionHash(sectionName) {
         case 'pitch':
         case 'intervals':
         case 'rhythm':
+        case 'midi':
         case 'match': {
             return `#${sectionName}/${sectionModes[sectionName]}`;
         }
@@ -1777,10 +1914,10 @@ function activateSection(button, updateUrl = true) {
         void activateTunerMicrophone();
     } else if (
         sectionName === 'rhythm' &&
-        sheetMusicEnabled() &&
+        rhythmSheetEnabled() &&
         microphoneRequestState === MICROPHONE_STATES.LISTENING
     ) {
-        void activateSheetMicrophone();
+        void activateRhythmSheetMicrophone();
     }
 
     cancelPitchAdvance();
@@ -1873,6 +2010,10 @@ function initializeNavigation() {
             sectionModes.rhythm = hashMode;
         }
 
+        if (sectionName === 'midi' && hashMode === 'visualize') {
+            sectionModes.midi = hashMode;
+        }
+
         const navItem =
             navItems.find(
                 (candidate) => candidate.dataset.section === sectionName
@@ -1894,6 +2035,10 @@ function initializeNavigation() {
         switch (sectionName) {
             case 'rhythm':
                 updateRhythmMode();
+                break;
+
+            case 'midi':
+                updateMidiMode();
                 break;
 
             case 'pitch':
@@ -1951,6 +2096,9 @@ function initializeNavigation() {
             switch (sectionName) {
                 case 'rhythm':
                     updateRhythmMode();
+                    break;
+                case 'midi':
+                    updateMidiMode();
                     break;
                 case 'pitch':
                     updatePitchMode();
@@ -2511,61 +2659,7 @@ async function activateTunerMicrophone() {
     }
 }
 
-// Rhythm
-
-const rhythm = {
-    running: false,
-    timer: null,
-    frame: null,
-    nextBeatTime: 0,
-    beatIndex: 0,
-    tapTimes: [],
-};
-
-const rhythmTiming = {
-    originMs: 0,
-    interval: 0.6,
-    frame: null,
-    lastBeat: -1,
-    markBeat: null,
-    errors: [],
-};
-
-const sheetMusic = {
-    phrase: [],
-    nextNoteIndex: 0,
-    origin: 0,
-    interval: 0.6,
-    frame: null,
-    active: false,
-    held: null,
-    input: null,
-    extra: 0,
-    holdSpans: [],
-    currentHold: null,
-    starting: false,
-};
-
-const sheetMicrophoneInput = createMicrophoneInput({
-    minimumMidi: MINIMUM_SUPPORTED_MIDI,
-    maximumMidi: MAXIMUM_SUPPORTED_MIDI,
-    sampleIntervalMs: SHEET_ANALYSIS_INTERVAL_MS,
-    processFrame: processSheetMicrophoneFrame,
-    onDeactivate: handleSheetMicrophoneDeactivation,
-    initialState: {
-        stableFrames: 0,
-        silentFrames: 0,
-        detectedFrequencies: [],
-        voiceStartedAt: null,
-        silenceStartedAt: null,
-    },
-});
-
-// Rhythm: sheet music
-
-function sheetMusicEnabled() {
-    return sectionModes.rhythm === 'sheet';
-}
+// Sheet music
 
 function diatonicPositionFromMidi(midi) {
     const roundedMidi = Math.round(midi);
@@ -2604,12 +2698,2374 @@ function diatonicPositionFromFrequency(frequency) {
     );
 }
 
-function sheetClef() {
-    return SHEET_CLEFS[getControl('rhythm-sheet-clef').value];
+function sheetMeter(signature) {
+    const [units, denominator] = signature.split('/').map(Number);
+    return {
+        units,
+        denominator,
+        compound:
+            denominator === 8 &&
+            units >= 6 &&
+            units % SHEET_COMPOUND_SUBDIVISIONS === 0,
+    };
 }
 
-function randomSheetMidi(previousMidi = null) {
-    const clef = sheetClef();
+function sheetNoteValue(note, meter) {
+    if (note.multiMeasureRest) {
+        return {
+            value: 1,
+            name: 'multiple-measure',
+            symbol: '𝄩',
+            rest: '𝄩',
+            dotted: false,
+        };
+    }
+    if (note.wholeMeasureRest) {
+        return {
+            ...NOTE_VALUES[0],
+            dotted: false,
+        };
+    }
+    const { denominator } = meter;
+    for (const noteValue of NOTE_VALUES) {
+        const { value } = noteValue;
+        const duration = denominator / value;
+        if (sheetPositionsEqual(note.duration, duration)) {
+            return {
+                ...noteValue,
+                dotted: false,
+            };
+        }
+        if (
+            sheetPositionsEqual(note.duration, duration * SHEET_DOT_MULTIPLIER)
+        ) {
+            return {
+                ...noteValue,
+                dotted: true,
+            };
+        }
+    }
+    throw new Error('Unsupported rhythm note duration');
+}
+
+function sheetNoteName(note, meter) {
+    const { name, dotted } = sheetNoteValue(note, meter);
+    return `${dotted ? 'dotted ' : ''}${name}`;
+}
+
+function sheetNotePosition(note, meter) {
+    const { units, compound } = meter;
+    return `Bar ${sheetPositionFloor(note.beat, units) + 1}, ${compound ? 'subdivision' : 'beat'} ${(note.beat % units) + 1}`;
+}
+
+function sheetNoteSegments(note) {
+    return (
+        note.segments ?? [
+            {
+                beat: note.beat,
+                duration: note.duration,
+                multiMeasureRest: note.multiMeasureRest,
+                wholeMeasureRest: note.wholeMeasureRest,
+            },
+        ]
+    );
+}
+
+function sheetWrittenName(note, meter) {
+    return sheetNoteSegments(note)
+        .map((segment) => sheetNoteName(segment, meter))
+        .join(' tied to ');
+}
+
+function sheetDurationLabel(duration) {
+    const fractions = {
+        0.125: '⅛',
+        0.25: '¼',
+        0.375: '⅜',
+        0.5: '½',
+        0.75: '¾',
+    };
+    const whole = Math.floor(duration);
+    const fraction = fractions[duration - whole] || '';
+    return `${whole || !fraction ? whole : ''}${fraction}`;
+}
+
+function sheetDurationUnit(meter) {
+    return meter.compound ? 'subdivisions' : 'beats';
+}
+
+function createSheetLayout(score) {
+    const { units, denominator } = score.meter;
+    const spacing =
+        ((score.remPerQuarter ?? SHEET_REM_PER_QUARTER) * 4) / denominator;
+    const barWidth = units * spacing + SHEET_BAR_PADDING_REM * 2;
+
+    function writtenPosition(position, boundarySide = 'start') {
+        if (position < 0) {
+            return SHEET_BAR_PADDING_REM + position * spacing;
+        }
+
+        const bar = sheetPositionFloor(position, units);
+        const withinBar = position - bar * units;
+
+        if (
+            position > 0 &&
+            sheetPositionsEqual(withinBar, 0) &&
+            boundarySide === 'end'
+        ) {
+            return bar * barWidth - SHEET_BAR_PADDING_REM;
+        }
+
+        return bar * barWidth + SHEET_BAR_PADDING_REM + withinBar * spacing;
+    }
+
+    function playbackPosition(position) {
+        if (position < 0) {
+            return writtenPosition(position);
+        }
+        if (position >= score.total) {
+            return (
+                writtenPosition(score.total, 'end') +
+                (position - score.total) * spacing
+            );
+        }
+
+        const bar = sheetPositionFloor(position, units);
+        const withinBar = position - bar * units;
+        const interval = score.intervalAtPosition?.(position) ?? score.interval;
+        const glideBeats = Math.min(0.5, SHEET_BAR_GLIDE_SECONDS / interval);
+        const glideStart = units - glideBeats;
+        const positionWithoutGlide = writtenPosition(position);
+
+        if (bar >= score.bars - 1 || withinBar <= glideStart) {
+            return positionWithoutGlide;
+        }
+
+        const progress = (withinBar - glideStart) / glideBeats;
+        const easedProgress = progress * progress * (3 - 2 * progress);
+
+        return positionWithoutGlide + SHEET_BAR_PADDING_REM * 2 * easedProgress;
+    }
+
+    return { barWidth, playbackPosition, writtenPosition };
+}
+
+function sheetPlayLinePosition(scoreSelector) {
+    const score = document.querySelector(scoreSelector);
+    const configuredPosition = Number.parseFloat(
+        getComputedStyle(score).getPropertyValue('--sheet-play-line-position')
+    );
+    if (Number.isFinite(configuredPosition)) {
+        return configuredPosition;
+    }
+    const buttons = score
+        .closest('.practice')
+        .querySelector(':scope > .practice-buttons');
+    const rootFontSize = Number.parseFloat(
+        getComputedStyle(document.documentElement).fontSize
+    );
+
+    return buttons.getBoundingClientRect().width / rootFontSize;
+}
+
+function positionSheetLane(score, scoreSelector, position) {
+    const lane = document.querySelector(`${scoreSelector} .sheet-lane`);
+    const layout = createSheetLayout(score);
+    lane.style.transform = `translateX(${sheetPlayLinePosition(scoreSelector) - layout.playbackPosition(position)}rem)`;
+}
+
+function sheetBeamGroups(writtenNotes, meter, separateVoices = true) {
+    const stemDirections = [
+        ...new Set(
+            writtenNotes.map(({ note }) => note.stemDirection).filter(Boolean)
+        ),
+    ];
+    if (separateVoices && stemDirections.length) {
+        return stemDirections.flatMap((stemDirection) =>
+            sheetBeamGroups(
+                writtenNotes.filter(
+                    ({ note }) => note.stemDirection === stemDirection
+                ),
+                meter,
+                false
+            )
+        );
+    }
+
+    const { units, compound } = meter;
+    const beatLength = compound ? SHEET_COMPOUND_SUBDIVISIONS : 1;
+    const events = [];
+
+    for (const writtenNote of writtenNotes) {
+        let event = events.at(-1);
+        if (
+            !event ||
+            !sheetPositionsEqual(event.segment.beat, writtenNote.segment.beat)
+        ) {
+            event = {
+                writtenNotes: [],
+                segment: { ...writtenNote.segment },
+                value: writtenNote.value,
+            };
+            events.push(event);
+        }
+        event.writtenNotes.push(writtenNote);
+        if (writtenNote.segment.duration < event.segment.duration) {
+            event.segment.duration = writtenNote.segment.duration;
+            event.value = writtenNote.value;
+        }
+    }
+
+    for (const event of events) {
+        const pitchedNotes = event.writtenNotes.filter(
+            ({ note }) => !note.rest
+        );
+        event.rest = pitchedNotes.length !== event.writtenNotes.length;
+        event.staffStep = pitchedNotes.length
+            ? pitchedNotes.reduce((sum, note) => sum + note.staffStep, 0) /
+              pitchedNotes.length
+            : null;
+    }
+
+    const groups = [];
+    let group = [];
+
+    function finishGroup() {
+        if (group.length > 1) {
+            groups.push(group);
+        }
+        group = [];
+    }
+
+    for (const event of events) {
+        const { segment, value } = event;
+        const bar = sheetPositionFloor(segment.beat, units);
+        const withinBar = segment.beat - bar * units;
+        const beat = sheetPositionFloor(withinBar, beatLength);
+        const previous = group.at(-1);
+        const followsPrevious =
+            previous &&
+            sheetPositionsEqual(
+                previous.segment.beat + previous.segment.duration,
+                segment.beat
+            );
+        const sameBeat =
+            previous && previous.bar === bar && previous.beat === beat;
+        if (event.rest || value.value < 8 || !followsPrevious || !sameBeat) {
+            finishGroup();
+        }
+
+        if (!event.rest && value.value >= 8) {
+            event.bar = bar;
+            event.beat = beat;
+            group.push(event);
+        }
+    }
+
+    finishGroup();
+    return groups;
+}
+
+function renderSheetScore(notation, scoreSelector, options = {}) {
+    const {
+        countIn = false,
+        durationGuide = false,
+        pitchGuide = false,
+    } = options;
+    const scoreElement = document.querySelector(scoreSelector);
+    const scoreStyles = getComputedStyle(scoreElement);
+    const rem = (property) =>
+        Number.parseFloat(scoreStyles.getPropertyValue(property));
+    const beamThickness = rem('--sheet-beam-thickness');
+    const noteheadY = rem('--sheet-notehead-y');
+    const stemLength = rem('--sheet-stem-length');
+    const beamWidthExtension = rem('--sheet-beam-width-extension');
+    const beamStemInset = rem('--sheet-beam-stem-inset');
+    const beamLevelSpacing = 0.35;
+    const beamGeometry = Object.fromEntries(
+        ['up', 'down'].map((direction) => [
+            direction,
+            {
+                stemX: rem(`--sheet-${direction}-stem-x`),
+                beamX: rem(`--sheet-${direction}-beam-x`),
+                noteY: rem(`--sheet-${direction}-note-y`),
+                layoutY: rem(`--sheet-${direction}-layout-y`),
+                stemAtNoteInset: rem(`--sheet-${direction}-stem-note-inset`),
+            },
+        ])
+    );
+    const { units } = notation.meter;
+    const clefDefinition = CLEFS[notation.clef];
+    const layout = createSheetLayout(notation);
+    const staff = document.createElement('span');
+    staff.className = 'sheet-staff';
+    staff.setAttribute('aria-hidden', 'true');
+    for (let lineIndex = 0; lineIndex < 5; lineIndex += 1) {
+        staff.append(document.createElement('span'));
+    }
+    const lane = document.createElement('div');
+    lane.className = 'sheet-lane';
+    if (countIn) {
+        for (let index = 0; index < units; index += 1) {
+            const marker = document.createElement('span');
+            marker.className = 'sheet-count-marker';
+            marker.style.left = `${layout.writtenPosition(index - units)}rem`;
+            marker.textContent = String(index + 1);
+            lane.append(marker);
+        }
+    }
+    for (let bar = 0; bar <= notation.bars; bar += 1) {
+        const line = document.createElement('span');
+        line.className = 'sheet-barline';
+        line.style.left = `${bar * layout.barWidth}rem`;
+        line.textContent = bar === notation.bars ? '𝄂' : '𝄀';
+
+        lane.append(line);
+    }
+    const heading = document.createElement('span');
+    heading.className = 'sheet-score-heading';
+    heading.style.left = `${layout.writtenPosition(countIn ? -units : 0)}rem`;
+    const clef = document.createElement('span');
+    clef.className = `sheet-clef sheet-clef-${notation.clef}`;
+    clef.textContent = clefDefinition.symbol;
+    clef.title = `${notation.clef[0].toUpperCase()}${notation.clef.slice(1)} clef`;
+    const signature = document.createElement('span');
+    signature.className = 'sheet-signature';
+    signature.title =
+        notation.signature === '4/4'
+            ? 'Common time (4/4)'
+            : notation.signature === '2/2'
+              ? 'Cut time (2/2)'
+              : `${notation.signature} time`;
+    if (SIGNATURE_SYMBOLS[notation.signature]) {
+        signature.textContent = SIGNATURE_SYMBOLS[notation.signature];
+    } else {
+        signature.classList.add('is-numeric');
+        const [top, bottom] = notation.signature.split('/');
+        for (const number of [top, bottom]) {
+            const row = document.createElement('span');
+            row.textContent = number;
+            signature.append(row);
+        }
+    }
+    heading.append(clef, signature);
+    lane.append(heading);
+
+    const writtenNotes = notation.phrase
+        .flatMap((note, noteIndex) =>
+            sheetNoteSegments(note).map((segment, segmentIndex) => ({
+                note,
+                noteIndex,
+                segment,
+                segmentIndex,
+                staffStep: note.rest
+                    ? null
+                    : (note.staffStep ??
+                      diatonicPositionFromMidi(note.writtenMidi ?? note.midi) -
+                          diatonicPositionFromMidi(
+                              clefDefinition.bottomLineMidi
+                          )),
+                value: sheetNoteValue(segment, notation.meter),
+            }))
+        )
+        .sort(
+            (left, right) =>
+                left.segment.beat - right.segment.beat ||
+                Number(left.segmentIndex === 0) -
+                    Number(right.segmentIndex === 0) ||
+                left.note.beat - right.note.beat ||
+                left.noteIndex - right.noteIndex
+        );
+    const chordStemDirections = new Map();
+    for (const writtenNote of writtenNotes) {
+        if (writtenNote.note.rest) {
+            continue;
+        }
+        const key = writtenNote.segment.beat;
+        const chord = chordStemDirections.get(key) ?? [];
+        chord.push(writtenNote);
+        chordStemDirections.set(key, chord);
+    }
+    for (const chord of chordStemDirections.values()) {
+        if (chord.length < 2) {
+            continue;
+        }
+        const averageStaffStep =
+            chord.reduce((sum, note) => sum + note.staffStep, 0) / chord.length;
+        for (const writtenNote of chord) {
+            writtenNote.chordStemDown = averageStaffStep > 4;
+        }
+    }
+    const activeAccidentals = new Map();
+
+    for (const writtenNote of writtenNotes) {
+        if (
+            writtenNote.note.rest ||
+            writtenNote.note.percussionName ||
+            writtenNote.segmentIndex > 0
+        ) {
+            continue;
+        }
+
+        const bar = sheetPositionFloor(writtenNote.segment.beat, units);
+        const writtenMidi =
+            writtenNote.note.writtenMidi ?? writtenNote.note.midi;
+        const staffPosition = diatonicPositionFromMidi(writtenMidi);
+        const accidentalKey = `${bar}:${staffPosition}`;
+        const sharpened =
+            !PITCH_CLASS_NAMES[pitchClassFromMidi(writtenMidi)].natural;
+        const activeAccidental = activeAccidentals.get(accidentalKey) ?? false;
+
+        if (sharpened !== activeAccidental) {
+            writtenNote.accidental = sharpened ? '♯' : '♮';
+            activeAccidentals.set(accidentalKey, sharpened);
+        }
+    }
+    const beamMembership = new Map();
+    const candidateBeamGroups = sheetBeamGroups(writtenNotes, notation.meter);
+    const beamGroups = [];
+    const beamLayouts = new Map();
+
+    for (const group of candidateBeamGroups) {
+        const stemDirection = group[0].writtenNotes[0].note.stemDirection;
+        const averageStaffStep =
+            group.reduce(
+                (sum, event) =>
+                    sum +
+                    event.writtenNotes.reduce(
+                        (eventSum, note) => eventSum + note.staffStep,
+                        0
+                    ),
+                0
+            ) /
+            group.reduce(
+                (count, event) => count + event.writtenNotes.length,
+                0
+            );
+        const stemDown =
+            stemDirection === 'down' ||
+            (stemDirection !== 'up' && averageStaffStep > 4);
+        const geometry = beamGeometry[stemDown ? 'down' : 'up'];
+        const noteYOffset = geometry.noteY;
+        const stemStaffStep = (event) =>
+            stemDown
+                ? Math.max(...event.writtenNotes.map((note) => note.staffStep))
+                : Math.min(...event.writtenNotes.map((note) => note.staffStep));
+        const chordSpan = (event) =>
+            (Math.max(...event.writtenNotes.map((note) => note.staffStep)) -
+                Math.min(...event.writtenNotes.map((note) => note.staffStep))) *
+            0.375;
+        const xStart =
+            layout.writtenPosition(group[0].segment.beat) + geometry.beamX;
+        const xEnd =
+            layout.writtenPosition(group.at(-1).segment.beat) + geometry.beamX;
+        const firstNoteY =
+            noteheadY - stemStaffStep(group[0]) * 0.375 + noteYOffset;
+        const lastNoteY =
+            noteheadY - stemStaffStep(group.at(-1)) * 0.375 + noteYOffset;
+        const firstNaturalStemLength = stemLength + chordSpan(group[0]);
+        const naturalStemLength = stemDown
+            ? firstNaturalStemLength
+            : -firstNaturalStemLength;
+        let yStart = firstNoteY + naturalStemLength;
+        const maximumSlopeRise = group.length === 2 ? 0.75 : 0.375;
+        let yEnd =
+            yStart +
+            clamp(lastNoteY - firstNoteY, -maximumSlopeRise, maximumSlopeRise);
+        yStart += geometry.layoutY;
+        yEnd += geometry.layoutY;
+        const slope = (yEnd - yStart) / (xEnd - xStart);
+        const maximumBeamValue = Math.max(
+            ...group.map((event) => event.value.value)
+        );
+        const additionalBeamLevels = Math.log2(maximumBeamValue / 8);
+        const minimumStemExtension = Math.max(
+            stemLength * 0.75,
+            additionalBeamLevels * beamLevelSpacing + beamThickness * 2
+        );
+        const minimumStemLengths = group.map(
+            (event) => chordSpan(event) + minimumStemExtension
+        );
+        const maximumStemLengths = group.map(
+            (event) => chordSpan(event) + stemLength * 1.5
+        );
+        const stemLengths = group.map((event) => {
+            const x =
+                layout.writtenPosition(event.segment.beat) + geometry.stemX;
+            const noteY =
+                noteheadY -
+                stemStaffStep(event) * 0.375 +
+                noteYOffset +
+                geometry.stemAtNoteInset;
+            const beamY =
+                yStart +
+                (x - xStart) * slope +
+                (stemDown ? -beamStemInset : beamThickness + beamStemInset);
+            return stemDown ? beamY - noteY : noteY - beamY;
+        });
+        const minimumOffset = stemDown
+            ? Math.max(
+                  ...stemLengths.map(
+                      (length, index) => minimumStemLengths[index] - length
+                  )
+              )
+            : Math.max(
+                  ...stemLengths.map(
+                      (length, index) => length - maximumStemLengths[index]
+                  )
+              );
+        const maximumOffset = stemDown
+            ? Math.min(
+                  ...stemLengths.map(
+                      (length, index) => maximumStemLengths[index] - length
+                  )
+              )
+            : Math.min(
+                  ...stemLengths.map(
+                      (length, index) => length - minimumStemLengths[index]
+                  )
+              );
+        const stemOffset =
+            minimumOffset <= maximumOffset
+                ? clamp(0, minimumOffset, maximumOffset)
+                : stemDown
+                  ? Math.max(0, minimumOffset)
+                  : Math.min(0, maximumOffset);
+        yStart += stemOffset;
+        yEnd += stemOffset;
+        const beamLayout = {
+            stemDown,
+            noteYOffset,
+            xStart,
+            xEnd,
+            yStart,
+            yEnd,
+        };
+        beamGroups.push(group);
+        beamLayouts.set(group, beamLayout);
+
+        for (const event of group) {
+            event.stemStaffStep = stemStaffStep(event);
+            for (const writtenNote of event.writtenNotes) {
+                beamMembership.set(writtenNote, beamLayout);
+            }
+        }
+    }
+
+    for (const writtenNote of writtenNotes) {
+        if (writtenNote.note.rest) {
+            continue;
+        }
+        writtenNote.stemDown =
+            beamMembership.get(writtenNote)?.stemDown ??
+            (writtenNote.note.stemDirection
+                ? writtenNote.note.stemDirection === 'down'
+                : undefined) ??
+            writtenNote.chordStemDown ??
+            writtenNote.staffStep >= 4;
+    }
+    const writtenNotesBySegment = new Map(
+        writtenNotes.map((writtenNote) => [
+            `${writtenNote.noteIndex}:${writtenNote.segmentIndex}`,
+            writtenNote,
+        ])
+    );
+
+    for (const writtenNote of writtenNotes) {
+        const { note, noteIndex, segment, staffStep, value } = writtenNote;
+        const beam = beamMembership.get(writtenNote);
+
+        const x = layout.writtenPosition(segment.beat);
+        const width =
+            layout.writtenPosition(segment.beat + segment.duration, 'end') - x;
+        const element = document.createElement('span');
+        element.className = `sheet-lane-note${note.rest ? ' is-rest' : ''}`;
+        element.dataset.sheetNoteIndex = String(noteIndex);
+        element.style.left = `${x}rem`;
+        element.style.width = `${width}rem`;
+        const pitchName = note.rest
+            ? ''
+            : `${note.percussionName ?? noteNameFromMidi(note.midi, 'sharp')} `;
+        const tied = sheetNoteSegments(note).length > 1 ? ' tied' : '';
+        element.title = `${pitchName}${sheetNoteName(segment, notation.meter)} ${note.rest ? 'rest' : `note${tied}`} - ${sheetDurationLabel(segment.duration)} ${sheetDurationUnit(notation.meter)}`;
+        const symbol = document.createElement('span');
+        symbol.className = 'sheet-note-symbol';
+        symbol.setAttribute('aria-hidden', 'true');
+        symbol.classList.add(`is-${value.name}`);
+        symbol.textContent = `${note.rest ? value.rest : value.symbol}${value.dotted ? '.' : ''}`;
+        if (!note.rest) {
+            symbol.style.setProperty('--staff-step', String(staffStep));
+            symbol.classList.toggle(
+                'is-stem-down',
+                writtenNote.stemDown && value.name !== 'whole'
+            );
+            if (beam) {
+                symbol.classList.add('is-beamed');
+                symbol.textContent = note.percussionNotehead ?? '𝅘';
+            } else {
+                if (note.percussionNotehead) {
+                    const flag =
+                        value.value >= 8
+                            ? String.fromCodePoint(
+                                  0x1d16d + Math.log2(value.value / 4)
+                              )
+                            : '';
+                    symbol.textContent = `${note.percussionNotehead}${value.value > 1 ? '𝅥' : ''}${flag}`;
+                } else {
+                    symbol.textContent = value.symbol;
+                }
+            }
+            if (writtenNote.accidental) {
+                const accidental = document.createElement('span');
+                accidental.className = 'sheet-note-accidental';
+                accidental.setAttribute('aria-hidden', 'true');
+                accidental.style.setProperty('--staff-step', String(staffStep));
+                accidental.textContent = writtenNote.accidental;
+                element.append(accidental);
+            }
+            if (value.dotted) {
+                const dot = document.createElement('span');
+                dot.className = 'sheet-note-dot';
+                dot.style.setProperty(
+                    '--staff-step',
+                    String(staffStep % 2 === 0 ? staffStep + 1 : staffStep)
+                );
+                element.append(dot);
+            }
+            const ledgerSteps = [];
+            for (let step = -2; step >= staffStep; step -= 2) {
+                ledgerSteps.push(step);
+            }
+            for (let step = 10; step <= staffStep; step += 2) {
+                ledgerSteps.push(step);
+            }
+            for (const ledgerStep of ledgerSteps) {
+                const ledger = document.createElement('span');
+                ledger.className = 'sheet-ledger-line';
+                ledger.style.setProperty('--staff-step', String(ledgerStep));
+                element.append(ledger);
+            }
+            if (note.octaveSymbol && writtenNote.segmentIndex === 0) {
+                const octave = document.createElement('span');
+                octave.className = `sheet-note-octave is-${note.octaveBelow ? 'below' : 'above'}`;
+                octave.textContent = note.octaveSymbol;
+                element.append(octave);
+            }
+        }
+        element.append(symbol);
+        if (durationGuide) {
+            const track = document.createElement('span');
+            track.className = 'rhythm-sheet-duration-track';
+            element.append(track);
+        }
+        lane.append(element);
+    }
+
+    for (const group of beamGroups) {
+        const beamLayout = beamLayouts.get(group);
+        const { stemDown, noteYOffset, xStart, xEnd, yStart, yEnd } =
+            beamLayout;
+        const geometry = beamGeometry[stemDown ? 'down' : 'up'];
+        const slope = (yEnd - yStart) / (xEnd - xStart);
+        const beamYAt = (x) => yStart + (x - xStart) * slope;
+        const appendBeamAt = (startX, endX, level = 0) => {
+            const offset =
+                level * (stemDown ? -beamLevelSpacing : beamLevelSpacing);
+            const beamInset = stemDown ? -beamThickness : beamThickness;
+            const startY = beamYAt(startX) + offset + beamInset;
+            const endY = beamYAt(endX) + offset + beamInset;
+            const top = Math.min(startY, endY);
+            const leftTop = startY - top;
+            const rightTop = endY - top;
+            const beam = document.createElement('span');
+            beam.className = `sheet-beam${level > 0 ? ' is-secondary' : ''}`;
+            beam.style.left = `${startX}rem`;
+            beam.style.top = `${top}rem`;
+            beam.style.width = `${endX - startX}rem`;
+            beam.style.height = `${Math.abs(endY - startY) + beamThickness}rem`;
+            beam.style.clipPath = `polygon(0 ${leftTop}rem, 100% ${rightTop}rem, 100% ${rightTop + beamThickness}rem, 0 ${leftTop + beamThickness}rem)`;
+            lane.append(beam);
+        };
+        const beamX = (event) =>
+            layout.writtenPosition(event.segment.beat) + geometry.beamX;
+        const appendBeam = (start, end, level = 0) => {
+            appendBeamAt(beamX(start), beamX(end) + beamWidthExtension, level);
+        };
+
+        appendBeam(group[0], group.at(-1));
+
+        for (const event of group) {
+            const x =
+                layout.writtenPosition(event.segment.beat) + geometry.stemX;
+            const noteY =
+                noteheadY -
+                event.stemStaffStep * 0.375 +
+                noteYOffset +
+                geometry.stemAtNoteInset;
+            const beamY =
+                beamYAt(x) +
+                (stemDown ? -beamStemInset : beamThickness + beamStemInset);
+            const stem = document.createElement('span');
+            stem.className = 'sheet-beam-stem';
+            stem.style.left = `${x}rem`;
+            stem.style.top = `${Math.min(noteY, beamY)}rem`;
+            stem.style.height = `${Math.abs(noteY - beamY)}rem`;
+            lane.append(stem);
+        }
+
+        const appendAdditionalBeams = (beamValue, level) => {
+            let levelGroup = [];
+            const finishLevelGroup = () => {
+                if (levelGroup.length > 1) {
+                    appendBeam(levelGroup[0], levelGroup.at(-1), level);
+                } else if (levelGroup.length === 1) {
+                    const note = levelGroup[0];
+                    const index = group.indexOf(note);
+                    const previous = group[index - 1];
+                    const next = group[index + 1];
+                    const previousDistance = previous
+                        ? note.segment.beat - previous.segment.beat
+                        : Infinity;
+                    const nextDistance = next
+                        ? next.segment.beat - note.segment.beat
+                        : Infinity;
+                    const pointsRight = nextDistance <= previousDistance;
+                    const neighbor = pointsRight ? next : previous;
+                    const noteX = beamX(note);
+                    const hookLength = Math.abs(beamX(neighbor) - noteX) / 2;
+                    appendBeamAt(
+                        pointsRight ? noteX : noteX - hookLength,
+                        pointsRight ? noteX + hookLength : noteX,
+                        level
+                    );
+                }
+                levelGroup = [];
+            };
+
+            for (const event of group) {
+                if (event.value.value >= beamValue) {
+                    levelGroup.push(event);
+                } else {
+                    finishLevelGroup();
+                }
+            }
+            finishLevelGroup();
+        };
+
+        const maximumBeamValue = Math.max(
+            ...group.map((event) => event.value.value)
+        );
+        for (
+            let beamValue = 16, level = 1;
+            beamValue <= maximumBeamValue;
+            beamValue *= 2, level += 1
+        ) {
+            appendAdditionalBeams(beamValue, level);
+        }
+    }
+
+    notation.phrase.forEach((note, noteIndex) => {
+        const segments = sheetNoteSegments(note);
+        const staffStep = note.rest
+            ? null
+            : (note.staffStep ??
+              diatonicPositionFromMidi(note.writtenMidi ?? note.midi) -
+                  diatonicPositionFromMidi(clefDefinition.bottomLineMidi));
+
+        for (
+            let segmentIndex = 0;
+            segmentIndex < segments.length - 1;
+            segmentIndex += 1
+        ) {
+            const continuation = writtenNotesBySegment.get(
+                `${noteIndex}:${segmentIndex + 1}`
+            );
+            const tie = document.createElement('span');
+            const start =
+                layout.writtenPosition(segments[segmentIndex].beat) + 1.1;
+            const end =
+                layout.writtenPosition(segments[segmentIndex + 1].beat) + 0.55;
+            tie.className = `sheet-tie ${continuation?.stemDown ? 'is-above' : 'is-below'}`;
+            tie.dataset.sheetNoteIndex = String(noteIndex);
+            tie.style.left = `${start}rem`;
+            tie.style.width = `${end - start}rem`;
+            tie.style.setProperty('--staff-step', String(staffStep));
+            tie.setAttribute('aria-hidden', 'true');
+            lane.append(tie);
+        }
+    });
+    const playLine = document.createElement('span');
+    playLine.className = 'sheet-play-line';
+    const scoreElements = [staff, lane, playLine];
+    if (pitchGuide) {
+        const pitchLine = document.createElement('span');
+        pitchLine.className = 'sheet-pitch-line';
+        pitchLine.hidden = true;
+        pitchLine.setAttribute('aria-hidden', 'true');
+        scoreElements.push(pitchLine);
+    }
+    scoreElement.replaceChildren(...scoreElements);
+    const initialPosition = countIn ? -units : 0;
+    positionSheetLane(notation, scoreSelector, initialPosition);
+}
+
+function describeSheetScore(notation) {
+    return notation.phrase
+        .map(
+            (note) =>
+                `${sheetNotePosition(note, notation.meter)}: ${note.rest ? '' : `${noteNameFromMidi(note.midi, 'sharp')} `}${sheetWrittenName(note, notation.meter)} ${note.rest ? 'rest' : 'note'}, ${sheetDurationLabel(note.duration)} ${sheetDurationUnit(notation.meter)}.`
+        )
+        .join(' ');
+}
+
+// MIDI: visualizer
+
+const SOUNDFONTS = Object.freeze({
+    'generaluser-gs': Object.freeze({
+        name: 'GeneralUser-GS',
+        path: 'assets/vendor/generaluser-gs/soundfonts/GeneralUser-GS.sf3',
+        script: 'assets/vendor/generaluser-gs/soundfonts/GeneralUser-GS.js',
+    }),
+});
+
+const midiVisualizer = {
+    tracks: [],
+    notes: [],
+    total: 0,
+    interval: 0.5,
+    active: false,
+    loading: false,
+    loadRequest: 0,
+    playRequest: 0,
+    frame: null,
+    position: 0,
+    elapsed: 0,
+    duration: 0,
+    fileName: '',
+    summary: '',
+    buffer: null,
+    tempoMap: [],
+    ticksPerQuarter: 0,
+    unitsPerQuarter: 1,
+};
+
+function midiPresetName(patch) {
+    const presets = midiPlayback.synth?.presetList ?? [];
+    const exact = presets.find(
+        (preset) =>
+            preset.program === patch.program &&
+            preset.bankMSB === patch.bankMSB &&
+            preset.bankLSB === patch.bankLSB &&
+            preset.isDrum === patch.isDrum
+    );
+    const fallback = presets.find(
+        (preset) =>
+            preset.program === patch.program && preset.isDrum === patch.isDrum
+    );
+    return (exact ?? fallback)?.name;
+}
+
+function midiTrackLabel(track) {
+    const instruments = [
+        ...new Set(track.patches.map(midiPresetName).filter(Boolean)),
+    ];
+    const distinctInstruments = instruments.filter(
+        (instrument) =>
+            instrument.localeCompare(track.name, undefined, {
+                sensitivity: 'accent',
+            }) !== 0
+    );
+    return distinctInstruments.length
+        ? `${track.name} (${distinctInstruments.join(', ')})`
+        : track.name;
+}
+
+function updateMidiTrackLabels() {
+    for (const track of midiVisualizer.tracks) {
+        const heading = document.querySelector(
+            `[data-midi-track-index="${track.trackIndex}"] .midi-visualize-track-heading`
+        );
+        if (heading) {
+            heading.textContent = midiTrackLabel(track);
+        }
+    }
+}
+
+function updateMidiTrackToggle(track) {
+    const toggle = document.querySelector(
+        `[data-midi-track-index="${track.trackIndex}"] .midi-visualize-track-toggle`
+    );
+    if (!toggle) {
+        return;
+    }
+    toggle.setAttribute('aria-pressed', String(track.enabled));
+    toggle.setAttribute(
+        'aria-label',
+        `${track.enabled ? 'Disable' : 'Enable'} ${track.name}`
+    );
+    toggle.title = `${track.enabled ? 'Disable' : 'Enable'} ${track.name}`;
+}
+
+function midiTrackMuteGroup(selectedTrack) {
+    const tracks = new Set([selectedTrack]);
+    const channels = new Set(selectedTrack.channels);
+    let changed = true;
+
+    while (changed) {
+        changed = false;
+        for (const track of midiVisualizer.tracks) {
+            if (
+                tracks.has(track) ||
+                !track.channels.some((channel) => channels.has(channel))
+            ) {
+                continue;
+            }
+            tracks.add(track);
+            for (const channel of track.channels) {
+                channels.add(channel);
+            }
+            changed = true;
+        }
+    }
+
+    return tracks;
+}
+
+function setMidiTrackEnabled(selectedTrack, enabled) {
+    for (const track of midiTrackMuteGroup(selectedTrack)) {
+        track.enabled = enabled;
+        updateMidiTrackToggle(track);
+    }
+    synchronizeMidiTrackMutes();
+}
+
+function synchronizeMidiTrackMutes() {
+    if (!midiPlayback.synth) {
+        return;
+    }
+    const usedChannels = new Set(
+        midiVisualizer.tracks.flatMap((track) => track.channels)
+    );
+    for (const [
+        channel,
+        midiChannel,
+    ] of midiPlayback.synth.midiChannels.entries()) {
+        const enabled = midiVisualizer.tracks.some(
+            (track) => track.enabled && track.channels.includes(channel)
+        );
+        midiChannel.setSystemParameter(
+            'isMuted',
+            usedChannels.has(channel) && !enabled
+        );
+    }
+}
+
+const midiPlayback = {
+    initializePromise: null,
+    synth: null,
+    sequencer: null,
+    soundFontId: null,
+    soundFontPromise: null,
+    loadedBuffer: null,
+    scripts: new Map(),
+};
+
+function loadMidiVendorScript(source) {
+    if (!midiPlayback.scripts.has(source)) {
+        const promise = new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = source;
+            script.addEventListener('load', resolve, { once: true });
+            script.addEventListener(
+                'error',
+                () => reject(new Error(`Unable to load ${source}.`)),
+                { once: true }
+            );
+            document.head.append(script);
+        }).catch((error) => {
+            if (midiPlayback.scripts.get(source) === promise) {
+                midiPlayback.scripts.delete(source);
+            }
+            throw error;
+        });
+        midiPlayback.scripts.set(source, promise);
+    }
+
+    return midiPlayback.scripts.get(source);
+}
+
+function decodeBase64Buffer(encoded) {
+    const decoded = atob(encoded);
+    const bytes = new Uint8Array(decoded.length);
+    for (let index = 0; index < decoded.length; index += 1) {
+        bytes[index] = decoded.charCodeAt(index);
+    }
+    return bytes.buffer;
+}
+
+function updateMidiMode() {
+    const mode = sectionModes.midi;
+    for (const panel of getModePanels('midi')) {
+        panel.hidden = panel.dataset.modePanel !== mode;
+    }
+}
+
+function readMidiVariableLength(view, state, limit) {
+    let value = 0;
+
+    for (let index = 0; index < 4; index += 1) {
+        if (state.offset >= limit) {
+            throw new Error('The MIDI file ended unexpectedly.');
+        }
+
+        const byte = view.getUint8(state.offset);
+        state.offset += 1;
+        value = (value << 7) | (byte & 0x7f);
+
+        if ((byte & 0x80) === 0) {
+            return value;
+        }
+    }
+
+    throw new Error('The MIDI file contains an invalid variable-length value.');
+}
+
+function midiChunkName(view, offset) {
+    return String.fromCharCode(
+        view.getUint8(offset),
+        view.getUint8(offset + 1),
+        view.getUint8(offset + 2),
+        view.getUint8(offset + 3)
+    );
+}
+
+function parseMidiFile(arrayBuffer) {
+    const view = new DataView(arrayBuffer);
+
+    if (view.byteLength < 14 || midiChunkName(view, 0) !== 'MThd') {
+        throw new Error('Choose a Standard MIDI file.');
+    }
+
+    const headerLength = view.getUint32(4);
+    if (headerLength < 6 || 8 + headerLength > view.byteLength) {
+        throw new Error('The MIDI header is invalid.');
+    }
+
+    const format = view.getUint16(8);
+    const trackCount = view.getUint16(10);
+    const division = view.getUint16(12);
+
+    if (format > 1) {
+        throw new Error('MIDI format 2 is not supported.');
+    }
+    if ((division & 0x8000) !== 0) {
+        throw new Error('SMPTE-timed MIDI files are not supported.');
+    }
+    if (division === 0 || trackCount === 0) {
+        throw new Error('The MIDI file has no playable tracks.');
+    }
+
+    const channelEvents = [];
+    const trackNames = Array.from(
+        { length: trackCount },
+        (_, index) => `Track ${index + 1}`
+    );
+    const tempoEvents = [];
+    const signatureEvents = [];
+    let durationTicks = 0;
+    let offset = 8 + headerLength;
+
+    for (let trackIndex = 0; trackIndex < trackCount; trackIndex += 1) {
+        if (
+            offset + 8 > view.byteLength ||
+            midiChunkName(view, offset) !== 'MTrk'
+        ) {
+            throw new Error('A MIDI track is missing or invalid.');
+        }
+
+        const trackLength = view.getUint32(offset + 4);
+        const trackEnd = offset + 8 + trackLength;
+        if (trackEnd > view.byteLength) {
+            throw new Error('A MIDI track is incomplete.');
+        }
+
+        const state = { offset: offset + 8 };
+        let tick = 0;
+        let runningStatus = null;
+        let eventIndex = 0;
+
+        while (state.offset < trackEnd) {
+            tick += readMidiVariableLength(view, state, trackEnd);
+            const trackEventIndex = eventIndex;
+            eventIndex += 1;
+
+            let status = view.getUint8(state.offset);
+            let firstData = null;
+            if (status < 0x80) {
+                if (runningStatus === null) {
+                    throw new Error('The MIDI running status is invalid.');
+                }
+                status = runningStatus;
+                firstData = view.getUint8(state.offset);
+                state.offset += 1;
+            } else {
+                state.offset += 1;
+            }
+
+            if (status === 0xff) {
+                runningStatus = null;
+                if (state.offset >= trackEnd) {
+                    throw new Error('A MIDI meta event is incomplete.');
+                }
+                const type = view.getUint8(state.offset);
+                state.offset += 1;
+                const length = readMidiVariableLength(view, state, trackEnd);
+                const eventEnd = state.offset + length;
+                if (eventEnd > trackEnd) {
+                    throw new Error('A MIDI meta event is incomplete.');
+                }
+                if (type === 0x03 && length > 0) {
+                    const name = new TextDecoder()
+                        .decode(
+                            new Uint8Array(arrayBuffer, state.offset, length)
+                        )
+                        .trim();
+                    if (name) {
+                        trackNames[trackIndex] = name;
+                    }
+                } else if (type === 0x51 && length === 3) {
+                    tempoEvents.push({
+                        tick,
+                        microseconds:
+                            (view.getUint8(state.offset) << 16) |
+                            (view.getUint8(state.offset + 1) << 8) |
+                            view.getUint8(state.offset + 2),
+                    });
+                } else if (type === 0x58 && length >= 2) {
+                    signatureEvents.push({
+                        tick,
+                        trackIndex,
+                        eventIndex: trackEventIndex,
+                        numerator: view.getUint8(state.offset),
+                        denominator: 2 ** view.getUint8(state.offset + 1),
+                    });
+                }
+                state.offset = eventEnd;
+                continue;
+            }
+
+            if (status === 0xf0 || status === 0xf7) {
+                runningStatus = null;
+                const length = readMidiVariableLength(view, state, trackEnd);
+                state.offset += length;
+                if (state.offset > trackEnd) {
+                    throw new Error('A MIDI system event is incomplete.');
+                }
+                continue;
+            }
+
+            runningStatus = status;
+            const command = status & 0xf0;
+            const channel = status & 0x0f;
+            const dataLength = command === 0xc0 || command === 0xd0 ? 1 : 2;
+            const data1 =
+                firstData ??
+                (state.offset < trackEnd
+                    ? view.getUint8(state.offset++)
+                    : null);
+            const data2 =
+                dataLength === 2 && state.offset < trackEnd
+                    ? view.getUint8(state.offset++)
+                    : null;
+
+            if (data1 === null || (dataLength === 2 && data2 === null)) {
+                throw new Error('A MIDI channel event is incomplete.');
+            }
+
+            if (
+                command === 0x80 ||
+                command === 0x90 ||
+                command === 0xb0 ||
+                command === 0xc0
+            ) {
+                channelEvents.push({
+                    tick,
+                    trackIndex,
+                    eventIndex: trackEventIndex,
+                    channel,
+                    command,
+                    data1,
+                    data2,
+                });
+            }
+        }
+
+        durationTicks = Math.max(durationTicks, tick);
+        offset = trackEnd;
+    }
+
+    channelEvents.sort(
+        (left, right) =>
+            left.tick - right.tick ||
+            left.trackIndex - right.trackIndex ||
+            left.eventIndex - right.eventIndex
+    );
+    const channelPatches = Array.from({ length: 16 }, () => ({
+        bankMSB: 0,
+        bankLSB: 0,
+        program: 0,
+    }));
+    const sustainPedals = Array(16).fill(false);
+    const sustainedNotes = Array.from({ length: 16 }, () => []);
+    const activeNotes = new Map();
+    const notes = [];
+
+    function releaseSustainedNotes(channel, tick) {
+        for (const note of sustainedNotes[channel]) {
+            note.soundingEndTick = Math.max(note.endTick, tick);
+        }
+        sustainedNotes[channel] = [];
+    }
+
+    for (const event of channelEvents) {
+        const { channel, command, data1, data2, tick } = event;
+        const patch = channelPatches[channel];
+        if (command === 0xb0) {
+            if (data1 === 0) {
+                patch.bankMSB = data2;
+            } else if (data1 === 32) {
+                patch.bankLSB = data2;
+            } else if (data1 === 64) {
+                const sustained = data2 >= 64;
+                if (sustainPedals[channel] && !sustained) {
+                    releaseSustainedNotes(channel, tick);
+                }
+                sustainPedals[channel] = sustained;
+            }
+            continue;
+        }
+        if (command === 0xc0) {
+            patch.program = data1;
+            continue;
+        }
+
+        const midi = data1;
+        const noteOn = command === 0x90 && data2 > 0;
+        const key = `${channel}:${midi}`;
+        const starts = activeNotes.get(key) ?? [];
+        if (noteOn) {
+            starts.push({
+                ...event,
+                midi,
+                patch: {
+                    ...patch,
+                    isDrum: channel === MIDI_PERCUSSION_CHANNEL,
+                },
+            });
+            activeNotes.set(key, starts);
+        } else if (starts.length) {
+            // MIDI note-off events do not identify one of several overlapping
+            // same-key note-ons. Pair them oldest-first deterministically.
+            const start = starts.shift();
+            if (tick > start.tick) {
+                const note = {
+                    startTick: start.tick,
+                    endTick: tick,
+                    soundingEndTick: sustainPedals[channel] ? null : tick,
+                    midi,
+                    trackIndex: start.trackIndex,
+                    channel,
+                    patch: start.patch,
+                };
+                notes.push(note);
+                if (sustainPedals[channel]) {
+                    sustainedNotes[channel].push(note);
+                }
+            }
+        }
+    }
+
+    for (let channel = 0; channel < sustainedNotes.length; channel += 1) {
+        releaseSustainedNotes(channel, durationTicks);
+    }
+
+    if (!notes.length) {
+        throw new Error('The MIDI file contains no complete notes.');
+    }
+
+    const tempoMap = [{ tick: 0, microseconds: 500000 }];
+    for (const event of tempoEvents.sort(
+        (left, right) => left.tick - right.tick
+    )) {
+        const previous = tempoMap.at(-1);
+        if (event.tick === previous.tick) {
+            previous.microseconds = event.microseconds;
+        } else {
+            tempoMap.push(event);
+        }
+    }
+
+    let seconds = 0;
+    for (let index = 0; index < tempoMap.length; index += 1) {
+        const event = tempoMap[index];
+        const previous = tempoMap[index - 1];
+        if (previous) {
+            seconds +=
+                ((event.tick - previous.tick) / division) *
+                (previous.microseconds / 1000000);
+        }
+        event.seconds = seconds;
+    }
+    const finalTempo = tempoMap.at(-1);
+    const durationSeconds =
+        finalTempo.seconds +
+        ((durationTicks - finalTempo.tick) / division) *
+            (finalTempo.microseconds / 1000000);
+
+    const signatureMap = [{ tick: 0, numerator: 4, denominator: 4 }];
+    for (const event of signatureEvents.sort(
+        (left, right) =>
+            left.tick - right.tick ||
+            left.trackIndex - right.trackIndex ||
+            left.eventIndex - right.eventIndex
+    )) {
+        if (!event.numerator || !Number.isFinite(event.denominator)) {
+            throw new Error(
+                'The MIDI file contains an invalid time signature.'
+            );
+        }
+        const previous = signatureMap.at(-1);
+        if (event.tick === previous.tick) {
+            Object.assign(previous, event);
+        } else if (
+            event.numerator !== previous.numerator ||
+            event.denominator !== previous.denominator
+        ) {
+            signatureMap.push(event);
+        }
+    }
+    if (signatureMap.length > 1) {
+        throw new Error(
+            'MIDI files containing time-signature changes are not yet supported.'
+        );
+    }
+    const [signature] = signatureMap;
+
+    return {
+        notes,
+        ticksPerQuarter: division,
+        tempoMap,
+        tempoMicroseconds: tempoMap[0].microseconds,
+        durationSeconds,
+        numerator: signature.numerator,
+        denominator: signature.denominator,
+        trackNames,
+    };
+}
+
+function midiDurationCandidates(denominator) {
+    return NOTE_VALUES.flatMap((noteValue) => {
+        const duration = denominator / noteValue.value;
+        return [duration * SHEET_DOT_MULTIPLIER, duration];
+    }).sort((left, right) => right - left);
+}
+
+function midiNoteSegments(beat, duration, meter) {
+    const candidates = midiDurationCandidates(meter.denominator);
+    const minimum = candidates.at(-1);
+    const segments = [];
+    let cursor = beat;
+    let remaining = duration;
+
+    while (remaining >= minimum / 2) {
+        const withinBar = cursor % meter.units;
+        const barRemaining = meter.units - withinBar || meter.units;
+        const maximum = Math.min(remaining, barRemaining);
+        const segmentDuration =
+            candidates.find(
+                (candidate) => compareSheetPositions(candidate, maximum) <= 0
+            ) ?? minimum;
+        segments.push({ beat: cursor, duration: segmentDuration });
+        cursor += segmentDuration;
+        remaining -= segmentDuration;
+    }
+
+    return segments;
+}
+
+function midiLedgerLines(note, clef) {
+    const bottomLine = diatonicPositionFromMidi(CLEFS[clef].bottomLineMidi);
+    const staffStep =
+        diatonicPositionFromMidi(note.writtenMidi ?? note.midi) - bottomLine;
+    return staffStep < 0
+        ? Math.ceil(-staffStep / 2)
+        : Math.ceil(Math.max(0, staffStep - 8) / 2);
+}
+
+function midiReadableNote(note, clef) {
+    if (midiLedgerLines(note, clef) <= MIDI_MAX_DISPLAY_LEDGER_LINES) {
+        return note;
+    }
+
+    const bottomLine = diatonicPositionFromMidi(CLEFS[clef].bottomLineMidi);
+    const staffStep = diatonicPositionFromMidi(note.midi) - bottomLine;
+    const below = staffStep < 0;
+    let writtenMidi = note.midi;
+    let octaves = 0;
+
+    do {
+        writtenMidi += below ? 12 : -12;
+        octaves += 1;
+    } while (
+        midiLedgerLines({ ...note, writtenMidi }, clef) >
+        MIDI_MAX_DISPLAY_LEDGER_LINES
+    );
+
+    return {
+        ...note,
+        writtenMidi,
+        octaveSymbol:
+            octaves === 1
+                ? below
+                    ? '𝄷'
+                    : '𝄶'
+                : `${octaves * 7 + 1}${below ? 'mb' : 'ma'}`,
+        octaveBelow: below,
+    };
+}
+
+function midiClefFit(phrase, clef) {
+    const ledgerLines = phrase.map((note) => midiLedgerLines(note, clef));
+    return {
+        clef,
+        maximum: Math.max(...ledgerLines),
+        total: ledgerLines.reduce((sum, count) => sum + count ** 2, 0),
+    };
+}
+
+function midiTrackClef(phrase) {
+    return ['treble', 'bass']
+        .map((clef) => midiClefFit(phrase, clef))
+        .sort(
+            (left, right) =>
+                left.maximum - right.maximum || left.total - right.total
+        )[0];
+}
+
+function midiRestNotes(start, duration, meter) {
+    const rests = [];
+    let cursor = start;
+    let remaining = duration;
+    const withinBar = cursor % meter.units;
+    if (withinBar > 0) {
+        const leadingDuration = Math.min(remaining, meter.units - withinBar);
+        rests.push(
+            ...midiNoteSegments(cursor, leadingDuration, meter).map(
+                (segment) => ({ ...segment, rest: true })
+            )
+        );
+        cursor += leadingDuration;
+        remaining -= leadingDuration;
+    }
+    if (compareSheetPositions(remaining, meter.units) >= 0) {
+        const measures = sheetPositionFloor(remaining, meter.units);
+        const restDuration = measures * meter.units;
+        rests.push({
+            beat: cursor,
+            duration: restDuration,
+            rest: true,
+            multiMeasureRest: measures > 1,
+            wholeMeasureRest: measures === 1,
+        });
+        cursor += restDuration;
+        remaining -= restDuration;
+    }
+    if (compareSheetPositions(remaining, 0) > 0) {
+        rests.push(
+            ...midiNoteSegments(cursor, remaining, meter).map((segment) => ({
+                ...segment,
+                rest: true,
+            }))
+        );
+    }
+    return rests;
+}
+
+function midiPhraseWithRests(phrase, total, meter) {
+    const intervals = phrase
+        .map((note) => ({ start: note.beat, end: note.beat + note.duration }))
+        .sort((left, right) => left.start - right.start);
+    const rests = [];
+    let cursor = 0;
+
+    for (const interval of intervals) {
+        if (interval.start > cursor) {
+            rests.push(
+                ...midiRestNotes(cursor, interval.start - cursor, meter)
+            );
+        }
+        cursor = Math.max(cursor, interval.end);
+    }
+    if (cursor < total) {
+        rests.push(...midiRestNotes(cursor, total - cursor, meter));
+    }
+
+    return [...phrase, ...rests].sort(
+        (left, right) =>
+            left.beat - right.beat || Number(left.rest) - Number(right.rest)
+    );
+}
+
+function midiTrackScores(phrase, trackIndex, score) {
+    const bestFit = midiTrackClef(phrase);
+    const phrases = new Map();
+
+    if (bestFit.maximum <= MIDI_MAX_LEDGER_LINES) {
+        phrases.set(bestFit.clef, phrase);
+    } else {
+        for (const note of phrase) {
+            const trebleLines = midiLedgerLines(note, 'treble');
+            const bassLines = midiLedgerLines(note, 'bass');
+            const clef =
+                trebleLines === bassLines
+                    ? note.midi < MIDI_NOTES.C4
+                        ? 'bass'
+                        : 'treble'
+                    : trebleLines < bassLines
+                      ? 'treble'
+                      : 'bass';
+            const clefPhrase = phrases.get(clef) ?? [];
+            clefPhrase.push(note);
+            phrases.set(clef, clefPhrase);
+        }
+    }
+
+    return [...phrases]
+        .sort(
+            ([left], [right]) =>
+                (left === 'treble' ? 0 : 1) - (right === 'treble' ? 0 : 1)
+        )
+        .map(([clef, clefPhrase]) => ({
+            ...score,
+            phrase: midiPhraseWithRests(
+                clefPhrase.map((note) => midiReadableNote(note, clef)),
+                score.total,
+                score.meter
+            ),
+            clef,
+            highlightedNotes: new Set(),
+            selector: `#midi-visualize-track-${trackIndex + 1}-${clef}`,
+        }));
+}
+
+function midiPercussionScore(phrase, trackIndex, score) {
+    return {
+        ...score,
+        phrase: midiPhraseWithRests(
+            phrase.map((note) => {
+                const notation = MIDI_PERCUSSION_NOTATION[note.midi] ?? {
+                    name: `Percussion ${note.midi}`,
+                    staffStep: 5,
+                    voice: 'lower',
+                };
+                return {
+                    ...note,
+                    percussionName: notation.name,
+                    staffStep: notation.staffStep,
+                    percussionNotehead: notation.notehead,
+                    stemDirection: notation.voice === 'upper' ? 'up' : 'down',
+                };
+            }),
+            score.total,
+            score.meter
+        ),
+        clef: 'percussion',
+        highlightedNotes: new Set(),
+        selector: `#midi-visualize-track-${trackIndex + 1}-percussion`,
+    };
+}
+
+function midiWrittenNotes(notes, meter) {
+    return notes.map((note) => ({
+        ...note,
+        segments: midiNoteSegments(note.beat, note.duration, meter),
+    }));
+}
+
+function midiWrittenArticulation(notes, meter) {
+    const sixteenthDuration = meter.denominator / 16;
+    const voices = new Map();
+    const writtenNotes = notes.map((note) => ({ ...note }));
+
+    for (const note of writtenNotes) {
+        const percussionVoice =
+            note.channel === MIDI_PERCUSSION_CHANNEL
+                ? MIDI_PERCUSSION_NOTATION[note.midi]?.voice
+                : null;
+        const key = `${note.trackIndex}:${note.channel}:${percussionVoice ?? ''}`;
+        const onsets = voices.get(key) ?? new Map();
+        const onset = onsets.get(note.beat) ?? [];
+        onset.push(note);
+        onsets.set(note.beat, onset);
+        voices.set(key, onsets);
+    }
+
+    for (const onsets of voices.values()) {
+        const beats = [...onsets.keys()].sort((left, right) => left - right);
+        for (let index = 0; index < beats.length - 1; index += 1) {
+            const beat = beats[index];
+            const onsetDuration = beats[index + 1] - beat;
+            const notesAtOnset = onsets.get(beat);
+            const notesAtNextOnset = onsets.get(beats[index + 1]);
+            if (
+                notesAtOnset.length !== 1 ||
+                notesAtNextOnset.length !== 1 ||
+                compareSheetPositions(onsetDuration, sixteenthDuration) > 0
+            ) {
+                continue;
+            }
+            const [note] = notesAtOnset;
+            const overlap = note.beat + note.duration - beats[index + 1];
+            const shortArticulation =
+                compareSheetPositions(note.duration, onsetDuration) < 0;
+            const shortOverlap =
+                compareSheetPositions(overlap, 0) > 0 &&
+                compareSheetPositions(overlap, sixteenthDuration) <= 0;
+            if (shortArticulation || shortOverlap) {
+                note.duration = onsetDuration;
+                note.inferredWrittenDuration = true;
+            }
+        }
+    }
+
+    return writtenNotes;
+}
+
+function midiIntervalAtPosition(parsed, unitsPerQuarter, position) {
+    const tick = (position / unitsPerQuarter) * parsed.ticksPerQuarter;
+    let tempo = parsed.tempoMap[0];
+    for (const event of parsed.tempoMap) {
+        if (event.tick > tick) {
+            break;
+        }
+        tempo = event;
+    }
+    return (tempo.microseconds / 1000000) * (4 / parsed.denominator);
+}
+
+function setMidiVisualization(parsed, fileName) {
+    const signature = `${parsed.numerator}/${parsed.denominator}`;
+    const meter = sheetMeter(signature);
+    const unitsPerQuarter = parsed.denominator / 4;
+    const quantum = parsed.denominator / 32;
+    const notes = midiWrittenNotes(
+        midiWrittenArticulation(
+            parsed.notes
+                .map((note) => {
+                    const start =
+                        (note.startTick / parsed.ticksPerQuarter) *
+                        unitsPerQuarter;
+                    const end =
+                        (note.endTick / parsed.ticksPerQuarter) *
+                        unitsPerQuarter;
+                    const soundingEnd =
+                        ((note.soundingEndTick ?? note.endTick) /
+                            parsed.ticksPerQuarter) *
+                        unitsPerQuarter;
+                    const beat = Math.round(start / quantum) * quantum;
+                    const endBeat = Math.round(end / quantum) * quantum;
+                    const duration = Math.max(quantum, endBeat - beat);
+
+                    return {
+                        beat,
+                        duration,
+                        performanceBeat: start,
+                        performanceDuration: end - start,
+                        soundingDuration: soundingEnd - start,
+                        midi: note.midi,
+                        rest: false,
+                        trackIndex: note.trackIndex,
+                        channel: note.channel,
+                        patch: note.patch,
+                    };
+                })
+                .sort(
+                    (left, right) =>
+                        left.beat - right.beat || left.midi - right.midi
+                ),
+            meter
+        ),
+        meter
+    );
+    const total = Math.max(...notes.map((note) => note.beat + note.duration));
+    const bars = Math.max(1, Math.ceil(total / meter.units));
+    const interval =
+        (parsed.tempoMicroseconds / 1000000) * (4 / parsed.denominator);
+    const bpm = Math.round(60000000 / parsed.tempoMicroseconds);
+    const tempoLabel =
+        parsed.tempoMap.length > 1
+            ? `variable tempo (${bpm} BPM initially)`
+            : `${bpm} BPM`;
+    const tracks = parsed.trackNames.flatMap((name, trackIndex) => {
+        const phrase = notes.filter((note) => note.trackIndex === trackIndex);
+        if (!phrase.length) {
+            return [];
+        }
+        const pitchedPhrase = phrase.filter(
+            (note) => note.channel !== MIDI_PERCUSSION_CHANNEL
+        );
+        const percussionPhrase = phrase.filter(
+            (note) => note.channel === MIDI_PERCUSSION_CHANNEL
+        );
+        const score = {
+            signature,
+            meter,
+            bars,
+            total,
+            interval,
+            intervalAtPosition: (position) =>
+                midiIntervalAtPosition(parsed, unitsPerQuarter, position),
+            remPerQuarter: MIDI_SHEET_REM_PER_QUARTER,
+        };
+
+        return [
+            {
+                name,
+                trackIndex,
+                channels: [...new Set(phrase.map((note) => note.channel))],
+                patches: [
+                    ...new Map(
+                        phrase.map((note) => [
+                            JSON.stringify(note.patch),
+                            note.patch,
+                        ])
+                    ).values(),
+                ],
+                enabled: true,
+                minimized: false,
+                scores: [
+                    ...(pitchedPhrase.length
+                        ? midiTrackScores(pitchedPhrase, trackIndex, score)
+                        : []),
+                    ...(percussionPhrase.length
+                        ? [
+                              midiPercussionScore(
+                                  percussionPhrase,
+                                  trackIndex,
+                                  score
+                              ),
+                          ]
+                        : []),
+                ],
+            },
+        ];
+    });
+    tracks.sort(
+        (left, right) =>
+            Number(left.scores.length === 0) - Number(right.scores.length === 0)
+    );
+    const summary = `${fileName} - ${tracks.length} track${tracks.length === 1 ? '' : 's'}, ${notes.length} note${notes.length === 1 ? '' : 's'}, ${signature}, ${tempoLabel}`;
+
+    Object.assign(midiVisualizer, {
+        tracks,
+        notes,
+        total,
+        interval,
+        fileName,
+        summary,
+        position: 0,
+        elapsed: 0,
+        duration: parsed.durationSeconds,
+        tempoMap: parsed.tempoMap,
+        ticksPerQuarter: parsed.ticksPerQuarter,
+        unitsPerQuarter,
+    });
+    synchronizeMidiTrackMutes();
+
+    const tracksElement = document.getElementById('midi-visualize-tracks');
+    const trackElements = tracks.map((track) => {
+        const section = document.createElement('section');
+        const body = document.createElement('div');
+        const content = document.createElement('div');
+        const toggle = document.createElement('button');
+        const header = document.createElement('div');
+        const heading = document.createElement('h4');
+        const minimize = document.createElement('button');
+        const minimizeIcon = document.createElement('span');
+        const scoresElement = document.createElement('div');
+        section.className = 'midi-visualize-track';
+        section.dataset.midiTrackIndex = String(track.trackIndex);
+        body.className = 'midi-visualize-track-body';
+        content.className = 'midi-visualize-track-content';
+        toggle.className = 'midi-visualize-track-toggle';
+        toggle.type = 'button';
+        toggle.setAttribute('aria-pressed', 'true');
+        toggle.setAttribute('aria-label', `Disable ${track.name}`);
+        toggle.title = `Disable ${track.name}`;
+        toggle.addEventListener('click', () => {
+            setMidiTrackEnabled(track, !track.enabled);
+        });
+        header.className = 'midi-visualize-track-header';
+        heading.className = 'midi-visualize-track-heading';
+        heading.textContent = midiTrackLabel(track);
+        minimize.className = 'icon-button midi-visualize-track-minimize';
+        minimize.type = 'button';
+        minimizeIcon.textContent = '−';
+        minimize.append(minimizeIcon);
+        minimize.setAttribute('aria-label', `Minimize ${track.name}`);
+        minimize.title = `Minimize ${track.name}`;
+        minimize.addEventListener('click', () => {
+            track.minimized = !track.minimized;
+            body.hidden = track.minimized;
+            minimizeIcon.textContent = track.minimized ? '+' : '−';
+            minimize.setAttribute(
+                'aria-label',
+                `${track.minimized ? 'Restore' : 'Minimize'} ${track.name}`
+            );
+            minimize.title = `${track.minimized ? 'Restore' : 'Minimize'} ${track.name}`;
+        });
+        header.append(minimize, heading);
+        scoresElement.className = 'midi-visualize-track-scores';
+        for (const score of track.scores) {
+            const scoreElement = document.createElement('div');
+            scoreElement.id = score.selector.slice(1);
+            scoreElement.className = 'sheet-score';
+            scoreElement.setAttribute('role', 'img');
+            scoreElement.setAttribute(
+                'aria-label',
+                `${track.name} ${score.clef} score`
+            );
+            scoresElement.append(scoreElement);
+        }
+        content.append(scoresElement);
+        if (track.scores.length) {
+            body.append(toggle, content);
+        } else {
+            body.append(content);
+        }
+        section.append(header, body);
+        return section;
+    });
+    tracksElement.replaceChildren(...trackElements);
+    tracksElement.hidden = false;
+    for (const track of tracks) {
+        for (const score of track.scores) {
+            renderSheetScore(score, score.selector);
+        }
+    }
+    updateMidiTransport();
+    document.getElementById('midi-visualize-status').textContent = summary;
+}
+
+function updateMidiTransport() {
+    const hasFile = midiVisualizer.notes.length > 0;
+    const play = getAction('midi-visualize-play');
+    const seek = getControl('midi-visualize-seek');
+    document.getElementById('midi-visualize-time-row').hidden = !hasFile;
+    seek.disabled = !hasFile || midiVisualizer.loading;
+    play.disabled = !hasFile || midiVisualizer.loading;
+    play.setAttribute('aria-pressed', String(midiVisualizer.active));
+    play.setAttribute(
+        'aria-label',
+        midiVisualizer.active ? 'Pause MIDI' : 'Play MIDI'
+    );
+    play.title = midiVisualizer.active ? 'Pause' : 'Play';
+    getAction('midi-visualize-stop').disabled =
+        !hasFile ||
+        midiVisualizer.loading ||
+        (!midiVisualizer.active && midiVisualizer.position === 0);
+    updateMidiTimer();
+}
+
+function formatMidiTime(seconds) {
+    const wholeSeconds = Math.max(0, Math.floor(seconds));
+    const hours = Math.floor(wholeSeconds / 3600);
+    const minutes = Math.floor((wholeSeconds % 3600) / 60);
+    const remainder = wholeSeconds % 60;
+    return hours
+        ? `${hours}:${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`
+        : `${minutes}:${String(remainder).padStart(2, '0')}`;
+}
+
+function updateMidiTimer() {
+    const current = formatMidiTime(midiVisualizer.elapsed);
+    const total = formatMidiTime(midiVisualizer.duration);
+    const seek = getControl('midi-visualize-seek');
+    document.getElementById('midi-visualize-current-time').textContent =
+        current;
+    document.getElementById('midi-visualize-total-time').textContent = total;
+    seek.max = String(midiVisualizer.duration);
+    seek.value = String(midiVisualizer.elapsed);
+    seek.setAttribute('aria-valuetext', `${current} of ${total}`);
+}
+
+function seekMidiVisualization(event) {
+    if (!midiVisualizer.notes.length) {
+        return;
+    }
+
+    midiVisualizer.elapsed = clamp(
+        Number(event.currentTarget.value),
+        0,
+        midiVisualizer.duration
+    );
+    midiVisualizer.position = clamp(
+        midiPositionAtTime(midiVisualizer.elapsed),
+        0,
+        midiVisualizer.total
+    );
+    if (midiPlayback.loadedBuffer === midiVisualizer.buffer) {
+        midiPlayback.sequencer.currentTime = midiVisualizer.elapsed;
+    }
+    resetMidiScores(midiVisualizer.position);
+    updateMidiTimer();
+}
+
+function midiPositionAtTime(seconds) {
+    let tempo = midiVisualizer.tempoMap[0];
+    for (const event of midiVisualizer.tempoMap) {
+        if (event.seconds > seconds) {
+            break;
+        }
+        tempo = event;
+    }
+
+    const ticks =
+        tempo.tick +
+        ((seconds - tempo.seconds) * 1000000 * midiVisualizer.ticksPerQuarter) /
+            tempo.microseconds;
+    return (
+        (ticks / midiVisualizer.ticksPerQuarter) *
+        midiVisualizer.unitsPerQuarter
+    );
+}
+
+function updateMidiSheetHighlights(notation, scoreSelector, position) {
+    const highlightedNotes = new Set();
+    notation.phrase.forEach((note, index) => {
+        const start = note.performanceBeat ?? note.beat;
+        const duration = note.soundingDuration ?? note.duration;
+        if (position >= start && position < start + duration) {
+            highlightedNotes.add(index);
+        }
+    });
+
+    for (const index of notation.highlightedNotes) {
+        if (!highlightedNotes.has(index)) {
+            for (const element of document.querySelectorAll(
+                `${scoreSelector} [data-sheet-note-index="${index}"]`
+            )) {
+                element.classList.remove('is-current');
+            }
+        }
+    }
+    for (const index of highlightedNotes) {
+        if (!notation.highlightedNotes.has(index)) {
+            for (const element of document.querySelectorAll(
+                `${scoreSelector} [data-sheet-note-index="${index}"]`
+            )) {
+                element.classList.add('is-current');
+            }
+        }
+    }
+    notation.highlightedNotes = highlightedNotes;
+}
+
+function resetMidiScores(position = 0) {
+    for (const track of midiVisualizer.tracks) {
+        for (const score of track.scores) {
+            positionSheetLane(score, score.selector, position);
+            for (const element of document.querySelectorAll(
+                `${score.selector} .is-current`
+            )) {
+                element.classList.remove('is-current');
+            }
+            score.highlightedNotes.clear();
+        }
+    }
+}
+
+async function initializeMidiPlayback() {
+    if (!midiPlayback.initializePromise) {
+        midiPlayback.initializePromise = (async () => {
+            const context = audio.getContext();
+            let spessaSynth;
+            if (window.location.protocol === 'file:') {
+                await loadMidiVendorScript(
+                    'assets/vendor/spessasynth_lib/js/browser.js'
+                );
+                spessaSynth = globalThis.SpessaSynth;
+                await loadMidiVendorScript(
+                    'assets/vendor/spessasynth_lib/js/processor.js'
+                );
+                await context.audioWorklet.addModule(
+                    `data:text/javascript;base64,${btoa(globalThis.spessaSynthProcessorSource)}`
+                );
+            } else {
+                spessaSynth =
+                    await import('../vendor/spessasynth_lib/js/index.js');
+                await context.audioWorklet.addModule(
+                    'assets/vendor/spessasynth_lib/js/spessasynth_processor.min.js'
+                );
+            }
+            const { Sequencer, WorkletSynthesizer } = spessaSynth;
+            const synth = new WorkletSynthesizer(context);
+            synth.connect(audio.getDestination());
+            await synth.isReady;
+
+            const sequencer = new Sequencer(synth, {
+                skipToFirstNoteOn: false,
+            });
+            sequencer.eventHandler.addEvent(
+                'songEnded',
+                'midi-visualize',
+                () => {
+                    if (midiVisualizer.active) {
+                        pauseMidiVisualization('Complete');
+                    }
+                }
+            );
+            midiPlayback.synth = synth;
+            midiPlayback.sequencer = sequencer;
+            synchronizeMidiTrackMutes();
+        })().catch((error) => {
+            midiPlayback.initializePromise = null;
+            throw error;
+        });
+    }
+
+    await midiPlayback.initializePromise;
+}
+
+async function loadMidiSoundFont() {
+    const soundFontId = getControl('midi-visualize-soundfont').value;
+    if (midiPlayback.soundFontId === soundFontId) {
+        return;
+    }
+    if (midiPlayback.soundFontPromise) {
+        await midiPlayback.soundFontPromise;
+        return;
+    }
+
+    midiPlayback.soundFontPromise = (async () => {
+        const soundFont = SOUNDFONTS[soundFontId];
+        if (!soundFont) {
+            throw new Error('The selected SoundFont is unavailable.');
+        }
+
+        let soundFontBuffer;
+        if (window.location.protocol === 'file:') {
+            await loadMidiVendorScript(soundFont.script);
+            soundFontBuffer = decodeBase64Buffer(
+                globalThis.soundFontData[soundFontId]
+            );
+        } else {
+            const response = await fetch(soundFont.path);
+            if (!response.ok) {
+                throw new Error(`Unable to load ${soundFont.name}.`);
+            }
+            soundFontBuffer = await response.arrayBuffer();
+        }
+
+        if (midiPlayback.soundFontId) {
+            await midiPlayback.synth.soundBankManager.deleteSoundBank(
+                midiPlayback.soundFontId
+            );
+            midiPlayback.soundFontId = null;
+        }
+        await midiPlayback.synth.soundBankManager.addSoundBank(
+            soundFontBuffer,
+            soundFontId
+        );
+        midiPlayback.soundFontId = soundFontId;
+        updateMidiTrackLabels();
+    })();
+
+    try {
+        await midiPlayback.soundFontPromise;
+    } finally {
+        midiPlayback.soundFontPromise = null;
+    }
+}
+
+async function loadMidiSequence() {
+    if (midiPlayback.loadedBuffer === midiVisualizer.buffer) {
+        return;
+    }
+
+    const buffer = midiVisualizer.buffer;
+    const sequencer = midiPlayback.sequencer;
+    await new Promise((resolve) => {
+        const eventId = 'midi-visualize-load';
+        sequencer.eventHandler.addEvent('songChange', eventId, () => {
+            sequencer.eventHandler.removeEvent('songChange', eventId);
+            resolve();
+        });
+        sequencer.loadNewSongList([
+            {
+                binary: buffer.slice(0),
+                fileName: midiVisualizer.fileName,
+            },
+        ]);
+    });
+    midiPlayback.loadedBuffer = buffer;
+}
+
+async function prepareMidiPlayback() {
+    const context = audio.getContext();
+    if (context.state === 'suspended') {
+        await context.resume();
+    }
+    await initializeMidiPlayback();
+    await loadMidiSoundFont();
+    await loadMidiSequence();
+    return midiPlayback.sequencer;
+}
+
+function drawMidiVisualization() {
+    if (!midiVisualizer.active) {
+        return;
+    }
+
+    midiVisualizer.elapsed = clamp(
+        midiPlayback.sequencer.currentHighResolutionTime,
+        0,
+        midiVisualizer.duration
+    );
+    const position = midiPositionAtTime(midiVisualizer.elapsed);
+    midiVisualizer.position = position;
+    updateMidiTimer();
+    for (const track of midiVisualizer.tracks) {
+        for (const score of track.scores) {
+            positionSheetLane(score, score.selector, position);
+            updateMidiSheetHighlights(score, score.selector, position);
+        }
+    }
+
+    if (midiPlayback.sequencer.isFinished) {
+        pauseMidiVisualization('Complete');
+        return;
+    }
+    midiVisualizer.frame = requestAnimationFrame(drawMidiVisualization);
+}
+
+async function playMidiVisualization() {
+    if (!midiVisualizer.notes.length || midiVisualizer.loading) {
+        return;
+    }
+
+    stopTuner();
+    stopRhythm();
+    audio.stopTransient();
+    midiVisualizer.loading = true;
+    const playRequest = ++midiVisualizer.playRequest;
+    updateMidiTransport();
+
+    try {
+        const buffer = midiVisualizer.buffer;
+        const sequencer = await prepareMidiPlayback();
+        if (
+            buffer !== midiVisualizer.buffer ||
+            playRequest !== midiVisualizer.playRequest
+        ) {
+            return;
+        }
+
+        if (
+            sequencer.isFinished ||
+            midiVisualizer.elapsed >= midiVisualizer.duration
+        ) {
+            sequencer.currentTime = 0;
+            midiVisualizer.position = 0;
+            midiVisualizer.elapsed = 0;
+            resetMidiScores();
+        } else if (midiVisualizer.elapsed > 0) {
+            sequencer.currentTime = midiVisualizer.elapsed;
+        }
+        sequencer.play();
+        midiVisualizer.active = true;
+        document.getElementById('midi-visualize-status').textContent =
+            midiVisualizer.summary;
+        drawMidiVisualization();
+    } catch (error) {
+        document.getElementById('midi-visualize-status').textContent =
+            error instanceof Error
+                ? error.message
+                : 'Unable to start MIDI playback.';
+    } finally {
+        midiVisualizer.loading = false;
+        updateMidiTransport();
+    }
+}
+
+function pauseMidiVisualization(status = 'Paused') {
+    if (!midiVisualizer.active) {
+        return;
+    }
+
+    midiPlayback.sequencer?.pause();
+    midiVisualizer.position = clamp(
+        midiPlayback.sequencer
+            ? midiPositionAtTime(
+                  midiPlayback.sequencer.currentHighResolutionTime
+              )
+            : midiVisualizer.position,
+        0,
+        midiVisualizer.total
+    );
+    midiVisualizer.elapsed = clamp(
+        midiPlayback.sequencer?.currentHighResolutionTime ??
+            midiVisualizer.elapsed,
+        0,
+        midiVisualizer.duration
+    );
+    if (status === 'Complete') {
+        midiVisualizer.position = midiVisualizer.total;
+        midiVisualizer.elapsed = midiVisualizer.duration;
+    }
+    midiVisualizer.active = false;
+    cancelAnimationFrame(midiVisualizer.frame);
+    midiVisualizer.frame = null;
+    resetMidiScores(midiVisualizer.position);
+    updateMidiTransport();
+    document.getElementById('midi-visualize-status').textContent =
+        midiVisualizer.summary;
+}
+
+function toggleMidiVisualization() {
+    if (midiVisualizer.active) {
+        pauseMidiVisualization();
+    } else {
+        void playMidiVisualization();
+    }
+}
+
+function stopMidiVisualization() {
+    const hadPosition = midiVisualizer.active || midiVisualizer.position > 0;
+    midiVisualizer.playRequest += 1;
+    midiVisualizer.active = false;
+    cancelAnimationFrame(midiVisualizer.frame);
+    midiVisualizer.frame = null;
+    if (midiPlayback.sequencer) {
+        midiPlayback.sequencer.pause();
+        midiPlayback.sequencer.currentTime = 0;
+    }
+    if (!midiVisualizer.notes.length) {
+        return;
+    }
+
+    midiVisualizer.position = 0;
+    midiVisualizer.elapsed = 0;
+    resetMidiScores();
+    updateMidiTransport();
+    if (hadPosition) {
+        document.getElementById('midi-visualize-status').textContent =
+            midiVisualizer.summary;
+    }
+}
+
+async function loadMidiVisualization(file) {
+    stopAllAudio();
+    const loadRequest = ++midiVisualizer.loadRequest;
+    document.getElementById('midi-visualize-status').textContent =
+        `Loading ${file.name}...`;
+
+    try {
+        const buffer = await file.arrayBuffer();
+        if (loadRequest !== midiVisualizer.loadRequest) {
+            return;
+        }
+        const parsed = parseMidiFile(buffer);
+        midiVisualizer.buffer = buffer;
+        midiPlayback.loadedBuffer = null;
+        setMidiVisualization(parsed, file.name);
+        void initializeMidiPlayback()
+            .then(loadMidiSoundFont)
+            .catch(() => undefined);
+    } catch (error) {
+        if (loadRequest !== midiVisualizer.loadRequest) {
+            return;
+        }
+        midiVisualizer.notes = [];
+        midiVisualizer.tracks = [];
+        const tracksElement = document.getElementById('midi-visualize-tracks');
+        tracksElement.replaceChildren();
+        tracksElement.hidden = true;
+        midiVisualizer.position = 0;
+        midiVisualizer.elapsed = 0;
+        midiVisualizer.duration = 0;
+        midiVisualizer.active = false;
+        midiVisualizer.buffer = null;
+        updateMidiTransport();
+        document.getElementById('midi-visualize-status').textContent =
+            error instanceof Error
+                ? error.message
+                : 'Unable to read the MIDI file.';
+    }
+}
+
+// Rhythm
+
+const rhythm = {
+    running: false,
+    timer: null,
+    frame: null,
+    nextBeatTime: 0,
+    beatIndex: 0,
+    tapTimes: [],
+};
+
+const rhythmTiming = {
+    originMs: 0,
+    interval: 0.6,
+    frame: null,
+    lastBeat: -1,
+    markBeat: null,
+    errors: [],
+};
+
+const rhythmSheet = {
+    phrase: [],
+    nextNoteIndex: 0,
+    origin: 0,
+    interval: 0.6,
+    frame: null,
+    active: false,
+    held: null,
+    input: null,
+    extra: 0,
+    holdSpans: [],
+    currentHold: null,
+    starting: false,
+};
+
+const rhythmSheetMicrophoneInput = createMicrophoneInput({
+    minimumMidi: MINIMUM_SUPPORTED_MIDI,
+    maximumMidi: MAXIMUM_SUPPORTED_MIDI,
+    sampleIntervalMs: RHYTHM_SHEET_ANALYSIS_INTERVAL_MS,
+    processFrame: processRhythmSheetMicrophoneFrame,
+    onDeactivate: handleRhythmSheetMicrophoneDeactivation,
+    initialState: {
+        stableFrames: 0,
+        silentFrames: 0,
+        detectedFrequencies: [],
+        voiceStartedAt: null,
+        silenceStartedAt: null,
+    },
+});
+
+// Rhythm: sheet music
+
+function rhythmSheetEnabled() {
+    return sectionModes.rhythm === 'sheet';
+}
+
+function rhythmSheetClef() {
+    return CLEFS[getControl('rhythm-sheet-clef').value];
+}
+
+function randomRhythmSheetMidi(previousMidi = null) {
+    const clef = rhythmSheetClef();
     const chromatic = getControl('rhythm-sheet-pitches').value === 'chromatic';
     const pitches = [];
 
@@ -2636,55 +5092,12 @@ function randomSheetMidi(previousMidi = null) {
     return weightedPitches[Math.floor(Math.random() * weightedPitches.length)];
 }
 
-function rhythmMeter(signature) {
-    const [units, denominator] = signature.split('/').map(Number);
-    return {
-        units,
-        denominator,
-        compound:
-            denominator === 8 &&
-            units >= 6 &&
-            units % RHYTHM_COMPOUND_SUBDIVISIONS === 0,
-    };
-}
-
 function rhythmClickInterval(signature, bpm) {
     return (
         60 /
         bpm /
-        (rhythmMeter(signature).compound ? RHYTHM_COMPOUND_SUBDIVISIONS : 1)
+        (sheetMeter(signature).compound ? SHEET_COMPOUND_SUBDIVISIONS : 1)
     );
-}
-
-function rhythmNoteValue(note) {
-    const denominator = sheetMusic.meter.denominator;
-    for (const noteValue of RHYTHM_NOTE_VALUES) {
-        const { value } = noteValue;
-        const duration = denominator / value;
-        if (note.duration === duration) {
-            return {
-                ...noteValue,
-                dotted: false,
-            };
-        }
-        if (note.duration === duration * RHYTHM_DOT_MULTIPLIER) {
-            return {
-                ...noteValue,
-                dotted: true,
-            };
-        }
-    }
-    throw new Error('Unsupported rhythm note duration');
-}
-
-function rhythmNoteName(note) {
-    const { name, dotted } = rhythmNoteValue(note);
-    return `${dotted ? 'dotted ' : ''}${name}`;
-}
-
-function rhythmNotePosition(note) {
-    const { units, compound } = sheetMusic.meter;
-    return `Bar ${Math.floor(note.beat / units) + 1}, ${compound ? 'subdivision' : 'beat'} ${(note.beat % units) + 1}`;
 }
 
 function randomRhythmPattern(patterns) {
@@ -2693,7 +5106,7 @@ function randomRhythmPattern(patterns) {
 
 function rhythmBeatPattern(denominator, allowSixteenths) {
     const supportedDurations = new Set(
-        RHYTHM_NOTE_VALUES.map(({ value }) => denominator / value)
+        NOTE_VALUES.map(({ value }) => denominator / value)
     );
     const eighthDuration = denominator / 8;
     const sixteenthDuration = denominator / 16;
@@ -2704,12 +5117,15 @@ function rhythmBeatPattern(denominator, allowSixteenths) {
         (sixteenthRemainder === 0 ||
             supportedDurations.has(sixteenthRemainder));
     const eighthPatternStart = sixteenthPatternSupported
-        ? SHEET_SIXTEENTH_PATTERN_RATE
+        ? RHYTHM_SHEET_SIXTEENTH_PATTERN_RATE
         : 0;
     const roll = Math.random();
 
-    if (sixteenthPatternSupported && roll < SHEET_SIXTEENTH_PATTERN_RATE) {
-        const paired = Math.random() < SHEET_SIXTEENTH_PAIR_RATE;
+    if (
+        sixteenthPatternSupported &&
+        roll < RHYTHM_SHEET_SIXTEENTH_PATTERN_RATE
+    ) {
+        const paired = Math.random() < RHYTHM_SHEET_SIXTEENTH_PAIR_RATE;
         const pattern = [
             { duration: sixteenthDuration, rest: false },
             { duration: sixteenthDuration, rest: paired ? false : true },
@@ -2724,7 +5140,7 @@ function rhythmBeatPattern(denominator, allowSixteenths) {
 
     if (
         roll >= eighthPatternStart &&
-        roll < eighthPatternStart + SHEET_EIGHTH_PATTERN_RATE &&
+        roll < eighthPatternStart + RHYTHM_SHEET_EIGHTH_PATTERN_RATE &&
         supportedDurations.has(eighthDuration) &&
         Number.isInteger(1 / eighthDuration)
     ) {
@@ -2739,7 +5155,7 @@ function rhythmBeatPattern(denominator, allowSixteenths) {
 
 function rhythmGroupPattern(length, denominator, includeDots, limits) {
     const sixteenthDuration = denominator / 16;
-    const sustainedPatterns = RHYTHM_NOTE_VALUES.flatMap(({ value }) => {
+    const sustainedPatterns = NOTE_VALUES.flatMap(({ value }) => {
         if (value > 4) {
             return [];
         }
@@ -2753,7 +5169,7 @@ function rhythmGroupPattern(length, denominator, includeDots, limits) {
             }
 
             const writtenDuration =
-                duration * (dotted ? RHYTHM_DOT_MULTIPLIER : 1);
+                duration * (dotted ? SHEET_DOT_MULTIPLIER : 1);
             const count = length / writtenDuration;
 
             if (
@@ -2794,7 +5210,7 @@ function rhythmGroupPattern(length, denominator, includeDots, limits) {
 
     if (
         sustainedPatterns.length &&
-        Math.random() < SHEET_SUSTAINED_PATTERN_RATE
+        Math.random() < RHYTHM_SHEET_SUSTAINED_PATTERN_RATE
     ) {
         const pattern = randomRhythmPattern(sustainedPatterns);
         limits.sixteenthGroupUsed ||= pattern.some(
@@ -2829,35 +5245,24 @@ function rhythmGroups(pattern) {
     }));
 }
 
-function rhythmSegments(note) {
-    return (
-        note.segments ?? [
-            {
-                beat: note.beat,
-                duration: note.duration,
-            },
-        ]
-    );
-}
-
-function rhythmWrittenName(note) {
-    return rhythmSegments(note).map(rhythmNoteName).join(' tied to ');
-}
-
 function addRhythmTie() {
-    if (Math.random() >= SHEET_TIE_RATE) {
+    if (Math.random() >= RHYTHM_SHEET_TIE_RATE) {
         return;
     }
 
-    const { units, denominator } = sheetMusic.meter;
+    const { units, denominator } = rhythmSheet.meter;
     const minimumSegmentDuration = denominator / 8;
     const candidates = [];
 
-    for (let boundary = units; boundary < sheetMusic.total; boundary += units) {
-        const previousIndex = sheetMusic.phrase.findIndex(
+    for (
+        let boundary = units;
+        boundary < rhythmSheet.total;
+        boundary += units
+    ) {
+        const previousIndex = rhythmSheet.phrase.findIndex(
             (note) => note.beat + note.duration === boundary
         );
-        const nextIndex = sheetMusic.phrase.findIndex(
+        const nextIndex = rhythmSheet.phrase.findIndex(
             (note) => note.beat === boundary
         );
 
@@ -2865,8 +5270,8 @@ function addRhythmTie() {
             continue;
         }
 
-        const previous = sheetMusic.phrase[previousIndex];
-        const next = sheetMusic.phrase[nextIndex];
+        const previous = rhythmSheet.phrase[previousIndex];
+        const next = rhythmSheet.phrase[nextIndex];
         const duration = previous.duration + next.duration;
 
         if (
@@ -2888,32 +5293,32 @@ function addRhythmTie() {
     }
 
     const { previousIndex, nextIndex } = randomRhythmPattern(candidates);
-    const previous = sheetMusic.phrase[previousIndex];
-    const next = sheetMusic.phrase[nextIndex];
+    const previous = rhythmSheet.phrase[previousIndex];
+    const next = rhythmSheet.phrase[nextIndex];
 
     previous.segments = [
         { beat: previous.beat, duration: previous.duration },
         { beat: next.beat, duration: next.duration },
     ];
     previous.duration += next.duration;
-    sheetMusic.phrase.splice(nextIndex, 1);
+    rhythmSheet.phrase.splice(nextIndex, 1);
 }
 
 function newRhythmPhrase() {
     stopAllAudio();
-    sheetMusic.signature = getControl('shared-time-signature').value;
-    sheetMusic.meter = rhythmMeter(sheetMusic.signature);
-    const { units, denominator } = sheetMusic.meter;
-    sheetMusic.bars = Number(getControl('rhythm-sheet-bars').value);
-    sheetMusic.clef = getControl('rhythm-sheet-clef').value;
-    sheetMusic.total = units * sheetMusic.bars;
-    sheetMusic.phrase = [];
+    rhythmSheet.signature = getControl('shared-time-signature').value;
+    rhythmSheet.meter = sheetMeter(rhythmSheet.signature);
+    const { units, denominator } = rhythmSheet.meter;
+    rhythmSheet.bars = Number(getControl('rhythm-sheet-bars').value);
+    rhythmSheet.clef = getControl('rhythm-sheet-clef').value;
+    rhythmSheet.total = units * rhythmSheet.bars;
+    rhythmSheet.phrase = [];
     const includeDots =
         getControl('rhythm-sheet-note-values').value === 'all-dotted';
-    const groups = rhythmGroups(RHYTHM_METERS[sheetMusic.signature]);
+    const groups = rhythmGroups(METERS[rhythmSheet.signature]);
     const limits = { sixteenthGroupUsed: false };
     let previousMidi = null;
-    for (let bar = 0; bar < sheetMusic.bars; bar += 1) {
+    for (let bar = 0; bar < rhythmSheet.bars; bar += 1) {
         let barHasRest = false;
         for (const group of groups) {
             let beat = bar * units + group.start;
@@ -2933,9 +5338,9 @@ function newRhythmPhrase() {
                           ? false
                           : beat !== 0 && !barHasRest && Math.random() < 0.15;
                 barHasRest ||= rest;
-                const midi = rest ? null : randomSheetMidi(previousMidi);
+                const midi = rest ? null : randomRhythmSheetMidi(previousMidi);
                 previousMidi = midi ?? previousMidi;
-                sheetMusic.phrase.push({
+                rhythmSheet.phrase.push({
                     beat,
                     duration,
                     rest,
@@ -2951,24 +5356,7 @@ function newRhythmPhrase() {
         }
     }
     addRhythmTie();
-    renderRhythmScore();
-}
-
-function rhythmDurationLabel(duration) {
-    const fractions = {
-        0.125: '⅛',
-        0.25: '¼',
-        0.375: '⅜',
-        0.5: '½',
-        0.75: '¾',
-    };
-    const whole = Math.floor(duration);
-    const fraction = fractions[duration - whole] || '';
-    return `${whole || !fraction ? whole : ''}${fraction}`;
-}
-
-function rhythmDurationUnit() {
-    return sheetMusic.meter.compound ? 'subdivisions' : 'beats';
+    renderRhythmSheet();
 }
 
 function clearRhythmSheetResults() {
@@ -2991,486 +5379,25 @@ function showRhythmSheetReport() {
     document.getElementById('rhythm-sheet-results').hidden = false;
 }
 
-function sheetBarWidth() {
-    return (
-        sheetMusic.meter.units * sheetMusic.spacing + SHEET_BAR_PADDING_REM * 2
-    );
-}
-
-function sheetWrittenPosition(position, boundarySide = 'start') {
-    const { units } = sheetMusic.meter;
-
-    if (position < 0) {
-        return SHEET_BAR_PADDING_REM + position * sheetMusic.spacing;
-    }
-
-    const bar = Math.floor(position / units);
-    const withinBar = position - bar * units;
-
-    if (position > 0 && withinBar === 0 && boundarySide === 'end') {
-        return bar * sheetBarWidth() - SHEET_BAR_PADDING_REM;
-    }
-
-    return (
-        bar * sheetBarWidth() +
-        SHEET_BAR_PADDING_REM +
-        withinBar * sheetMusic.spacing
-    );
-}
-
-function sheetPlaybackPosition(position) {
-    const { units } = sheetMusic.meter;
-
-    if (position < 0) {
-        return sheetWrittenPosition(position);
-    }
-    if (position >= sheetMusic.total) {
-        return (
-            sheetWrittenPosition(sheetMusic.total, 'end') +
-            (position - sheetMusic.total) * sheetMusic.spacing
-        );
-    }
-
-    const bar = Math.floor(position / units);
-    const withinBar = position - bar * units;
-    const glideBeats = Math.min(
-        0.5,
-        SHEET_BAR_GLIDE_SECONDS / sheetMusic.interval
-    );
-    const glideStart = units - glideBeats;
-    const writtenPosition = sheetWrittenPosition(position);
-
-    if (bar >= sheetMusic.bars - 1 || withinBar <= glideStart) {
-        return writtenPosition;
-    }
-
-    const progress = (withinBar - glideStart) / glideBeats;
-    const easedProgress = progress * progress * (3 - 2 * progress);
-
-    return writtenPosition + SHEET_BAR_PADDING_REM * 2 * easedProgress;
-}
-
-function sheetPlayLinePosition() {
-    const buttons = document.querySelector(
-        '[data-mode-panel="sheet"] .practice-buttons'
-    );
-    const rootFontSize = Number.parseFloat(
-        getComputedStyle(document.documentElement).fontSize
-    );
-
-    return buttons.getBoundingClientRect().width / rootFontSize;
-}
-
-function rhythmBeamGroups(writtenNotes) {
-    const { units, compound } = sheetMusic.meter;
-    const beatLength = compound ? RHYTHM_COMPOUND_SUBDIVISIONS : 1;
-    const groups = [];
-    let group = [];
-
-    function finishGroup() {
-        if (group.length > 1) {
-            groups.push(group);
-        }
-        group = [];
-    }
-
-    for (const writtenNote of writtenNotes) {
-        const { note, segment, value } = writtenNote;
-        const bar = Math.floor(segment.beat / units);
-        const beat = Math.floor((segment.beat % units) / beatLength);
-        const previous = group.at(-1);
-        const followsPrevious =
-            previous &&
-            previous.segment.beat + previous.segment.duration === segment.beat;
-        const sameBeat =
-            previous && previous.bar === bar && previous.beat === beat;
-
-        if (note.rest || value.value < 8 || !followsPrevious || !sameBeat) {
-            finishGroup();
-        }
-
-        if (!note.rest && value.value >= 8) {
-            writtenNote.bar = bar;
-            writtenNote.beat = beat;
-            group.push(writtenNote);
-        }
-    }
-
-    finishGroup();
-    return groups;
-}
-
-function renderRhythmScore() {
-    sheetMusic.holdSpans = [];
-    sheetMusic.currentHold = null;
-    const score = document.getElementById('rhythm-sheet-score');
-    const scoreStyles = getComputedStyle(score);
-    const rem = (property) =>
-        Number.parseFloat(scoreStyles.getPropertyValue(property));
-    const beamThickness = rem('--rhythm-sheet-beam-thickness');
-    const noteheadY = rem('--rhythm-sheet-notehead-y');
-    const stemLength = rem('--rhythm-sheet-stem-length');
-    const beamWidthExtension = rem('--rhythm-sheet-beam-width-extension');
-    const beamStemInset = rem('--rhythm-sheet-beam-stem-inset');
-    const beamGeometry = Object.fromEntries(
-        ['up', 'down'].map((direction) => [
-            direction,
-            {
-                stemX: rem(`--rhythm-sheet-${direction}-stem-x`),
-                beamX: rem(`--rhythm-sheet-${direction}-beam-x`),
-                noteY: rem(`--rhythm-sheet-${direction}-note-y`),
-                layoutY: rem(`--rhythm-sheet-${direction}-layout-y`),
-                stemAtNoteInset: rem(
-                    `--rhythm-sheet-${direction}-stem-note-inset`
-                ),
-            },
-        ])
-    );
+function renderRhythmSheet() {
+    rhythmSheet.holdSpans = [];
+    rhythmSheet.currentHold = null;
     clearRhythmSheetResults();
     document.getElementById('rhythm-sheet-stats').replaceChildren();
     document.getElementById('rhythm-sheet-results').replaceChildren();
-    const { units, denominator, compound } = sheetMusic.meter;
-    const clefDefinition = SHEET_CLEFS[sheetMusic.clef];
-    sheetMusic.spacing = (SHEET_REM_PER_QUARTER * 4) / denominator;
-    const staff = document.createElement('span');
-    staff.className = 'rhythm-sheet-staff';
-    staff.setAttribute('aria-hidden', 'true');
-    for (let lineIndex = 0; lineIndex < 5; lineIndex += 1) {
-        staff.append(document.createElement('span'));
-    }
-    const lane = document.createElement('div');
-    lane.id = 'rhythm-sheet-lane';
-    lane.className = 'rhythm-sheet-lane';
-    for (let index = 0; index < units; index += 1) {
-        const marker = document.createElement('span');
-        marker.className = 'rhythm-sheet-count-marker';
-        marker.style.left = `${sheetWrittenPosition(index - units)}rem`;
-        marker.textContent = String(index + 1);
-        lane.append(marker);
-    }
-    for (let bar = 0; bar <= sheetMusic.bars; bar += 1) {
-        const line = document.createElement('span');
-        line.className = 'rhythm-sheet-barline';
-        line.style.left = `${bar * sheetBarWidth()}rem`;
-        line.textContent = bar === sheetMusic.bars ? '𝄂' : '𝄀';
-
-        lane.append(line);
-    }
-    const heading = document.createElement('span');
-    heading.className = 'rhythm-sheet-score-heading';
-    heading.style.left = `${sheetWrittenPosition(-units)}rem`;
-    const clef = document.createElement('span');
-    clef.className = `rhythm-sheet-clef rhythm-sheet-clef-${sheetMusic.clef}`;
-    clef.textContent = clefDefinition.symbol;
-    const signature = document.createElement('span');
-    signature.className = 'rhythm-sheet-signature';
-    if (RHYTHM_SIGNATURE_SYMBOLS[sheetMusic.signature]) {
-        signature.textContent = RHYTHM_SIGNATURE_SYMBOLS[sheetMusic.signature];
-    } else {
-        signature.classList.add('is-numeric');
-        const [top, bottom] = sheetMusic.signature.split('/');
-        for (const number of [top, bottom]) {
-            const row = document.createElement('span');
-            row.textContent = number;
-            signature.append(row);
-        }
-    }
-    heading.append(clef, signature);
-    lane.append(heading);
-
-    const writtenNotes = sheetMusic.phrase.flatMap((note, noteIndex) =>
-        rhythmSegments(note).map((segment, segmentIndex) => ({
-            note,
-            noteIndex,
-            segment,
-            segmentIndex,
-            staffStep: note.rest
-                ? null
-                : diatonicPositionFromMidi(note.midi) -
-                  diatonicPositionFromMidi(clefDefinition.bottomLineMidi),
-            value: rhythmNoteValue(segment),
-        }))
-    );
-    const activeAccidentals = new Map();
-
-    for (const writtenNote of writtenNotes) {
-        if (writtenNote.note.rest || writtenNote.segmentIndex > 0) {
-            continue;
-        }
-
-        const bar = Math.floor(writtenNote.segment.beat / units);
-        const staffPosition = diatonicPositionFromMidi(writtenNote.note.midi);
-        const accidentalKey = `${bar}:${staffPosition}`;
-        const sharpened =
-            !PITCH_CLASS_NAMES[pitchClassFromMidi(writtenNote.note.midi)]
-                .natural;
-        const activeAccidental = activeAccidentals.get(accidentalKey) ?? false;
-
-        if (sharpened !== activeAccidental) {
-            writtenNote.accidental = sharpened ? '♯' : '♮';
-            activeAccidentals.set(accidentalKey, sharpened);
-        }
-    }
-    const beamMembership = new Map();
-    const beamGroups = rhythmBeamGroups(writtenNotes);
-    const beamLayouts = new Map();
-
-    for (const group of beamGroups) {
-        const averageStaffStep =
-            group.reduce((sum, note) => sum + note.staffStep, 0) / group.length;
-        const stemDown = averageStaffStep >= 4;
-        const geometry = beamGeometry[stemDown ? 'down' : 'up'];
-        const noteYOffset = geometry.noteY;
-        const xStart =
-            sheetWrittenPosition(group[0].segment.beat) + geometry.beamX;
-        const xEnd =
-            sheetWrittenPosition(group.at(-1).segment.beat) + geometry.beamX;
-        const firstNoteY = noteheadY - group[0].staffStep * 0.375 + noteYOffset;
-        const lastNoteY =
-            noteheadY - group.at(-1).staffStep * 0.375 + noteYOffset;
-        const naturalStemLength = stemDown ? stemLength : -stemLength;
-        let yStart = firstNoteY + naturalStemLength;
-        let yEnd =
-            yStart +
-            (stemDown
-                ? lastNoteY - firstNoteY
-                : clamp(lastNoteY - firstNoteY, -0.375, 0.375));
-        const slope = (yEnd - yStart) / (xEnd - xStart);
-        const requiredOffset = stemDown
-            ? Math.max(
-                  0,
-                  ...group.map((note) => {
-                      const x =
-                          sheetWrittenPosition(note.segment.beat) +
-                          geometry.stemX;
-                      const beamY = yStart + (x - xStart) * slope;
-                      const naturalY =
-                          noteheadY -
-                          note.staffStep * 0.375 +
-                          noteYOffset +
-                          naturalStemLength;
-                      return naturalY - beamY;
-                  })
-              )
-            : Math.min(
-                  0,
-                  ...group.map((note) => {
-                      const x =
-                          sheetWrittenPosition(note.segment.beat) +
-                          geometry.stemX;
-                      const beamY = yStart + (x - xStart) * slope;
-                      const naturalY =
-                          noteheadY -
-                          note.staffStep * 0.375 +
-                          noteYOffset +
-                          naturalStemLength;
-                      return naturalY - beamY;
-                  })
-              );
-        yStart += requiredOffset;
-        yEnd += requiredOffset;
-        yStart += geometry.layoutY;
-        yEnd += geometry.layoutY;
-        const layout = {
-            stemDown,
-            noteYOffset,
-            xStart,
-            xEnd,
-            yStart,
-            yEnd,
-        };
-        beamLayouts.set(group, layout);
-
-        for (const writtenNote of group) {
-            beamMembership.set(writtenNote, layout);
-        }
-    }
-
-    for (const writtenNote of writtenNotes) {
-        const { note, noteIndex, segment, segmentIndex, staffStep, value } =
-            writtenNote;
-        const beam = beamMembership.get(writtenNote);
-
-        const x = sheetWrittenPosition(segment.beat);
-        const width =
-            sheetWrittenPosition(segment.beat + segment.duration, 'end') - x;
-        const element = document.createElement('span');
-        element.id = `rhythm-note-${noteIndex}-${segmentIndex}`;
-        element.className = `rhythm-sheet-lane-note${note.rest ? ' is-rest' : ''}`;
-        element.dataset.rhythmSheetNoteIndex = String(noteIndex);
-        element.style.left = `${x}rem`;
-        element.style.width = `${width}rem`;
-        const pitchName = note.rest
-            ? ''
-            : `${noteNameFromMidi(note.midi, 'sharp')} `;
-        const tied = rhythmSegments(note).length > 1 ? ' tied' : '';
-        element.title = `${pitchName}${rhythmNoteName(segment)} ${note.rest ? 'rest' : `note${tied}`} - ${rhythmDurationLabel(segment.duration)} ${rhythmDurationUnit()}`;
-        const symbol = document.createElement('span');
-        symbol.className = 'rhythm-sheet-note-symbol';
-        symbol.setAttribute('aria-hidden', 'true');
-        symbol.classList.add(`is-${value.name}`);
-        symbol.textContent = `${note.rest ? value.rest : value.symbol}${value.dotted ? '.' : ''}`;
-        if (!note.rest) {
-            symbol.style.setProperty('--staff-step', String(staffStep));
-            symbol.classList.toggle(
-                'is-stem-down',
-                (beam?.stemDown ?? staffStep >= 4) && value.name !== 'whole'
-            );
-            if (beam) {
-                symbol.classList.add('is-beamed');
-                symbol.textContent = '𝅘';
-            } else {
-                symbol.textContent = value.symbol;
-            }
-            if (writtenNote.accidental) {
-                const accidental = document.createElement('span');
-                accidental.className = 'rhythm-sheet-note-accidental';
-                accidental.setAttribute('aria-hidden', 'true');
-                accidental.style.setProperty('--staff-step', String(staffStep));
-                accidental.textContent = writtenNote.accidental;
-                element.append(accidental);
-            }
-            if (value.dotted) {
-                const dot = document.createElement('span');
-                dot.className = 'rhythm-sheet-note-dot';
-                dot.style.setProperty(
-                    '--staff-step',
-                    String(staffStep % 2 === 0 ? staffStep + 1 : staffStep)
-                );
-                element.append(dot);
-            }
-            const ledgerSteps = [];
-            for (let step = -2; step >= staffStep; step -= 2) {
-                ledgerSteps.push(step);
-            }
-            for (let step = 10; step <= staffStep; step += 2) {
-                ledgerSteps.push(step);
-            }
-            for (const ledgerStep of ledgerSteps) {
-                const ledger = document.createElement('span');
-                ledger.className = 'rhythm-sheet-ledger-line';
-                ledger.style.setProperty('--staff-step', String(ledgerStep));
-                element.append(ledger);
-            }
-        }
-        const track = document.createElement('span');
-        track.className = 'rhythm-sheet-duration-track';
-        element.append(symbol, track);
-        lane.append(element);
-    }
-
-    for (const group of beamGroups) {
-        const layout = beamLayouts.get(group);
-        const { stemDown, noteYOffset, xStart, xEnd, yStart, yEnd } = layout;
-        const geometry = beamGeometry[stemDown ? 'down' : 'up'];
-        const slope = (yEnd - yStart) / (xEnd - xStart);
-        const beamYAt = (x) => yStart + (x - xStart) * slope;
-        const appendBeam = (start, end, secondary = false) => {
-            const stemStartX =
-                sheetWrittenPosition(start.segment.beat) + geometry.beamX;
-            const stemEndX =
-                sheetWrittenPosition(end.segment.beat) + geometry.beamX;
-            const startX = stemStartX;
-            const endX = stemEndX + beamWidthExtension;
-            const offset = secondary ? (stemDown ? -0.35 : 0.35) : 0;
-            const beamInset = stemDown ? -beamThickness : beamThickness;
-            const startY = beamYAt(startX) + offset + beamInset;
-            const endY = beamYAt(endX) + offset + beamInset;
-            const top = Math.min(startY, endY);
-            const leftTop = startY - top;
-            const rightTop = endY - top;
-            const beam = document.createElement('span');
-            beam.className = `rhythm-sheet-beam${secondary ? ' is-secondary' : ''}`;
-            beam.style.left = `${startX}rem`;
-            beam.style.top = `${top}rem`;
-            beam.style.width = `${endX - startX}rem`;
-            beam.style.height = `${Math.abs(endY - startY) + beamThickness}rem`;
-            beam.style.clipPath = `polygon(0 ${leftTop}rem, 100% ${rightTop}rem, 100% ${rightTop + beamThickness}rem, 0 ${leftTop + beamThickness}rem)`;
-            lane.append(beam);
-        };
-
-        appendBeam(group[0], group.at(-1));
-
-        for (const writtenNote of group) {
-            const x =
-                sheetWrittenPosition(writtenNote.segment.beat) + geometry.stemX;
-            const noteY =
-                noteheadY -
-                writtenNote.staffStep * 0.375 +
-                noteYOffset +
-                geometry.stemAtNoteInset;
-            const beamY =
-                beamYAt(x) +
-                (stemDown ? -beamStemInset : beamThickness + beamStemInset);
-            const stem = document.createElement('span');
-            stem.className = 'rhythm-sheet-beam-stem';
-            stem.style.left = `${x}rem`;
-            stem.style.top = `${Math.min(noteY, beamY)}rem`;
-            stem.style.height = `${Math.abs(noteY - beamY)}rem`;
-            lane.append(stem);
-        }
-
-        let secondaryGroup = [];
-        const appendSecondaryBeam = () => {
-            if (secondaryGroup.length < 2) {
-                secondaryGroup = [];
-                return;
-            }
-            appendBeam(secondaryGroup[0], secondaryGroup.at(-1), true);
-            secondaryGroup = [];
-        };
-
-        for (const writtenNote of group) {
-            if (writtenNote.value.value >= 16) {
-                secondaryGroup.push(writtenNote);
-            } else {
-                appendSecondaryBeam();
-            }
-        }
-        appendSecondaryBeam();
-    }
-
-    sheetMusic.phrase.forEach((note, noteIndex) => {
-        const segments = rhythmSegments(note);
-        const staffStep = note.rest
-            ? null
-            : diatonicPositionFromMidi(note.midi) -
-              diatonicPositionFromMidi(clefDefinition.bottomLineMidi);
-
-        if (segments.length > 1) {
-            const tie = document.createElement('span');
-            const start = sheetWrittenPosition(segments[0].beat) + 0.9;
-            const end = sheetWrittenPosition(segments[1].beat) + 0.9;
-            tie.className = `rhythm-sheet-tie ${staffStep >= 4 ? 'is-above' : 'is-below'}`;
-            tie.dataset.rhythmSheetNoteIndex = String(noteIndex);
-            tie.style.left = `${start}rem`;
-            tie.style.width = `${end - start}rem`;
-            tie.style.setProperty('--staff-step', String(staffStep));
-            tie.setAttribute('aria-hidden', 'true');
-            lane.append(tie);
-        }
+    renderSheetScore(rhythmSheet, RHYTHM_SHEET_SCORE_SELECTOR, {
+        countIn: true,
+        durationGuide: true,
+        pitchGuide: true,
     });
-    const playLine = document.createElement('span');
-    playLine.className = 'rhythm-sheet-play-line';
-    const pitchLine = document.createElement('span');
-    pitchLine.id = 'rhythm-sheet-pitch-line';
-    pitchLine.className = 'rhythm-sheet-pitch-line';
-    pitchLine.hidden = true;
-    pitchLine.setAttribute('aria-hidden', 'true');
-    score.replaceChildren(staff, lane, playLine, pitchLine);
-    lane.style.transform = `translateX(${sheetPlayLinePosition() - sheetPlaybackPosition(-units - 1)}rem)`;
     document.getElementById('rhythm-sheet-description').textContent =
-        sheetMusic.phrase
-            .map(
-                (note) =>
-                    `${rhythmNotePosition(note)}: ${note.rest ? '' : `${noteNameFromMidi(note.midi, 'sharp')} `}${rhythmWrittenName(note)} ${note.rest ? 'rest' : 'note'}, ${rhythmDurationLabel(note.duration)} ${rhythmDurationUnit()}.`
-            )
-            .join(' ');
+        describeSheetScore(rhythmSheet);
+    const { units, denominator, compound } = rhythmSheet.meter;
     document.getElementById('rhythm-sheet-meter-help').textContent = compound
-        ? `${sheetMusic.signature}: BPM counts dotted-quarter beats; each beat has three eighth-note subdivisions (1 & a). A dotted quarter lasts three subdivisions, a quarter two, and an eighth one.`
-        : `${sheetMusic.signature}: BPM counts ${denominator === 2 ? 'half' : denominator === 8 ? 'eighth' : 'quarter'} notes, with ${units} beats per bar.`;
+        ? `${rhythmSheet.signature}: BPM counts dotted-quarter beats; each beat has three eighth-note subdivisions (1 & a). A dotted quarter lasts three subdivisions, a quarter two, and an eighth one.`
+        : `${rhythmSheet.signature}: BPM counts ${denominator === 2 ? 'half' : denominator === 8 ? 'eighth' : 'quarter'} notes, with ${units} beats per bar.`;
     document.getElementById('rhythm-sheet-count-label').textContent =
-        `Ready - durations in ${rhythmDurationUnit()}`;
+        `Ready - durations in ${sheetDurationUnit(rhythmSheet.meter)}`;
 }
 
 function playRhythmInputSound() {
@@ -3478,33 +5405,35 @@ function playRhythmInputSound() {
     audio.playTransient(520, 'triangle', 0.055, 0.5);
 }
 
-function handleSheetMicrophoneDeactivation({ reason }) {
-    if (sheetMusic.input === 'microphone') {
+function handleRhythmSheetMicrophoneDeactivation({ reason }) {
+    if (rhythmSheet.input === 'microphone') {
         releaseRhythm('microphone');
     }
 
-    sheetMicrophoneInput.stableFrames = 0;
-    sheetMicrophoneInput.silentFrames = 0;
-    sheetMicrophoneInput.detectedFrequencies = [];
-    sheetMicrophoneInput.voiceStartedAt = null;
-    sheetMicrophoneInput.silenceStartedAt = null;
-    renderSheetPitch();
+    rhythmSheetMicrophoneInput.stableFrames = 0;
+    rhythmSheetMicrophoneInput.silentFrames = 0;
+    rhythmSheetMicrophoneInput.detectedFrequencies = [];
+    rhythmSheetMicrophoneInput.voiceStartedAt = null;
+    rhythmSheetMicrophoneInput.silenceStartedAt = null;
+    renderRhythmSheetPitch();
 
     if (reason === 'microphone-paused' && rhythm.running) {
         stopRhythm();
     }
 }
 
-function addSheetPitchSample(frequency) {
-    if (!sheetMusic.held || !Number.isFinite(frequency)) {
+function addRhythmSheetPitchSample(frequency) {
+    if (!rhythmSheet.held || !Number.isFinite(frequency)) {
         return;
     }
 
-    sheetMusic.held.pitchSamples.push(frequency);
+    rhythmSheet.held.pitchSamples.push(frequency);
 }
 
-function renderSheetPitch(frequency = null) {
-    const line = document.getElementById('rhythm-sheet-pitch-line');
+function renderRhythmSheetPitch(frequency = null) {
+    const line = document.querySelector(
+        `${RHYTHM_SHEET_SCORE_SELECTOR} .sheet-pitch-line`
+    );
     if (!line) {
         return;
     }
@@ -3512,7 +5441,7 @@ function renderSheetPitch(frequency = null) {
     const midi = Number.isFinite(frequency)
         ? midiFromFrequency(frequency)
         : null;
-    const clef = SHEET_CLEFS[sheetMusic.clef];
+    const clef = CLEFS[rhythmSheet.clef];
     const visible = midi !== null;
     line.hidden = !visible;
 
@@ -3527,23 +5456,27 @@ function renderSheetPitch(frequency = null) {
     }
 }
 
-function processSheetMicrophoneFrame({ samples, sampleRate, samplesUpdated }) {
+function processRhythmSheetMicrophoneFrame({
+    samples,
+    sampleRate,
+    samplesUpdated,
+}) {
     if (!samplesUpdated) {
         return;
     }
 
-    const microphone = sheetMicrophoneInput;
+    const microphone = rhythmSheetMicrophoneInput;
 
     const frequency = detectPitchYin(
         samples,
         sampleRate,
-        frequencyFromMidi(sheetMicrophoneInput.minimumMidi),
-        frequencyFromMidi(sheetMicrophoneInput.maximumMidi),
+        frequencyFromMidi(rhythmSheetMicrophoneInput.minimumMidi),
+        frequencyFromMidi(rhythmSheetMicrophoneInput.maximumMidi),
         TUNER_YIN_THRESHOLD,
         TUNER_ANALYSIS_SAMPLE_STRIDE
     );
-    const position = sheetMusic.active
-        ? (audio.currentTime() - sheetMusic.origin) / sheetMusic.interval
+    const position = rhythmSheet.active
+        ? (audio.currentTime() - rhythmSheet.origin) / rhythmSheet.interval
         : -Infinity;
 
     if (frequency === null) {
@@ -3554,8 +5487,8 @@ function processSheetMicrophoneFrame({ samples, sampleRate, samplesUpdated }) {
         microphone.silenceStartedAt ??= audio.currentTime();
 
         if (microphone.silentFrames >= 2) {
-            renderSheetPitch();
-            if (sheetMusic.input === 'microphone') {
+            renderRhythmSheetPitch();
+            if (rhythmSheet.input === 'microphone') {
                 releaseRhythm('microphone', microphone.silenceStartedAt);
             }
         }
@@ -3569,13 +5502,15 @@ function processSheetMicrophoneFrame({ samples, sampleRate, samplesUpdated }) {
         addRollingSample(
             microphone.detectedFrequencies,
             frequency,
-            SHEET_FREQUENCY_SAMPLE_LIMIT
+            RHYTHM_SHEET_FREQUENCY_SAMPLE_LIMIT
         );
         const stableFrequency = median(microphone.detectedFrequencies);
-        renderSheetPitch(microphone.stableFrames >= 2 ? stableFrequency : null);
+        renderRhythmSheetPitch(
+            microphone.stableFrames >= 2 ? stableFrequency : null
+        );
 
         if (
-            sheetMusic.input === null &&
+            rhythmSheet.input === null &&
             position >= -0.25 &&
             microphone.stableFrames >= 2
         ) {
@@ -3584,14 +5519,14 @@ function processSheetMicrophoneFrame({ samples, sampleRate, samplesUpdated }) {
                 stableFrequency,
                 microphone.voiceStartedAt
             );
-        } else if (sheetMusic.input === 'microphone') {
-            addSheetPitchSample(stableFrequency);
+        } else if (rhythmSheet.input === 'microphone') {
+            addRhythmSheetPitchSample(stableFrequency);
         }
     }
 }
 
-async function activateSheetMicrophone() {
-    return sheetMicrophoneInput.activate();
+async function activateRhythmSheetMicrophone() {
+    return rhythmSheetMicrophoneInput.activate();
 }
 
 function updateRhythmMode() {
@@ -3600,29 +5535,29 @@ function updateRhythmMode() {
         panel.hidden = panel.dataset.modePanel !== mode;
     }
     stopAllAudio();
-    if (!sheetMusicEnabled()) {
-        sheetMicrophoneInput.deactivate('mode-changed');
+    if (!rhythmSheetEnabled()) {
+        rhythmSheetMicrophoneInput.deactivate('mode-changed');
     } else if (microphoneRequestState === MICROPHONE_STATES.LISTENING) {
-        void activateSheetMicrophone();
+        void activateRhythmSheetMicrophone();
     }
     if (
-        sheetMusicEnabled() &&
-        (!sheetMusic.phrase.length ||
-            sheetMusic.signature !== getControl('shared-time-signature').value)
+        rhythmSheetEnabled() &&
+        (!rhythmSheet.phrase.length ||
+            rhythmSheet.signature !== getControl('shared-time-signature').value)
     ) {
         newRhythmPhrase();
     }
 }
 
-function startSheetMusic() {
-    renderRhythmScore();
-    sheetMusic.interval = rhythmClickInterval(rhythm.signature, rhythm.bpm);
-    sheetMusic.origin =
-        rhythm.nextBeatTime + sheetMusic.meter.units * sheetMusic.interval;
-    sheetMusic.nextNoteIndex = 0;
-    sheetMusic.extra = 0;
-    sheetMusic.active = true;
-    for (const note of sheetMusic.phrase) {
+function startRhythmSheet() {
+    renderRhythmSheet();
+    rhythmSheet.interval = rhythmClickInterval(rhythm.signature, rhythm.bpm);
+    rhythmSheet.origin =
+        rhythm.nextBeatTime + rhythmSheet.meter.units * rhythmSheet.interval;
+    rhythmSheet.nextNoteIndex = 0;
+    rhythmSheet.extra = 0;
+    rhythmSheet.active = true;
+    for (const note of rhythmSheet.phrase) {
         note.attack = null;
         note.release = null;
         note.pitchFrequency = null;
@@ -3630,11 +5565,11 @@ function startSheetMusic() {
         note.pitchSamples = [];
     }
     document
-        .getElementById('rhythm-sheet-score')
+        .querySelector(RHYTHM_SHEET_SCORE_SELECTOR)
         .setAttribute('aria-disabled', 'false');
     document.getElementById('rhythm-sheet-hold').disabled = false;
     document.getElementById('rhythm-sheet-hold').focus();
-    drawSheetMusic();
+    drawRhythmSheet();
 }
 
 function rhythmOffset(value) {
@@ -3643,7 +5578,9 @@ function rhythmOffset(value) {
 }
 
 function clearRhythmFeedback() {
-    const lane = document.getElementById('rhythm-sheet-lane');
+    const lane = document.querySelector(
+        `${RHYTHM_SHEET_SCORE_SELECTOR} .sheet-lane`
+    );
 
     for (const element of lane.querySelectorAll(
         '.rhythm-sheet-feedback-section'
@@ -3653,7 +5590,10 @@ function clearRhythmFeedback() {
 }
 
 function renderRhythmFeedback(position) {
-    const lane = document.getElementById('rhythm-sheet-lane');
+    const lane = document.querySelector(
+        `${RHYTHM_SHEET_SCORE_SELECTOR} .sheet-lane`
+    );
+    const layout = createSheetLayout(rhythmSheet);
     clearRhythmFeedback();
 
     const appendSection = (start, end, state, endsNote) => {
@@ -3662,23 +5602,24 @@ function renderRhythmFeedback(position) {
         }
 
         const element = document.createElement('span');
-        const width = sheetPlaybackPosition(end) - sheetPlaybackPosition(start);
+        const width =
+            layout.playbackPosition(end) - layout.playbackPosition(start);
         element.className = `rhythm-sheet-feedback-section is-${state}`;
-        element.style.left = `${sheetPlaybackPosition(start)}rem`;
+        element.style.left = `${layout.playbackPosition(start)}rem`;
         element.style.width = endsNote
             ? `calc(${width}rem - 1px)`
             : `${width}rem`;
         lane.append(element);
     };
 
-    for (const note of sheetMusic.phrase) {
+    for (const note of rhythmSheet.phrase) {
         if (note.rest || position <= note.beat) {
             continue;
         }
 
         const noteEnd = note.beat + note.duration;
         const elapsedEnd = Math.min(position, noteEnd);
-        const holds = sheetMusic.holdSpans
+        const holds = rhythmSheet.holdSpans
             .filter((hold) => hold.note === note)
             .sort((left, right) => left.start - right.start);
         const detectedFrequency = note.pitchSamples.length
@@ -3688,7 +5629,7 @@ function renderRhythmFeedback(position) {
             Number.isFinite(detectedFrequency) &&
             Math.abs(
                 centsBetween(detectedFrequency, frequencyFromMidi(note.midi))
-            ) > SHEET_CORRECT_CENTS;
+            ) > RHYTHM_SHEET_CORRECT_CENTS;
         let cursor = note.beat;
 
         for (const hold of holds) {
@@ -3710,13 +5651,13 @@ function renderRhythmFeedback(position) {
 }
 
 function updateRhythmHold(position, released = false) {
-    const hold = sheetMusic.currentHold;
+    const hold = rhythmSheet.currentHold;
     if (!hold) {
         return;
     }
     hold.end = Math.max(hold.start, position);
     if (released) {
-        sheetMusic.currentHold = null;
+        rhythmSheet.currentHold = null;
     }
 }
 
@@ -3727,21 +5668,21 @@ function beginRhythmHold(position) {
         note: null,
         spurious: false,
     };
-    sheetMusic.holdSpans.push(hold);
-    sheetMusic.currentHold = hold;
+    rhythmSheet.holdSpans.push(hold);
+    rhythmSheet.currentHold = hold;
 }
 
 function pressRhythm(input, frequency = null, inputTime = audio.currentTime()) {
-    if (!sheetMusic.active || sheetMusic.input !== null) {
+    if (!rhythmSheet.active || rhythmSheet.input !== null) {
         return;
     }
-    const position = (inputTime - sheetMusic.origin) / sheetMusic.interval;
-    sheetMusic.input = input;
+    const position = (inputTime - rhythmSheet.origin) / rhythmSheet.interval;
+    rhythmSheet.input = input;
     beginRhythmHold(position);
-    if (position < -0.5 || position >= sheetMusic.total) {
+    if (position < -0.5 || position >= rhythmSheet.total) {
         return;
     }
-    const note = sheetMusic.phrase
+    const note = rhythmSheet.phrase
         .filter((candidate) => !candidate.rest)
         .reduce(
             (nearest, candidate) =>
@@ -3759,36 +5700,36 @@ function pressRhythm(input, frequency = null, inputTime = audio.currentTime()) {
         Math.abs(position - note.beat) >=
             Math.max(0.35, Math.min(0.5, note.duration / 2))
     ) {
-        sheetMusic.extra += 1;
-        sheetMusic.currentHold.spurious = true;
+        rhythmSheet.extra += 1;
+        rhythmSheet.currentHold.spurious = true;
         showRhythmSheetResult(
             'Spurious hold - follow the notes and leave rests silent.'
         );
         return;
     }
-    note.attack = (position - note.beat) * sheetMusic.interval * 1000;
-    sheetMusic.currentHold.note = note;
-    sheetMusic.held = note;
-    addSheetPitchSample(frequency);
+    note.attack = (position - note.beat) * rhythmSheet.interval * 1000;
+    rhythmSheet.currentHold.note = note;
+    rhythmSheet.held = note;
+    addRhythmSheetPitchSample(frequency);
     showRhythmSheetResult(
         `Attack: ${rhythmOffset(note.attack)} - target ${noteNameFromMidi(note.midi, 'sharp')}.`
     );
 }
 
 function releaseRhythm(input, inputTime = audio.currentTime()) {
-    if (sheetMusic.input !== input) {
+    if (rhythmSheet.input !== input) {
         return;
     }
     updateRhythmHold(
-        (inputTime - sheetMusic.origin) / sheetMusic.interval,
+        (inputTime - rhythmSheet.origin) / rhythmSheet.interval,
         true
     );
-    const note = sheetMusic.held;
+    const note = rhythmSheet.held;
     if (note) {
         note.release =
             (inputTime -
-                sheetMusic.origin -
-                (note.beat + note.duration) * sheetMusic.interval) *
+                rhythmSheet.origin -
+                (note.beat + note.duration) * rhythmSheet.interval) *
             1000;
         if (note.pitchSamples.length) {
             note.pitchFrequency = median(note.pitchSamples);
@@ -3805,17 +5746,17 @@ function releaseRhythm(input, inputTime = audio.currentTime()) {
             `Attack: ${rhythmOffset(note.attack)} - Release: ${rhythmOffset(note.release)}${pitchResult}`
         );
     }
-    sheetMusic.input = null;
-    sheetMusic.held = null;
+    rhythmSheet.input = null;
+    rhythmSheet.held = null;
     document.getElementById('rhythm-sheet-hold').classList.remove('is-held');
 }
 
-function finishSheetMusic() {
-    if (sheetMusic.input !== null) {
-        releaseRhythm(sheetMusic.input);
+function finishRhythmSheet() {
+    if (rhythmSheet.input !== null) {
+        releaseRhythm(rhythmSheet.input);
     }
 
-    const notes = sheetMusic.phrase.filter((note) => !note.rest);
+    const notes = rhythmSheet.phrase.filter((note) => !note.rest);
     const attacks = notes.filter((note) => note.attack !== null);
     const releases = notes.filter((note) => note.release !== null);
     const pitched = notes.filter((note) => note.pitchError !== null);
@@ -3862,7 +5803,7 @@ function finishSheetMusic() {
         ['Release bias', bias(releases, 'release')],
         ['Missed notes', notes.length - attacks.length],
         ['Unreleased notes', attacks.length - releases.length],
-        ['Spurious holds', sheetMusic.extra],
+        ['Spurious holds', rhythmSheet.extra],
         [
             'Average pitch error',
             pitched.length
@@ -3877,7 +5818,7 @@ function finishSheetMusic() {
         [
             'Notes in tune',
             pitched.length
-                ? `${pitched.filter((note) => Math.abs(note.pitchError) <= SHEET_CORRECT_CENTS).length} / ${pitched.length}`
+                ? `${pitched.filter((note) => Math.abs(note.pitchError) <= RHYTHM_SHEET_CORRECT_CENTS).length} / ${pitched.length}`
                 : 'Not scored',
         ],
     ]) {
@@ -3891,8 +5832,8 @@ function finishSheetMusic() {
     }
     const results = document.getElementById('rhythm-sheet-results');
     results.replaceChildren();
-    for (const note of sheetMusic.phrase) {
-        const spurious = sheetMusic.holdSpans.filter(
+    for (const note of rhythmSheet.phrase) {
+        const spurious = rhythmSheet.holdSpans.filter(
             (hold) =>
                 hold.spurious &&
                 ((hold.start >= note.beat &&
@@ -3904,7 +5845,7 @@ function finishSheetMusic() {
         }
 
         const item = document.createElement('li');
-        item.textContent = rhythmNotePosition(note);
+        item.textContent = sheetNotePosition(note, rhythmSheet.meter);
 
         const holds = document.createElement('ul');
         if (note.rest) {
@@ -3936,10 +5877,10 @@ function finishSheetMusic() {
             for (const hold of spurious) {
                 const detail = document.createElement('li');
                 const offset = Math.round(
-                    (hold.start - note.beat) * sheetMusic.interval * 1000
+                    (hold.start - note.beat) * rhythmSheet.interval * 1000
                 );
                 const duration = Math.round(
-                    (hold.end - hold.start) * sheetMusic.interval * 1000
+                    (hold.end - hold.start) * rhythmSheet.interval * 1000
                 );
                 detail.textContent = `Spurious hold: ${offset} ms, held ${duration} ms`;
                 holds.append(detail);
@@ -3951,20 +5892,19 @@ function finishSheetMusic() {
     }
     showRhythmSheetReport();
     clearRhythmFeedback();
-    sheetMusic.active = false;
-    renderSheetPitch();
+    rhythmSheet.active = false;
+    renderRhythmSheetPitch();
     stopAllAudio();
-    const { units } = sheetMusic.meter;
-    document.getElementById('rhythm-sheet-lane').style.transform =
-        `translateX(${sheetPlayLinePosition() - sheetPlaybackPosition(-units - 1)}rem)`;
+    const { units } = rhythmSheet.meter;
+    positionSheetLane(rhythmSheet, RHYTHM_SHEET_SCORE_SELECTOR, -units);
     document.getElementById('rhythm-sheet-count-label').textContent =
-        `Complete - durations in ${rhythmDurationUnit()}`;
+        `Complete - durations in ${sheetDurationUnit(rhythmSheet.meter)}`;
 }
 
-function drawSheetMusic() {
+function drawRhythmSheet() {
     const position =
-        (audio.currentTime() - sheetMusic.origin) / sheetMusic.interval;
-    const { units } = sheetMusic.meter;
+        (audio.currentTime() - rhythmSheet.origin) / rhythmSheet.interval;
+    const { units } = rhythmSheet.meter;
     const label = document.getElementById('rhythm-sheet-count-label');
     if (position < -units) {
         label.textContent = 'Get ready';
@@ -3972,48 +5912,51 @@ function drawSheetMusic() {
         const click = clamp(units + 1 + Math.floor(position), 1, units);
         label.textContent = `Count-in ${click} / ${units}`;
     } else {
-        label.textContent = `Play - durations in ${rhythmDurationUnit()}`;
+        label.textContent = `Play - durations in ${sheetDurationUnit(rhythmSheet.meter)}`;
     }
-    document.getElementById('rhythm-sheet-lane').style.transform =
-        `translateX(${sheetPlayLinePosition() - sheetPlaybackPosition(position)}rem)`;
+    positionSheetLane(
+        rhythmSheet,
+        RHYTHM_SHEET_SCORE_SELECTOR,
+        Math.max(position, -units)
+    );
     updateRhythmHold(position);
     renderRhythmFeedback(position);
-    sheetMusic.phrase.forEach((note, index) => {
+    rhythmSheet.phrase.forEach((note, index) => {
         const active =
             position >= note.beat && position < note.beat + note.duration;
         for (const element of document.querySelectorAll(
-            `[data-rhythm-sheet-note-index="${index}"]`
+            `${RHYTHM_SHEET_SCORE_SELECTOR} [data-sheet-note-index="${index}"]`
         )) {
             element.classList.toggle('is-current', active);
         }
     });
-    if (position >= sheetMusic.total + 0.5) {
-        finishSheetMusic();
+    if (position >= rhythmSheet.total + 0.5) {
+        finishRhythmSheet();
         return;
     }
-    sheetMusic.frame = requestAnimationFrame(drawSheetMusic);
+    rhythmSheet.frame = requestAnimationFrame(drawRhythmSheet);
 }
 
-function stopSheetMusic() {
-    if (sheetMusic.currentHold) {
+function stopRhythmSheet() {
+    if (rhythmSheet.currentHold) {
         updateRhythmHold(
-            (audio.currentTime() - sheetMusic.origin) / sheetMusic.interval,
+            (audio.currentTime() - rhythmSheet.origin) / rhythmSheet.interval,
             true
         );
     }
-    sheetMicrophoneInput.deactivate('exercise-stopped');
-    cancelAnimationFrame(sheetMusic.frame);
-    sheetMusic.frame = null;
-    if (sheetMusic.active) {
+    rhythmSheetMicrophoneInput.deactivate('exercise-stopped');
+    cancelAnimationFrame(rhythmSheet.frame);
+    rhythmSheet.frame = null;
+    if (rhythmSheet.active) {
         document.getElementById('rhythm-sheet-count-label').textContent =
-            `Stopped - durations in ${rhythmDurationUnit()}`;
+            `Stopped - durations in ${sheetDurationUnit(rhythmSheet.meter)}`;
     }
-    sheetMusic.active = false;
-    renderSheetPitch();
-    sheetMusic.input = null;
-    sheetMusic.held = null;
+    rhythmSheet.active = false;
+    renderRhythmSheetPitch();
+    rhythmSheet.input = null;
+    rhythmSheet.held = null;
     document
-        .getElementById('rhythm-sheet-score')
+        .querySelector(RHYTHM_SHEET_SCORE_SELECTOR)
         .setAttribute('aria-disabled', 'true');
     document.getElementById('rhythm-sheet-hold').disabled = true;
     document.getElementById('rhythm-sheet-hold').classList.remove('is-held');
@@ -4117,16 +6060,16 @@ function restartRhythm() {
     }
 }
 
-function scheduleSheetNoteCues(now) {
-    if (!sheetMusicEnabled() || !sheetMusic.active) {
+function scheduleRhythmSheetNoteCues(now) {
+    if (!rhythmSheetEnabled() || !rhythmSheet.active) {
         return;
     }
 
-    while (sheetMusic.nextNoteIndex < sheetMusic.phrase.length) {
-        const note = sheetMusic.phrase[sheetMusic.nextNoteIndex];
-        const startTime = sheetMusic.origin + note.beat * sheetMusic.interval;
+    while (rhythmSheet.nextNoteIndex < rhythmSheet.phrase.length) {
+        const note = rhythmSheet.phrase[rhythmSheet.nextNoteIndex];
+        const startTime = rhythmSheet.origin + note.beat * rhythmSheet.interval;
 
-        if (startTime >= now + RHYTHM_SCHEDULE_AHEAD_SECONDS) {
+        if (startTime >= now + PLAYBACK_SCHEDULE_AHEAD_SECONDS) {
             break;
         }
 
@@ -4134,13 +6077,13 @@ function scheduleSheetNoteCues(now) {
             audio.playTransient(
                 frequencyFromMidi(note.midi),
                 'triangle',
-                SHEET_NOTE_CUE_DURATION,
-                SHEET_NOTE_CUE_VOLUME,
+                RHYTHM_SHEET_NOTE_CUE_DURATION,
+                RHYTHM_SHEET_NOTE_CUE_VOLUME,
                 Math.max(0, startTime - now)
             );
         }
 
-        sheetMusic.nextNoteIndex += 1;
+        rhythmSheet.nextNoteIndex += 1;
     }
 }
 
@@ -4153,21 +6096,21 @@ function scheduleRhythm() {
 
     const signature = rhythm.signature;
 
-    const pattern = RHYTHM_METERS[signature] || RHYTHM_METERS['4/4'];
+    const pattern = METERS[signature] || METERS['4/4'];
 
     const secondsPerClick = rhythmClickInterval(signature, bpm);
 
     rhythmTiming.interval = secondsPerClick;
     const now = audio.currentTime();
 
-    scheduleSheetNoteCues(now);
+    scheduleRhythmSheetNoteCues(now);
 
-    while (rhythm.nextBeatTime < now + RHYTHM_SCHEDULE_AHEAD_SECONDS) {
+    while (rhythm.nextBeatTime < now + PLAYBACK_SCHEDULE_AHEAD_SECONDS) {
         if (
-            sheetMusicEnabled() &&
+            rhythmSheetEnabled() &&
             rhythm.nextBeatTime >=
-                sheetMusic.origin +
-                    sheetMusic.total * sheetMusic.interval -
+                rhythmSheet.origin +
+                    rhythmSheet.total * rhythmSheet.interval -
                     0.001
         ) {
             break;
@@ -4193,37 +6136,37 @@ function scheduleRhythm() {
 }
 
 async function startRhythm() {
-    if (rhythm.running || sheetMusic.starting) {
+    if (rhythm.running || rhythmSheet.starting) {
         return;
     }
     if (
-        sheetMusicEnabled() &&
-        (!sheetMusic.phrase.length ||
-            sheetMusic.signature !== getControl('shared-time-signature').value)
+        rhythmSheetEnabled() &&
+        (!rhythmSheet.phrase.length ||
+            rhythmSheet.signature !== getControl('shared-time-signature').value)
     ) {
         newRhythmPhrase();
     }
 
-    if (sheetMusicEnabled() && !sheetMusic.phrase.length) {
+    if (rhythmSheetEnabled() && !rhythmSheet.phrase.length) {
         return;
     }
 
     stopAllAudio();
-    sheetMusic.starting = true;
+    rhythmSheet.starting = true;
 
-    if (sheetMusicEnabled()) {
+    if (rhythmSheetEnabled()) {
         clearRhythmSheetResults();
         document.getElementById('rhythm-sheet-count-label').textContent =
             MICROPHONE_MESSAGES.REQUESTING;
         try {
-            const started = await activateSheetMicrophone();
+            const started = await activateRhythmSheetMicrophone();
             if (
                 !started ||
-                !sheetMusicEnabled() ||
+                !rhythmSheetEnabled() ||
                 document.getElementById('rhythm-panel').hidden
             ) {
-                sheetMusic.starting = false;
-                sheetMicrophoneInput.deactivate('activation-cancelled');
+                rhythmSheet.starting = false;
+                rhythmSheetMicrophoneInput.deactivate('activation-cancelled');
                 if (microphoneState === MICROPHONE_STATES.DENIED) {
                     document.getElementById(
                         'rhythm-sheet-count-label'
@@ -4240,11 +6183,11 @@ async function startRhythm() {
     rhythm.bpm = clamp(readNumber(getControl('shared-bpm'), 100), 30, 240);
     rhythm.signature = getControl('shared-time-signature').value;
     rhythm.running = true;
-    sheetMusic.starting = false;
+    rhythmSheet.starting = false;
     rhythm.beatIndex = 0;
     rhythm.nextBeatTime =
         audio.currentTime() +
-        (rhythmTimingEnabled() || sheetMusicEnabled() ? 1 : 0.05);
+        (rhythmTimingEnabled() || rhythmSheetEnabled() ? 1 : 0.05);
     rhythmTiming.originMs =
         performance.now() + (rhythm.nextBeatTime - audio.currentTime()) * 1000;
     rhythmTiming.lastBeat = -1;
@@ -4256,8 +6199,8 @@ async function startRhythm() {
     document.getElementById('rhythm-timing-tap').disabled =
         !rhythmTimingEnabled();
 
-    if (sheetMusicEnabled()) {
-        startSheetMusic();
+    if (rhythmSheetEnabled()) {
+        startRhythmSheet();
     }
     scheduleRhythm();
     if (rhythmTimingEnabled()) {
@@ -4267,18 +6210,18 @@ async function startRhythm() {
         drawRhythmMetronome();
     }
 
-    rhythm.timer = window.setInterval(scheduleRhythm, RHYTHM_LOOKAHEAD_MS);
+    rhythm.timer = window.setInterval(scheduleRhythm, PLAYBACK_LOOKAHEAD_MS);
 }
 
 function stopRhythm() {
-    stopSheetMusic();
+    stopRhythmSheet();
     cancelAnimationFrame(rhythm.frame);
     rhythm.frame = null;
     cancelAnimationFrame(rhythmTiming.frame);
     rhythmTiming.frame = null;
     document.getElementById('rhythm-timing-tap').disabled = true;
     rhythm.running = false;
-    sheetMusic.starting = false;
+    rhythmSheet.starting = false;
     rhythm.beatIndex = 0;
 
     if (rhythm.timer !== null) {
@@ -6616,6 +8559,31 @@ function initializeEvents() {
     document.addEventListener('input', synchronizeChangedSharedControl, true);
     document.addEventListener('change', synchronizeChangedSharedControl, true);
 
+    getAction('midi-visualize-attach').addEventListener('click', () => {
+        const fileInput = getControl('midi-visualize-file');
+        fileInput.value = '';
+        fileInput.click();
+    });
+    getControl('midi-visualize-file').addEventListener('change', (event) => {
+        const [file] = event.target.files;
+        if (file) {
+            void loadMidiVisualization(file);
+        }
+    });
+    getControl('midi-visualize-soundfont').addEventListener('change', () => {
+        stopMidiVisualization();
+        midiPlayback.loadedBuffer = null;
+    });
+    getControl('midi-visualize-seek').addEventListener(
+        'input',
+        seekMidiVisualization
+    );
+    getAction('midi-visualize-play').addEventListener(
+        'click',
+        toggleMidiVisualization
+    );
+    getAction('midi-visualize-stop').addEventListener('click', stopAllAudio);
+
     for (const control of getControls('shared-note')) {
         control.addEventListener('change', () => {
             updateNoteReadouts();
@@ -6644,7 +8612,7 @@ function initializeEvents() {
         'rhythm-sheet-pitches'
     )) {
         control.addEventListener('change', () => {
-            if (sheetMusicEnabled()) {
+            if (rhythmSheetEnabled()) {
                 const wasRunning = rhythm.running;
                 newRhythmPhrase();
                 if (wasRunning) {
@@ -6663,14 +8631,14 @@ function initializeEvents() {
         newRhythmPhrase();
         startRhythm();
     });
-    const rhythmLane = document.getElementById('rhythm-sheet-score');
-    for (const target of [rhythmHold, rhythmLane]) {
+    const rhythmScore = document.querySelector(RHYTHM_SHEET_SCORE_SELECTOR);
+    for (const target of [rhythmHold, rhythmScore]) {
         target.addEventListener('pointerdown', (event) => {
             if (
                 event.button !== 0 ||
                 event.pointerType !== 'mouse' ||
                 !event.isPrimary ||
-                !sheetMusic.active
+                !rhythmSheet.active
             ) {
                 return;
             }
@@ -6682,7 +8650,7 @@ function initializeEvents() {
             releaseRhythm(event.pointerId);
         });
         target.addEventListener('pointercancel', (event) => {
-            if (sheetMusic.active && sheetMusic.input === event.pointerId) {
+            if (rhythmSheet.active && rhythmSheet.input === event.pointerId) {
                 stopAllAudio();
             }
         });
@@ -6693,8 +8661,8 @@ function initializeEvents() {
     document.addEventListener('keydown', (event) => {
         if (
             event.code !== 'Space' ||
-            !sheetMusicEnabled() ||
-            !sheetMusic.active ||
+            !rhythmSheetEnabled() ||
+            !rhythmSheet.active ||
             document.getElementById('rhythm-panel').hidden ||
             event.target.closest(
                 'input, select, textarea, [contenteditable="true"]'
@@ -6709,13 +8677,13 @@ function initializeEvents() {
         }
     });
     document.addEventListener('keyup', (event) => {
-        if (event.code === 'Space' && sheetMusic.input === 'keyboard') {
+        if (event.code === 'Space' && rhythmSheet.input === 'keyboard') {
             event.preventDefault();
             releaseRhythm('keyboard');
         }
     });
     window.addEventListener('blur', () => {
-        if (sheetMusic.active) {
+        if (rhythmSheet.active) {
             stopAllAudio();
         }
     });
@@ -7069,6 +9037,7 @@ function initialize() {
     initializeTunerHistory();
     initializeEvents();
     updateRhythmMode();
+    updateMidiMode();
     updateNoteReadouts();
     initializeNavigation();
 

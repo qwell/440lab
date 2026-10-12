@@ -693,6 +693,29 @@
 
                 <li class="nav-group">
                     <button
+                        id="midi-nav-item"
+                        class="nav-item"
+                        data-section="midi"
+                        type="button"
+                        aria-controls="midi-panel"
+                    >
+                        MIDI
+                    </button>
+                    <ul class="nav-modes">
+                        <li>
+                            <button
+                                type="button"
+                                data-nav-section="midi"
+                                data-nav-mode="visualize"
+                            >
+                                Visualize
+                            </button>
+                        </li>
+                    </ul>
+                </li>
+
+                <li class="nav-group">
+                    <button
                         id="pitch-nav-item"
                         class="nav-item"
                         data-section="pitch"
@@ -1349,7 +1372,7 @@
                         <div class="practice-content-column-3">
                             <div
                                 id="rhythm-sheet-score"
-                                class="rhythm-sheet-score"
+                                class="sheet-score"
                                 role="group"
                                 aria-disabled="true"
                                 aria-label="Perform through your microphone, or hold each note using Space or the pointer"
@@ -1617,6 +1640,116 @@
                             measurements.
                         </p>
                     </details>
+                </div>
+            </section>
+
+            <!-- MIDI -->
+            <section
+                id="midi-panel"
+                class="section-panel"
+                data-panel="midi"
+                hidden
+            >
+                <h2 class="sr-only">MIDI</h2>
+                <div data-mode-panel="visualize">
+                    <h3 class="blurb">
+                        Choose a MIDI file to visualize its score. This module
+                        is a work in progress and is likely to have bugs. Please
+                        report bugs at https://github.com/qwell/440lab/issues.
+                    </h3>
+                    <div class="practice">
+                        <button
+                            class="icon-button"
+                            data-action="midi-visualize-attach"
+                            type="button"
+                            aria-label="Choose MIDI file"
+                            title="Choose MIDI file"
+                        >
+                            <span aria-hidden="true">📎</span>
+                        </button>
+                        <input
+                            id="midi-visualize-file"
+                            class="sr-only"
+                            data-control="midi-visualize-file"
+                            type="file"
+                            accept=".mid,.midi,audio/midi,audio/x-midi"
+                            tabindex="-1"
+                        />
+                        <p
+                            id="midi-visualize-status"
+                            class="practice-note practice-content-column-3"
+                            role="status"
+                        >
+                            Choose a MIDI file.
+                        </p>
+                        <div class="practice-buttons">
+                            <button
+                                class="icon-button"
+                                data-action="midi-visualize-play"
+                                type="button"
+                                aria-label="Play MIDI"
+                                title="Play"
+                                aria-pressed="false"
+                                disabled
+                            >
+                                <span aria-hidden="true">⏯</span>
+                            </button>
+
+                            <button
+                                class="icon-button"
+                                data-action="midi-visualize-stop"
+                                type="button"
+                                aria-label="Stop MIDI"
+                                title="Stop"
+                                disabled
+                            >
+                                <span aria-hidden="true">■</span>
+                            </button>
+                        </div>
+                        <div
+                            id="midi-visualize-time-row"
+                            class="midi-visualize-time-row practice-content-column-3"
+                            hidden
+                        >
+                            <span id="midi-visualize-current-time">0:00</span>
+                            <input
+                                id="midi-visualize-seek"
+                                class="midi-visualize-seek"
+                                data-control="midi-visualize-seek"
+                                type="range"
+                                min="0"
+                                max="0"
+                                step="1"
+                                value="0"
+                                aria-label="MIDI playback position"
+                                disabled
+                            />
+                            <span id="midi-visualize-total-time">0:00</span>
+                        </div>
+                        <div
+                            id="midi-visualize-tracks"
+                            class="midi-visualize-tracks practice-content-column-3"
+                            hidden
+                        ></div>
+                    </div>
+                    <div class="settings">
+                        <h3 class="settings-heading">Settings</h3>
+                        <div class="field">
+                            <label for="midi-visualize-soundfont">
+                                SoundFont
+                            </label>
+                            <div class="control-row">
+                                <select
+                                    id="midi-visualize-soundfont"
+                                    data-control="midi-visualize-soundfont"
+                                >
+                                    <option value="generaluser-gs">
+                                        GeneralUser-GS
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -3341,6 +3474,14 @@
             </div>
         </footer>
 
+        <script type="importmap">
+            {
+                "imports": {
+                    "spessasynth_core": "./assets/vendor/spessasynth_core/js/index.js",
+                    "stb-vorbis": "./assets/vendor/stb-vorbis/js/index.js"
+                }
+            }
+        </script>
         <script src="assets/js/index.js"></script>
     </body>
 </html>
