@@ -7,7 +7,12 @@ import globals from 'globals';
 
 export default defineConfig(
     {
-        ignores: ['**/.yarn/', '**/.pnp.cjs', '**/.pnp.loader.mjs'],
+        ignores: [
+            '**/.yarn/',
+            '**/.pnp.cjs',
+            '**/.pnp.loader.mjs',
+            '**/vendor/',
+        ],
     },
 
     {
@@ -19,7 +24,7 @@ export default defineConfig(
     },
 
     {
-        files: ['serve.js', 'eslint.config.js'],
+        files: ['serve.js', 'vendor.js', 'eslint.config.js'],
         languageOptions: {
             globals: {
                 ...globals.node,

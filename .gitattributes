@@ -1,3 +1,4 @@
+site/assets/vendor/** -whitespace linguist-vendored
 site/assets/soundfonts/** filter=lfs diff=lfs merge=lfs -text
 site/assets/vendor/*/soundfonts/** filter=lfs diff=lfs merge=lfs -text
 **/files.js !text -filter -merge -diff

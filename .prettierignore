@@ -2,3 +2,4 @@
 .yarn/
 .pnp.cjs
 .pnp.loader.mjs
+**/vendor/

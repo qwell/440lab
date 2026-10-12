@@ -50,6 +50,7 @@
     "packageManager": "yarn@4.18.0",
     "scripts": {
         "serve": "node serve.js",
+        "vendor": "node vendor.js",
         "lint": "eslint --cache --cache-strategy metadata --cache-location ./.cache/eslint . --fix",
         "lint:check": "eslint --cache --cache-strategy metadata --cache-location ./.cache/eslint .",
         "format": "prettier --cache --cache-strategy metadata --cache-location ./.cache/prettier --write .",
@@ -58,16 +59,17 @@
         "release": "echo 'TODO'"
     },
     "dependencies": {
-        "express": "^5.2.1"
+        "express": "^5.3.0"
     },
     "devDependencies": {
-        "@eslint/css": "^1.4.0",
+        "@eslint/css": "^2.0.0",
         "@eslint/js": "^10.0.1",
-        "@html-eslint/eslint-plugin": "^0.65.0",
+        "@html-eslint/eslint-plugin": "^0.66.1",
         "@yarnpkg/sdks": "^3.3.1",
-        "eslint": "^10.9.1",
+        "eslint": "^10.12.0",
         "eslint-config-prettier": "^10.1.8",
-        "globals": "^17.11.0",
-        "prettier": "^3.9.6"
+        "globals": "^17.13.0",
+        "prettier": "^3.9.9",
+        "spessasynth_lib": "^4.3.14"
     }
 }
