@@ -568,8 +568,12 @@ const CLEFS = {
 const RHYTHM_SHEET_CORRECT_CENTS = 25;
 const RHYTHM_SHEET_ANALYSIS_INTERVAL_MS = 50;
 const RHYTHM_SHEET_FREQUENCY_SAMPLE_LIMIT = 3;
-const RHYTHM_SHEET_NOTE_CUE_DURATION = 0.09;
+const RHYTHM_SHEET_NOTE_RELEASE_GAP_SECONDS = 0.05;
+const RHYTHM_SHEET_NOTE_RELEASE_GAP_RATIO = 0.1;
 const RHYTHM_SHEET_NOTE_CUE_VOLUME = 0.45;
+const RHYTHM_SHEET_NOTE_CUE_VELOCITY = 96;
+const RHYTHM_SHEET_MIDI_CHANNEL = 0;
+const RHYTHM_SHEET_MIDI_PROGRAM = 3; // Honky-tonk Piano (don't judge me, it sounds good)
 
 const PITCH_MEMORY_CORRECT_CENTS = 25;
 const PITCH_MEMORY_MICROPHONE_ADJUSTMENT_CENTS = 50;
@@ -3520,13 +3524,23 @@ function describeSheetScore(notation) {
 
 // MIDI: visualizer
 
-const SOUNDFONTS = Object.freeze({
-    'generaluser-gs': Object.freeze({
-        name: 'GeneralUser-GS',
-        path: 'assets/vendor/generaluser-gs/soundfonts/GeneralUser-GS.sf3',
-        script: 'assets/vendor/generaluser-gs/soundfonts/GeneralUser-GS.js',
-    }),
-});
+const SOUNDFONTS = ['GeneralUser-GS'];
+
+function soundFontPath(name, extension) {
+    return `assets/vendor/${name.toLowerCase()}/soundfonts/${name}.${extension}`;
+}
+
+function initializeSoundFonts() {
+    for (const select of getControls('shared-soundfont')) {
+        const options = SOUNDFONTS.map((name) => {
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            return option;
+        });
+        select.replaceChildren(...options);
+    }
+}
 
 const midiVisualizer = {
     tracks: [],
@@ -4738,31 +4752,33 @@ async function initializeMidiPlayback() {
 }
 
 async function loadMidiSoundFont() {
-    const soundFontId = getControl('midi-visualize-soundfont').value;
+    const soundFontId = getControl('shared-soundfont').value;
     if (midiPlayback.soundFontId === soundFontId) {
         return;
     }
     if (midiPlayback.soundFontPromise) {
         await midiPlayback.soundFontPromise;
-        return;
+        if (midiPlayback.soundFontId === soundFontId) {
+            return;
+        }
+        return loadMidiSoundFont();
     }
 
     midiPlayback.soundFontPromise = (async () => {
-        const soundFont = SOUNDFONTS[soundFontId];
-        if (!soundFont) {
+        if (!SOUNDFONTS.includes(soundFontId)) {
             throw new Error('The selected SoundFont is unavailable.');
         }
 
         let soundFontBuffer;
         if (window.location.protocol === 'file:') {
-            await loadMidiVendorScript(soundFont.script);
+            await loadMidiVendorScript(soundFontPath(soundFontId, 'js'));
             soundFontBuffer = decodeBase64Buffer(
                 globalThis.soundFontData[soundFontId]
             );
         } else {
-            const response = await fetch(soundFont.path);
+            const response = await fetch(soundFontPath(soundFontId, 'sf3'));
             if (!response.ok) {
-                throw new Error(`Unable to load ${soundFont.name}.`);
+                throw new Error(`Unable to load ${soundFontId}.`);
             }
             soundFontBuffer = await response.arrayBuffer();
         }
@@ -4819,6 +4835,7 @@ async function prepareMidiPlayback() {
     await initializeMidiPlayback();
     await loadMidiSoundFont();
     await loadMidiSequence();
+    synchronizeMidiTrackMutes();
     return midiPlayback.sequencer;
 }
 
@@ -5037,6 +5054,10 @@ const rhythmSheet = {
     holdSpans: [],
     currentHold: null,
     starting: false,
+    soundFontReady: false,
+    soundFontRequest: 0,
+    soundFontMutedUntil: 0,
+    soundFontNoteOffs: [],
 };
 
 const rhythmSheetMicrophoneInput = createMicrophoneInput({
@@ -6060,6 +6081,118 @@ function restartRhythm() {
     }
 }
 
+function resetRhythmSheetSoundFont() {
+    const synth = midiPlayback.synth;
+    if (!synth || !midiPlayback.soundFontId) {
+        rhythmSheet.soundFontReady = false;
+        return false;
+    }
+
+    synth.stopAll(true);
+    synth.reset();
+    synth.midiChannels[RHYTHM_SHEET_MIDI_CHANNEL]?.setSystemParameter(
+        'isMuted',
+        false
+    );
+    synth.programChange(RHYTHM_SHEET_MIDI_CHANNEL, RHYTHM_SHEET_MIDI_PROGRAM);
+    rhythmSheet.soundFontNoteOffs = [];
+    rhythmSheet.soundFontReady = true;
+    return true;
+}
+
+async function prepareRhythmSheetSoundFont(request) {
+    try {
+        await initializeMidiPlayback();
+        await loadMidiSoundFont();
+        const muteDelay = Math.max(
+            0,
+            rhythmSheet.soundFontMutedUntil - performance.now()
+        );
+        if (muteDelay > 0) {
+            await new Promise((resolve) => {
+                window.setTimeout(resolve, muteDelay);
+            });
+        }
+        if (request !== rhythmSheet.soundFontRequest) {
+            return false;
+        }
+        return resetRhythmSheetSoundFont();
+    } catch {
+        if (request === rhythmSheet.soundFontRequest) {
+            rhythmSheet.soundFontReady = false;
+        }
+        return false;
+    }
+}
+
+function stopRhythmSheetSoundFont() {
+    rhythmSheet.soundFontRequest += 1;
+    rhythmSheet.soundFontNoteOffs = [];
+    const synth = midiPlayback.synth;
+    if (rhythmSheet.soundFontReady && synth) {
+        synth.stopAll(true);
+        synth.midiChannels[RHYTHM_SHEET_MIDI_CHANNEL]?.setSystemParameter(
+            'isMuted',
+            true
+        );
+        rhythmSheet.soundFontMutedUntil =
+            performance.now() +
+            PLAYBACK_SCHEDULE_AHEAD_SECONDS * 1000 +
+            PLAYBACK_LOOKAHEAD_MS;
+    }
+    rhythmSheet.soundFontReady = false;
+}
+
+function playRhythmSheetNoteCue(note, startTime, now) {
+    const writtenDuration = note.duration * rhythmSheet.interval;
+    const releaseGap = Math.min(
+        RHYTHM_SHEET_NOTE_RELEASE_GAP_SECONDS,
+        writtenDuration * RHYTHM_SHEET_NOTE_RELEASE_GAP_RATIO
+    );
+    const duration = writtenDuration - releaseGap;
+    if (rhythmSheet.soundFontReady && midiPlayback.synth) {
+        const synthStartTime =
+            midiPlayback.synth.currentTime + Math.max(0, startTime - now);
+        midiPlayback.synth.noteOn(
+            RHYTHM_SHEET_MIDI_CHANNEL,
+            note.midi,
+            RHYTHM_SHEET_NOTE_CUE_VELOCITY,
+            { time: synthStartTime }
+        );
+        rhythmSheet.soundFontNoteOffs.push({
+            midi: note.midi,
+            time: startTime + duration,
+        });
+        return;
+    }
+
+    audio.playTransient(
+        frequencyFromMidi(note.midi),
+        'triangle',
+        duration,
+        RHYTHM_SHEET_NOTE_CUE_VOLUME,
+        Math.max(0, startTime - now)
+    );
+}
+
+function scheduleRhythmSheetNoteOffs(now) {
+    if (!rhythmSheet.soundFontReady || !midiPlayback.synth) {
+        return;
+    }
+
+    while (
+        rhythmSheet.soundFontNoteOffs[0]?.time <
+        now + PLAYBACK_SCHEDULE_AHEAD_SECONDS
+    ) {
+        const noteOff = rhythmSheet.soundFontNoteOffs.shift();
+        midiPlayback.synth.noteOff(RHYTHM_SHEET_MIDI_CHANNEL, noteOff.midi, {
+            time:
+                midiPlayback.synth.currentTime +
+                Math.max(0, noteOff.time - now),
+        });
+    }
+}
+
 function scheduleRhythmSheetNoteCues(now) {
     if (!rhythmSheetEnabled() || !rhythmSheet.active) {
         return;
@@ -6074,17 +6207,13 @@ function scheduleRhythmSheetNoteCues(now) {
         }
 
         if (!note.rest) {
-            audio.playTransient(
-                frequencyFromMidi(note.midi),
-                'triangle',
-                RHYTHM_SHEET_NOTE_CUE_DURATION,
-                RHYTHM_SHEET_NOTE_CUE_VOLUME,
-                Math.max(0, startTime - now)
-            );
+            playRhythmSheetNoteCue(note, startTime, now);
         }
 
         rhythmSheet.nextNoteIndex += 1;
     }
+
+    scheduleRhythmSheetNoteOffs(now);
 }
 
 function scheduleRhythm() {
@@ -6153,6 +6282,12 @@ async function startRhythm() {
 
     stopAllAudio();
     rhythmSheet.starting = true;
+    const soundFontRequest = rhythmSheetEnabled()
+        ? ++rhythmSheet.soundFontRequest
+        : null;
+    const soundFontPromise = soundFontRequest
+        ? prepareRhythmSheetSoundFont(soundFontRequest)
+        : null;
 
     if (rhythmSheetEnabled()) {
         clearRhythmSheetResults();
@@ -6167,6 +6302,7 @@ async function startRhythm() {
             ) {
                 rhythmSheet.starting = false;
                 rhythmSheetMicrophoneInput.deactivate('activation-cancelled');
+                stopRhythmSheetSoundFont();
                 if (microphoneState === MICROPHONE_STATES.DENIED) {
                     document.getElementById(
                         'rhythm-sheet-count-label'
@@ -6177,6 +6313,21 @@ async function startRhythm() {
         } catch {
             document.getElementById('rhythm-sheet-count-label').textContent =
                 `${MICROPHONE_MESSAGES.FAILED}.`;
+        }
+    }
+
+    if (soundFontPromise) {
+        document.getElementById('rhythm-sheet-count-label').textContent =
+            'Loading sound font...';
+        await soundFontPromise;
+        if (
+            soundFontRequest !== rhythmSheet.soundFontRequest ||
+            !rhythmSheetEnabled() ||
+            document.getElementById('rhythm-panel').hidden
+        ) {
+            rhythmSheet.starting = false;
+            stopRhythmSheetSoundFont();
+            return;
         }
     }
 
@@ -6215,6 +6366,7 @@ async function startRhythm() {
 
 function stopRhythm() {
     stopRhythmSheet();
+    stopRhythmSheetSoundFont();
     cancelAnimationFrame(rhythm.frame);
     rhythm.frame = null;
     cancelAnimationFrame(rhythmTiming.frame);
@@ -8570,10 +8722,12 @@ function initializeEvents() {
             void loadMidiVisualization(file);
         }
     });
-    getControl('midi-visualize-soundfont').addEventListener('change', () => {
-        stopMidiVisualization();
-        midiPlayback.loadedBuffer = null;
-    });
+    for (const control of getControls('shared-soundfont')) {
+        control.addEventListener('change', () => {
+            stopAllAudio();
+            midiPlayback.loadedBuffer = null;
+        });
+    }
     getControl('midi-visualize-seek').addEventListener(
         'input',
         seekMidiVisualization
@@ -9033,6 +9187,7 @@ function initialize() {
     initializePitchMemorySlider();
     initializeTooltips();
     initializeNotes();
+    initializeSoundFonts();
     initializeTunerInstruments();
     initializeTunerHistory();
     initializeEvents();

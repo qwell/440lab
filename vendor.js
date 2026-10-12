@@ -74,3 +74,19 @@ for (const [packageDirectory, assetGroups] of packages) {
         }
     }
 }
+
+for await (const soundFontFile of fs.glob(`${destination}/**/*.sf3`)) {
+    const name = path.basename(soundFontFile, '.sf3');
+    const soundFontDirectory = path.dirname(soundFontFile);
+    const soundFontBuffer = await fs.readFile(soundFontFile);
+    const soundFontScript = [
+        'globalThis.soundFontData = globalThis.soundFontData || {};',
+        `globalThis.soundFontData[${JSON.stringify(name)}] = ${JSON.stringify(soundFontBuffer.toString('base64'))};`,
+        '',
+    ].join('\n');
+
+    await fs.writeFile(
+        path.join(soundFontDirectory, `${name}.js`),
+        soundFontScript
+    );
+}
