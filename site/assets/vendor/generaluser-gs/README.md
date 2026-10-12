@@ -5,7 +5,7 @@ S. Christian Collins.
 
 - `soundfonts/GeneralUser-GS.sf3` is the SoundFont used by the MIDI player.
 - `soundfonts/GeneralUser-GS.js` contains the same SoundFont encoded for the
-  browser fallback.
+  browser fallback. `yarn vendor` regenerates it from `GeneralUser-GS.sf3`.
 
 GeneralUser GS is distributed under its own license. The complete license and
 sample-usage terms are embedded in the SoundFont metadata. Updates and further
