@@ -427,6 +427,11 @@ const MIDI_TRACKER_NOTE_GAP_REM = 0.125;
 const MIDI_TRACKER_ROW_HEIGHT_REM = 1;
 const MIDI_TRACKER_MAX_BARLINES = 10000;
 const MIDI_TRACKER_RENDER_VIEWPORTS = 2;
+const MIDI_TRACKER_PIANO_PROGRAM = 0;
+const MIDI_TRACKER_PIANO_VELOCITY = 127;
+const MIDI_TRACKER_PIANO_QUICK_PRESS_MS = 250;
+const MIDI_TRACKER_PIANO_QUICK_DURATION_MS = 750;
+const MIDI_TRACKER_PIANO_VOLUME = 1;
 const MIDI_PERCUSSION_CHANNEL = 9;
 const MIDI_PERCUSSION_NOTATION = Object.freeze({
     35: { name: 'Acoustic bass drum', staffStep: 1, voice: 'lower' },
@@ -1785,6 +1790,7 @@ function stopAllAudio() {
     stopTuner();
     stopRhythm();
     stopMidiVisualization();
+    stopMidiTrackerPianoVoices();
     audio.stopTransient();
 }
 
@@ -3808,6 +3814,8 @@ const midiPlayback = {
     generatedToneIndex: 0,
 };
 
+const midiTrackerPianoVoices = new Map();
+
 function setMidiStatus(status) {
     for (const output of getOutputs('midi-status')) {
         output.textContent = status;
@@ -3983,6 +3991,179 @@ function midiTrackerNoteTiming(note) {
         duration:
             note.soundingDuration ?? note.performanceDuration ?? note.duration,
     };
+}
+
+function midiTrackerPianoChannel() {
+    const usedChannels = new Set(
+        midiVisualizer.tracks.flatMap((track) => track.channels)
+    );
+    for (let channel = 15; channel >= 0; channel -= 1) {
+        if (channel !== MIDI_PERCUSSION_CHANNEL && !usedChannels.has(channel)) {
+            return channel;
+        }
+    }
+    return null;
+}
+
+function stopMidiTrackerPianoVoice(midi, voice) {
+    window.clearTimeout(voice.timeout);
+    voice.cancelled = true;
+    voice.stop?.();
+    if (midiTrackerPianoVoices.get(midi) === voice) {
+        voice.key.classList.remove('is-auditioned');
+        midiTrackerPianoVoices.delete(midi);
+    }
+}
+
+function stopMidiTrackerPianoVoices() {
+    for (const [midi, voice] of midiTrackerPianoVoices) {
+        stopMidiTrackerPianoVoice(midi, voice);
+    }
+}
+
+function scheduleMidiTrackerPianoRelease(midi, voice) {
+    const heldMilliseconds = voice.releasedAt - voice.pressedAt;
+    const delay =
+        heldMilliseconds < MIDI_TRACKER_PIANO_QUICK_PRESS_MS
+            ? Math.max(
+                  0,
+                  voice.startedAt +
+                      MIDI_TRACKER_PIANO_QUICK_DURATION_MS -
+                      performance.now()
+              )
+            : 0;
+    voice.timeout = window.setTimeout(
+        () => stopMidiTrackerPianoVoice(midi, voice),
+        delay
+    );
+}
+
+function releaseMidiTrackerKey(midi) {
+    const voice = midiTrackerPianoVoices.get(midi);
+    if (!voice || voice.releasedAt !== null) {
+        return;
+    }
+    voice.releasedAt = performance.now();
+    if (!voice.stop) {
+        return;
+    }
+    scheduleMidiTrackerPianoRelease(midi, voice);
+}
+
+async function startMidiTrackerKey(midi, key) {
+    const previousVoice = midiTrackerPianoVoices.get(midi);
+    if (previousVoice) {
+        stopMidiTrackerPianoVoice(midi, previousVoice);
+    }
+    const voice = {
+        cancelled: false,
+        key,
+        pressedAt: performance.now(),
+        releasedAt: null,
+        startedAt: 0,
+        stop: null,
+        timeout: null,
+    };
+    midiTrackerPianoVoices.set(midi, voice);
+    key.classList.add('is-auditioned');
+
+    let soundFontChannel = null;
+    try {
+        const context = audio.getContext();
+        if (context.state === 'suspended') {
+            await context.resume();
+        }
+        await Promise.all([
+            loadSoundFontCatalog(),
+            initializeMidiSynthesizer(),
+        ]);
+        const channel = midiTrackerPianoChannel();
+        if ((await loadSoundFont()) && channel !== null) {
+            soundFontChannel = channel;
+        }
+    } catch {
+        // Use a generated tone below.
+    }
+
+    if (voice.cancelled || midiTrackerPianoVoices.get(midi) !== voice) {
+        return;
+    }
+
+    if (soundFontChannel !== null) {
+        const synth = midiPlayback.synth;
+        synth.midiChannels[soundFontChannel]?.setSystemParameter(
+            'isMuted',
+            false
+        );
+        synth.programChange(soundFontChannel, MIDI_TRACKER_PIANO_PROGRAM);
+        synth.noteOn(soundFontChannel, midi, MIDI_TRACKER_PIANO_VELOCITY);
+        voice.stop = () => synth.noteOff(soundFontChannel, midi);
+    } else {
+        const oscillator = audio.playContinuous(
+            frequencyFromMidi(midi),
+            'triangle',
+            MIDI_TRACKER_PIANO_VOLUME
+        );
+        voice.stop = () => oscillator.stop();
+    }
+    voice.startedAt = performance.now();
+
+    if (voice.releasedAt !== null) {
+        scheduleMidiTrackerPianoRelease(midi, voice);
+    }
+}
+
+function strikeMidiTrackerKey(key) {
+    const midi = Number(key.dataset.midiTrackerKey);
+    void startMidiTrackerKey(midi, key);
+}
+
+function initializeMidiTrackerKeyboard(keyboard) {
+    const activePointers = new Set();
+    const pointerKeys = new Map();
+    const keyAtPointer = (event) => {
+        const key = document
+            .elementFromPoint(event.clientX, event.clientY)
+            ?.closest('.midi-tracker-key');
+        return key && keyboard.contains(key) ? key : null;
+    };
+    const movePointerToKey = (event, key) => {
+        const previousKey = pointerKeys.get(event.pointerId);
+        if (key === previousKey) {
+            return;
+        }
+        if (previousKey) {
+            releaseMidiTrackerKey(Number(previousKey.dataset.midiTrackerKey));
+        }
+        if (key) {
+            strikeMidiTrackerKey(key);
+            pointerKeys.set(event.pointerId, key);
+        } else {
+            pointerKeys.delete(event.pointerId);
+        }
+    };
+    const releasePointer = (event) => {
+        movePointerToKey(event, null);
+        activePointers.delete(event.pointerId);
+    };
+
+    keyboard.addEventListener('pointerdown', (event) => {
+        if (event.button !== 0) {
+            return;
+        }
+        event.preventDefault();
+        activePointers.add(event.pointerId);
+        keyboard.setPointerCapture(event.pointerId);
+        movePointerToKey(event, keyAtPointer(event));
+    });
+    keyboard.addEventListener('pointermove', (event) => {
+        if (activePointers.has(event.pointerId)) {
+            movePointerToKey(event, keyAtPointer(event));
+        }
+    });
+    keyboard.addEventListener('pointerup', releasePointer);
+    keyboard.addEventListener('pointercancel', releasePointer);
+    keyboard.addEventListener('lostpointercapture', releasePointer);
 }
 
 function midiTrackerSegments(notes) {
@@ -4356,12 +4537,32 @@ function renderMidiTracker() {
         const rowIndex = maximumNote - midi;
         const top = rowIndex * MIDI_TRACKER_ROW_HEIGHT_REM;
         const pitchClass = pitchClassFromMidi(midi);
-        const key = document.createElement('span');
+        const key = document.createElement('button');
         const row = document.createElement('span');
+        key.type = 'button';
         key.className = `midi-tracker-key${blackPitchClasses.has(pitchClass) ? ' is-black' : ''}`;
         key.dataset.midiTrackerKey = String(midi);
         key.style.top = `${top}rem`;
         key.title = noteNameFromMidi(midi, 'sharp');
+        key.setAttribute('aria-label', `Play ${key.title}`);
+        key.addEventListener('keydown', (event) => {
+            if (!event.repeat && ['Enter', ' '].includes(event.key)) {
+                event.preventDefault();
+                strikeMidiTrackerKey(key);
+            }
+        });
+        key.addEventListener('keyup', (event) => {
+            if (['Enter', ' '].includes(event.key)) {
+                event.preventDefault();
+                releaseMidiTrackerKey(midi);
+            }
+        });
+        key.addEventListener('blur', () => {
+            releaseMidiTrackerKey(midi);
+        });
+        key.addEventListener('animationend', () => {
+            key.classList.remove('is-struck');
+        });
         if (pitchClass === 0) {
             key.textContent = noteNameFromMidi(midi);
         }
@@ -4370,6 +4571,7 @@ function renderMidiTracker() {
         keyboard.append(key);
         rows.append(row);
     }
+    initializeMidiTrackerKeyboard(keyboard);
 
     for (const track of midiVisualizer.tracks) {
         const item = document.createElement('li');
@@ -5703,6 +5905,7 @@ function pauseForSoundFontChange() {
     if (resumeMidi) {
         pauseMidiVisualization();
     }
+    stopMidiTrackerPianoVoices();
     stopTuner();
     stopRhythm();
     audio.stopTransient();
@@ -5843,6 +6046,7 @@ async function playMidiVisualization() {
 
     stopTuner();
     stopRhythm();
+    stopMidiTrackerPianoVoices();
     audio.stopTransient();
     midiVisualizer.loading = true;
     const playRequest = ++midiVisualizer.playRequest;
