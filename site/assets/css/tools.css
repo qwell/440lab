@@ -522,6 +522,8 @@
     display: grid;
     grid-template-columns: var(--midi-tracker-keyboard-width) minmax(0, 1fr);
 
+    overflow: hidden;
+
     border: 1px solid var(--border);
     border-radius: var(--border-radius);
 
@@ -536,7 +538,10 @@
 .midi-tracker-keyboard {
     border-right: 2px solid #777;
 
-    background: #111;
+    background: var(--surface);
+
+    touch-action: none;
+    user-select: none;
 }
 
 .midi-tracker-roll {
@@ -553,26 +558,39 @@
 }
 
 .midi-tracker-key {
+    appearance: none;
+
     width: 100%;
     padding-right: 0.35rem;
 
+    border: 0;
     border-bottom: 1px solid #777;
+    border-radius: 0;
 
     color: #333;
     background: #eee;
 
+    font-family: inherit;
     font-size: 0.625rem;
     line-height: var(--midi-tracker-row-height);
     text-align: right;
+
+    cursor: pointer;
 }
 
 .midi-tracker-key.is-black {
-    width: 65%;
-
-    border-color: #080808;
+    border-color: #000;
 
     color: #ddd;
-    background: #222;
+    background: #000;
+}
+
+.midi-tracker-key:hover {
+    background: #f6f6f6;
+}
+
+.midi-tracker-key.is-black:hover {
+    background: #333;
 }
 
 .midi-tracker-key.is-active {
@@ -580,7 +598,21 @@
 }
 
 .midi-tracker-key.is-black.is-active {
-    background: var(--target);
+    background: linear-gradient(to right, #000 35%, var(--target) 35%);
+}
+
+.midi-tracker-key.is-auditioned,
+.midi-tracker-key.is-black.is-auditioned {
+    color: #222;
+    background: var(--warning);
+}
+
+.midi-tracker-key.is-auditioned.is-active {
+    background: linear-gradient(
+        to right,
+        var(--warning) 35%,
+        var(--target) 35%
+    );
 }
 
 .midi-tracker-key.is-struck {
