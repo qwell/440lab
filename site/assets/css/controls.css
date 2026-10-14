@@ -44,12 +44,9 @@ select {
     color: var(--text);
 }
 
-input[type='number'] {
-    padding: 2px 8px;
-}
-
+input[type='number'],
 select {
-    padding: 2px 28px 2px 8px;
+    padding: 0 6px;
 }
 
 /* Form fields */

@@ -19,6 +19,9 @@
         "reference tone",
         "metronome",
         "tap tempo",
+        "MIDI player",
+        "MIDI visualizer",
+        "piano roll",
         "ear training",
         "pitch training",
         "intonation training",
@@ -50,7 +53,7 @@
     "packageManager": "yarn@4.18.0",
     "scripts": {
         "serve": "node serve.js",
-        "vendor": "node vendor.js",
+        "generate": "node generate.js && yarn hygiene",
         "lint": "eslint --cache --cache-strategy metadata --cache-location ./.cache/eslint . --fix",
         "lint:check": "eslint --cache --cache-strategy metadata --cache-location ./.cache/eslint .",
         "format": "prettier --cache --cache-strategy metadata --cache-location ./.cache/prettier --write .",

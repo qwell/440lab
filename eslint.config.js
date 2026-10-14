@@ -12,6 +12,7 @@ export default defineConfig(
             '**/.pnp.cjs',
             '**/.pnp.loader.mjs',
             '**/vendor/',
+            '**/assets/midi/*.mid.js',
         ],
     },
 
@@ -24,7 +25,7 @@ export default defineConfig(
     },
 
     {
-        files: ['serve.js', 'vendor.js', 'eslint.config.js'],
+        files: ['serve.js', 'generate.js', 'eslint.config.js'],
         languageOptions: {
             globals: {
                 ...globals.node,

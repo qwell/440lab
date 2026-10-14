@@ -8,7 +8,7 @@
         <meta name="robots" content="index,follow" />
         <meta
             name="description"
-            content="Free online tuner, metronome, timing and sheet-music practice, reference tones, and ear training for absolute pitch, intonation, intervals, and chords."
+            content="Free online tuner, metronome, MIDI player and visualizer, rhythm and sheet-music practice, reference tones, and ear training for pitch, intervals, and chords."
         />
         <link rel="canonical" href="https://440lab.com/" />
 
@@ -20,11 +20,11 @@
         <meta property="og:site_name" content="440 Lab" />
         <meta
             property="og:title"
-            content="440 Lab - Tuner, Metronome, Rhythm & Ear Training"
+            content="440 Lab - Tuner, Metronome, MIDI, Rhythm & Ear Training"
         />
         <meta
             property="og:description"
-            content="Free tools for tuning, metronome and rhythm practice, and ear training for absolute pitch, intonation, intervals, and chords."
+            content="Free tools for tuning, MIDI playback and visualization, rhythm practice, and ear training for pitch, intonation, intervals, and chords."
         />
         <meta property="og:url" content="https://440lab.com/" />
         <meta property="og:type" content="website" />
@@ -41,11 +41,11 @@
         <meta name="twitter:card" content="summary" />
         <meta
             name="twitter:title"
-            content="440 Lab - Tuner, Metronome, Rhythm & Ear Training"
+            content="440 Lab - Tuner, Metronome, MIDI, Rhythm & Ear Training"
         />
         <meta
             name="twitter:description"
-            content="Free tools for tuning, metronome and rhythm practice, and ear training for absolute pitch, intonation, intervals, and chords."
+            content="Free tools for tuning, MIDI playback and visualization, rhythm practice, and ear training for pitch, intonation, intervals, and chords."
         />
         <meta
             name="twitter:image"
@@ -53,7 +53,7 @@
         />
         <meta name="twitter:image:alt" content="Jeltz Logo" />
 
-        <title>440 Lab - Tuner, Metronome, Rhythm & Ear Training</title>
+        <title>440 Lab - Tuner, Metronome, MIDI, Rhythm & Ear Training</title>
 
         <link rel="stylesheet" href="assets/css/base.css" />
         <link rel="stylesheet" href="assets/css/layout.css" />
@@ -109,19 +109,19 @@
                         "@id": "https://440lab.com/#website",
                         "url": "https://440lab.com/",
                         "name": "440 Lab",
-                        "description": "Free online tuner, metronome, timing and sheet-music practice, reference tones, and ear training for absolute pitch, intonation, intervals, and chords.",
+                        "description": "Free online tuner, metronome, MIDI player and visualizer, rhythm and sheet-music practice, reference tones, and ear training for pitch, intervals, and chords.",
                         "publisher": {
                             "@id": "https://440lab.com/#jeltz"
                         },
                         "datePublished": "2026-08-25",
-                        "dateModified": "2026-09-20"
+                        "dateModified": "2026-10-13"
                     },
                     {
                         "@type": "WebPage",
                         "@id": "https://440lab.com/#webpage",
                         "url": "https://440lab.com/",
                         "name": "440 Lab",
-                        "description": "Free online tuner, metronome, timing and sheet-music practice, reference tones, and ear training for absolute pitch, intonation, intervals, and chords.",
+                        "description": "Free online tuner, metronome, MIDI player and visualizer, rhythm and sheet-music practice, reference tones, and ear training for pitch, intervals, and chords.",
                         "isPartOf": {
                             "@id": "https://440lab.com/#website"
                         },
@@ -131,6 +131,9 @@
                             },
                             {
                                 "@id": "https://440lab.com/#rhythm"
+                            },
+                            {
+                                "@id": "https://440lab.com/#midi"
                             },
                             {
                                 "@id": "https://440lab.com/#pitch"
@@ -155,7 +158,7 @@
                             "@id": "https://440lab.com/#jeltz"
                         },
                         "datePublished": "2026-08-25",
-                        "dateModified": "2026-09-20"
+                        "dateModified": "2026-10-13"
                     },
                     {
                         "@type": "WebPageElement",
@@ -171,6 +174,15 @@
                         "@id": "https://440lab.com/#rhythm",
                         "name": "Rhythm",
                         "description": "Metronome, timing practice, and generated sheet-music exercises that score rhythm and microphone pitch across treble, bass, alto, and tenor clefs.",
+                        "isPartOf": {
+                            "@id": "https://440lab.com/#webpage"
+                        }
+                    },
+                    {
+                        "@type": "WebPageElement",
+                        "@id": "https://440lab.com/#midi",
+                        "name": "MIDI",
+                        "description": "Included and local Standard MIDI File selection and drag-and-drop playback with bundled or dropped SF2 and SF3 SoundFonts, synchronized multi-track sheet music, seeking and track muting, and a color-coded scrolling piano-roll tracker that follows tempo and time signature changes.",
                         "isPartOf": {
                             "@id": "https://440lab.com/#webpage"
                         }
@@ -225,7 +237,7 @@
                         "@id": "https://440lab.com/#app",
                         "url": "https://440lab.com/",
                         "name": "440 Lab",
-                        "description": "Free online tuner, metronome, timing and sheet-music practice, reference tones, and ear training for absolute pitch, intonation, intervals, and chords.",
+                        "description": "Free online tuner, metronome, MIDI player and visualizer, rhythm and sheet-music practice, reference tones, and ear training for pitch, intervals, and chords.",
                         "softwareVersion": "1.1.6",
                         "mainEntityOfPage": {
                             "@id": "https://440lab.com/#webpage"
@@ -242,6 +254,14 @@
                             {
                                 "@type": "DefinedTerm",
                                 "name": "Metronome"
+                            },
+                            {
+                                "@type": "DefinedTerm",
+                                "name": "MIDI"
+                            },
+                            {
+                                "@type": "DefinedTerm",
+                                "name": "Music notation"
                             },
                             {
                                 "@type": "DefinedTerm",
@@ -278,7 +298,7 @@
                         ],
                         "inLanguage": "en",
                         "applicationCategory": "EducationalApplication",
-                        "applicationSubCategory": "Music tuner, metronome, sheet-music reading, timing practice, absolute-pitch identification, pitch and interval training, chord ear training, and pitch-memory testing",
+                        "applicationSubCategory": "Music tuner, metronome, MIDI playback and visualization, sheet-music reading, timing practice, absolute-pitch identification, pitch and interval training, chord ear training, and pitch-memory testing",
                         "learningResourceType": "Interactive music training application",
                         "teaches": [
                             "Pitch matching",
@@ -349,7 +369,7 @@
                         "runtimePlatform": "Web browser",
                         "browserRequirements": "Requires a modern web browser with Web Audio API support. Microphone tuning and vocal pitch-memory responses require MediaDevices support and microphone permission.",
                         "datePublished": "2026-08-25",
-                        "dateModified": "2026-09-20",
+                        "dateModified": "2026-10-13",
                         "screenshot": [
                             {
                                 "@type": "ImageObject",
@@ -401,6 +421,9 @@
                             "tap tempo",
                             "rhythm reading",
                             "sheet music practice",
+                            "MIDI player",
+                            "MIDI visualizer",
+                            "piano roll",
                             "time signatures",
                             "dotted notes",
                             "ear training",
@@ -441,6 +464,7 @@
                             "Music tuner with adjustable A4 reference pitch and live pitch history",
                             "Reference-tone playback",
                             "Rhythm: metronome, timing practice, and generated sheet music with four clefs, microphone pitch detection, and timing feedback",
+                            "Included and local Standard MIDI File selection and drag-and-drop playback with bundled or dropped SF2 and SF3 SoundFonts, synchronized multi-track sheet music for fixed meter, seeking, track muting, and a color-coded scrolling piano roll with tempo and time signature changes",
                             "Flat and sharp pitch ear training",
                             "Match: chromatic note identification without a reference",
                             "Match: target-pitch identification",
@@ -463,14 +487,14 @@
                         "@id": "https://440lab.com/#source",
                         "url": "https://github.com/qwell/440lab",
                         "name": "440 Lab Source Code",
-                        "description": "Source code for 440 Lab, a free browser-based tuner, metronome, sheet-music, and ear-training application.",
+                        "description": "Source code for 440 Lab, a free browser-based tuner, metronome, MIDI player and visualizer, sheet-music, and ear-training application.",
                         "sourceOrganization": {
                             "@id": "https://440lab.com/#jeltz"
                         },
                         "codeRepository": "https://github.com/qwell/440lab",
                         "programmingLanguage": ["JavaScript", "HTML", "CSS"],
                         "datePublished": "2026-08-25",
-                        "dateModified": "2026-09-20",
+                        "dateModified": "2026-10-13",
                         "license": "https://spdx.org/licenses/GPL-3.0-or-later.html",
                         "author": {
                             "@id": "https://440lab.com/#jason-parker"
@@ -706,9 +730,18 @@
                             <button
                                 type="button"
                                 data-nav-section="midi"
-                                data-nav-mode="visualize"
+                                data-nav-mode="sheet"
                             >
-                                Visualize
+                                Sheet music
+                            </button>
+                        </li>
+                        <li>
+                            <button
+                                type="button"
+                                data-nav-section="midi"
+                                data-nav-mode="tracker"
+                            >
+                                Tracker
                             </button>
                         </li>
                     </ul>
@@ -1600,8 +1633,15 @@
                                 <select
                                     id="rhythm-sheet-soundfont"
                                     data-control="shared-soundfont"
+                                    title="Choose a SoundFont, or drop an SF2 or SF3 file in this view"
                                 ></select>
                             </div>
+                            <p
+                                class="soundfont-status"
+                                data-output="soundfont-status"
+                                role="status"
+                                hidden
+                            ></p>
                         </div>
                     </div>
 
@@ -1662,41 +1702,76 @@
                 hidden
             >
                 <h2 class="sr-only">MIDI</h2>
-                <div data-mode-panel="visualize">
+                <div data-mode-panel="sheet">
                     <h3 class="blurb">
-                        Choose a MIDI file to visualize its score. This module
-                        is a work in progress and is likely to have bugs. Please
-                        report bugs at https://github.com/qwell/440lab/issues.
+                        Choose an included MIDI file, attach one, or drag & drop
+                        it to visualize it as sheet music. This view supports
+                        files with a single time signature; use Tracker for
+                        meter changes. This module is a work in progress and is
+                        likely to have bugs. Please report bugs at
+                        https://github.com/qwell/440lab/issues.
                     </h3>
                     <div class="practice">
-                        <button
-                            class="icon-button"
-                            data-action="midi-visualize-attach"
-                            type="button"
-                            aria-label="Choose MIDI file"
-                            title="Choose MIDI file"
-                        >
-                            <span aria-hidden="true">📎</span>
-                        </button>
-                        <input
-                            id="midi-visualize-file"
-                            class="sr-only"
-                            data-control="midi-visualize-file"
-                            type="file"
-                            accept=".mid,.midi,audio/midi,audio/x-midi"
-                            tabindex="-1"
-                        />
+                        <div class="field">
+                            <label for="midi-sheet-library">MIDI file</label>
+                            <div class="control-row midi-file-controls">
+                                <button
+                                    class="icon-button"
+                                    data-action="midi-sheet-attach"
+                                    type="button"
+                                    aria-controls="midi-sheet-file"
+                                    aria-label="Choose local MIDI file"
+                                    title="Choose local MIDI file"
+                                >
+                                    <span aria-hidden="true">📎</span>
+                                </button>
+                                <select
+                                    id="midi-sheet-library"
+                                    data-control="shared-midi-library"
+                                ></select>
+                            </div>
+                            <input
+                                id="midi-sheet-file"
+                                class="sr-only"
+                                data-control="midi-file"
+                                type="file"
+                                accept=".mid,.midi,audio/midi,audio/x-midi"
+                                tabindex="-1"
+                            />
+                        </div>
+                        <div class="field">
+                            <label for="midi-sheet-soundfont">
+                                SoundFont
+                            </label>
+                            <div class="control-row">
+                                <select
+                                    id="midi-sheet-soundfont"
+                                    data-control="shared-soundfont"
+                                    title="Choose a SoundFont, or drop an SF2 or SF3 file in this view"
+                                ></select>
+                            </div>
+                        </div>
                         <p
-                            id="midi-visualize-status"
-                            class="practice-note practice-content-column-3"
-                            role="status"
+                            class="practice-note practice-content-column-3 midi-status-group"
                         >
-                            Choose a MIDI file.
+                            <span
+                                class="midi-status"
+                                data-output="midi-status"
+                                role="status"
+                                >Choose an included MIDI file, attach one, or
+                                drop one.</span
+                            >
+                            <span
+                                class="soundfont-status"
+                                data-output="soundfont-status"
+                                role="status"
+                                hidden
+                            ></span>
                         </p>
                         <div class="practice-buttons">
                             <button
                                 class="icon-button"
-                                data-action="midi-visualize-play"
+                                data-action="midi-sheet-play"
                                 type="button"
                                 aria-label="Play MIDI"
                                 title="Play"
@@ -1708,7 +1783,7 @@
 
                             <button
                                 class="icon-button"
-                                data-action="midi-visualize-stop"
+                                data-action="midi-sheet-stop"
                                 type="button"
                                 aria-label="Stop MIDI"
                                 title="Stop"
@@ -1718,15 +1793,13 @@
                             </button>
                         </div>
                         <div
-                            id="midi-visualize-time-row"
                             class="midi-visualize-time-row practice-content-column-3"
                             hidden
                         >
-                            <span id="midi-visualize-current-time">0:00</span>
+                            <span data-output="midi-current-time">0:00</span>
                             <input
-                                id="midi-visualize-seek"
                                 class="midi-visualize-seek"
-                                data-control="midi-visualize-seek"
+                                data-control="shared-midi-seek"
                                 type="range"
                                 min="0"
                                 max="0"
@@ -1735,7 +1808,7 @@
                                 aria-label="MIDI playback position"
                                 disabled
                             />
-                            <span id="midi-visualize-total-time">0:00</span>
+                            <span data-output="midi-total-time">0:00</span>
                         </div>
                         <div
                             id="midi-visualize-tracks"
@@ -1743,19 +1816,119 @@
                             hidden
                         ></div>
                     </div>
-                    <div class="settings">
-                        <h3 class="settings-heading">Settings</h3>
+                </div>
+                <div data-mode-panel="tracker" hidden>
+                    <h3 class="blurb">
+                        Choose an included MIDI file, attach one, or drag & drop
+                        it to visualize it in a piano-roll tracker whose measure
+                        lines follow time signature changes. This module is a
+                        work in progress and is likely to have bugs. Please
+                        report bugs at https://github.com/qwell/440lab/issues.
+                    </h3>
+                    <div class="practice">
                         <div class="field">
-                            <label for="midi-visualize-soundfont">
+                            <label for="midi-tracker-library">MIDI file</label>
+                            <div class="control-row midi-file-controls">
+                                <button
+                                    class="icon-button"
+                                    data-action="midi-tracker-attach"
+                                    type="button"
+                                    aria-controls="midi-tracker-file"
+                                    aria-label="Choose local MIDI file"
+                                    title="Choose local MIDI file"
+                                >
+                                    <span aria-hidden="true">📎</span>
+                                </button>
+                                <select
+                                    id="midi-tracker-library"
+                                    data-control="shared-midi-library"
+                                ></select>
+                            </div>
+                            <input
+                                id="midi-tracker-file"
+                                class="sr-only"
+                                data-control="midi-file"
+                                type="file"
+                                accept=".mid,.midi,audio/midi,audio/x-midi"
+                                tabindex="-1"
+                            />
+                        </div>
+                        <div class="field">
+                            <label for="midi-tracker-soundfont">
                                 SoundFont
                             </label>
                             <div class="control-row">
                                 <select
-                                    id="midi-visualize-soundfont"
+                                    id="midi-tracker-soundfont"
                                     data-control="shared-soundfont"
+                                    title="Choose a SoundFont, or drop an SF2 or SF3 file in this view"
                                 ></select>
                             </div>
                         </div>
+                        <p
+                            class="practice-note practice-content-column-3 midi-status-group"
+                        >
+                            <span
+                                class="midi-status"
+                                data-output="midi-status"
+                                role="status"
+                                >Choose an included MIDI file, attach one, or
+                                drag & drop one.</span
+                            >
+                            <span
+                                class="soundfont-status"
+                                data-output="soundfont-status"
+                                role="status"
+                                hidden
+                            ></span>
+                        </p>
+                        <div class="practice-buttons">
+                            <button
+                                class="icon-button"
+                                data-action="midi-tracker-play"
+                                type="button"
+                                aria-label="Play MIDI"
+                                title="Play"
+                                aria-pressed="false"
+                                disabled
+                            >
+                                <span aria-hidden="true">⏯</span>
+                            </button>
+
+                            <button
+                                class="icon-button"
+                                data-action="midi-tracker-stop"
+                                type="button"
+                                aria-label="Stop MIDI"
+                                title="Stop"
+                                disabled
+                            >
+                                <span aria-hidden="true">■</span>
+                            </button>
+                        </div>
+                        <div
+                            class="midi-visualize-time-row practice-content-column-3"
+                            hidden
+                        >
+                            <span data-output="midi-current-time">0:00</span>
+                            <input
+                                class="midi-visualize-seek"
+                                data-control="shared-midi-seek"
+                                type="range"
+                                min="0"
+                                max="0"
+                                step="1"
+                                value="0"
+                                aria-label="MIDI playback position"
+                                disabled
+                            />
+                            <span data-output="midi-total-time">0:00</span>
+                        </div>
+                        <div
+                            id="midi-tracker"
+                            class="midi-tracker practice-content-column-3"
+                            hidden
+                        ></div>
                     </div>
                 </div>
             </section>
@@ -3360,7 +3533,8 @@
                 <h2 class="sr-only">About</h2>
                 <h3 class="blurb">
                     440 Lab is a free, ad-free collection of simple tools for
-                    musical tuning, rhythm, pitch, and intonation ear training.
+                    musical tuning, MIDI playback and visualization, rhythm,
+                    pitch, and intonation ear training.
                 </h3>
 
                 <div>
@@ -3391,6 +3565,21 @@
                         generates pitched phrases in four clefs and scores the
                         timing and intonation of notes performed through a
                         microphone.
+                    </p>
+
+                    <h4>MIDI playback and visualization</h4>
+                    <p>
+                        Choose an included Standard MIDI File, attach one, or
+                        drop one into the view to play it with a selectable
+                        SoundFont, follow synchronized multi-track sheet music,
+                        or watch a color-coded piano-roll tracker that follows
+                        tempo and time signature changes. Drop an SF2 or SF3
+                        SoundFont into a MIDI or rhythm sheet view to use it for
+                        the current session. Seek through the song or mute
+                        individual tracks while it plays. Sheet music currently
+                        supports files with a single meter. MIDI and SoundFont
+                        files are processed locally in your browser and are not
+                        uploaded.
                     </p>
 
                     <h4>Simple by design</h4>
