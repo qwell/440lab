@@ -303,12 +303,59 @@
     font-size: 12px;
 }
 
+/* MIDI */
+
+[data-mode-panel].is-drag-over:has([data-control='shared-soundfont']) {
+    border-radius: var(--border-radius);
+    outline: 2px dashed var(--target);
+    outline-offset: 8px;
+}
+
+.soundfont-status {
+    display: block;
+
+    margin: 0.25rem 0 0;
+
+    color: var(--muted);
+
+    font-size: 12px;
+}
+
+.midi-status {
+    display: block;
+
+    white-space: pre-line;
+}
+
+.midi-status + .soundfont-status {
+    margin-top: 0;
+}
+
+.midi-file-controls {
+    width: var(--control-width);
+    max-width: 100%;
+
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr);
+    gap: var(--button-gap);
+}
+
+.midi-file-controls select {
+    width: 100%;
+    min-width: 0;
+}
+
 .midi-visualize-tracks {
     --sheet-heading-gap: 2rem;
     --sheet-play-line-position: 7rem;
 
     display: grid;
     gap: 16px;
+}
+
+.midi-visualize-tracks[hidden],
+.midi-tracker[hidden] {
+    display: none;
 }
 
 .midi-visualize-track {
@@ -371,11 +418,11 @@
     align-items: center;
 }
 
-[data-action='midi-visualize-attach'] {
+[data-action^='midi-'][data-action$='-attach'] {
     width: 32px;
 }
 
-[data-action='midi-visualize-play'] > span {
+[data-action^='midi-'][data-action$='-play'] > span {
     display: inline-block;
     transform: scaleX(1.2);
 }
@@ -464,6 +511,211 @@
 
 .midi-visualize-tracks .sheet-score {
     height: 8rem;
+}
+
+.midi-tracker {
+    --midi-tracker-keyboard-width: 6rem;
+    --midi-tracker-row-height: 1rem;
+}
+
+.midi-tracker-stage {
+    display: grid;
+    grid-template-columns: var(--midi-tracker-keyboard-width) minmax(0, 1fr);
+
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius);
+
+    background: var(--surface);
+}
+
+.midi-tracker-keyboard,
+.midi-tracker-roll {
+    position: relative;
+}
+
+.midi-tracker-keyboard {
+    border-right: 2px solid #777;
+
+    background: #111;
+}
+
+.midi-tracker-roll {
+    overflow: hidden;
+}
+
+.midi-tracker-key,
+.midi-tracker-row {
+    position: absolute;
+    right: 0;
+
+    box-sizing: border-box;
+    height: var(--midi-tracker-row-height);
+}
+
+.midi-tracker-key {
+    width: 100%;
+    padding-right: 0.35rem;
+
+    border-bottom: 1px solid #777;
+
+    color: #333;
+    background: #eee;
+
+    font-size: 0.625rem;
+    line-height: var(--midi-tracker-row-height);
+    text-align: right;
+}
+
+.midi-tracker-key.is-black {
+    width: 65%;
+
+    border-color: #080808;
+
+    color: #ddd;
+    background: #222;
+}
+
+.midi-tracker-key.is-active {
+    background: linear-gradient(to right, #eee 35%, var(--target) 35%);
+}
+
+.midi-tracker-key.is-black.is-active {
+    background: var(--target);
+}
+
+.midi-tracker-key.is-struck {
+    animation: midi-tracker-key-strike 120ms ease-out;
+}
+
+@keyframes midi-tracker-key-strike {
+    from {
+        filter: brightness(1.75);
+    }
+
+    to {
+        filter: brightness(1);
+    }
+}
+
+.midi-tracker-rows,
+.midi-tracker-timeline {
+    position: absolute;
+    inset: 0 auto auto 0;
+}
+
+.midi-tracker-rows {
+    width: 100%;
+}
+
+.midi-tracker-row {
+    left: 0;
+
+    width: 100%;
+
+    border-bottom: 1px solid #3b3b3b;
+}
+
+.midi-tracker-row.is-black {
+    background: #161616;
+}
+
+.midi-tracker-timeline {
+    will-change: transform;
+
+    background-image: linear-gradient(to right, #555 1px, transparent 1px);
+    background-size: var(--midi-tracker-quarter-width) 100%;
+}
+
+.midi-tracker-barline {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+
+    width: 2px;
+
+    background: #777;
+}
+
+.midi-tracker-signature {
+    position: absolute;
+    top: 0.125rem;
+
+    padding: 0 0.2rem;
+
+    color: var(--text);
+    background: var(--surface);
+
+    font-size: 0.625rem;
+    line-height: 1rem;
+
+    transform: translateX(2px);
+}
+
+.midi-tracker-note {
+    position: absolute;
+
+    min-height: 1px;
+
+    border-radius: 2px;
+
+    background: var(--midi-track-color);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 20%);
+
+    opacity: 0.95;
+
+    transition: opacity 100ms ease;
+}
+
+.midi-tracker-note.is-disabled {
+    opacity: 0.2;
+}
+
+.midi-tracker-note.is-previewed {
+    opacity: 0.55;
+}
+
+.midi-tracker-legend {
+    margin: 0.5rem 0 0;
+    padding: 0;
+
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
+
+    list-style: none;
+}
+
+.midi-tracker-legend button {
+    width: auto;
+    min-width: 0;
+    height: auto;
+    min-height: 0;
+    padding: 0.2rem 0;
+
+    display: flex;
+    gap: 0.35rem;
+    align-items: center;
+
+    border: 0;
+
+    color: var(--muted);
+    background: transparent;
+
+    font: inherit;
+    font-size: 0.75rem;
+}
+
+.midi-tracker-legend button[aria-pressed='false'] {
+    opacity: 0.4;
+}
+
+.midi-tracker-legend-swatch {
+    width: 0.75rem;
+    height: 0.75rem;
+
+    border-radius: 2px;
+
+    background: var(--midi-track-color);
 }
 
 .sheet-score {
@@ -964,6 +1216,10 @@
 }
 
 @media (max-width: 560px) {
+    .midi-tracker {
+        --midi-tracker-keyboard-width: 4.75rem;
+    }
+
     .tuner-note {
         font-size: 28px;
     }

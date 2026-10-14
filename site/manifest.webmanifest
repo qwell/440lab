@@ -2,7 +2,7 @@
     "id": "/",
     "name": "440 Lab",
     "short_name": "440 Lab",
-    "description": "Tuner, metronome, rhythm practice, and ear training for pitch, intonation, intervals, and chords.",
+    "description": "Tuner, metronome, MIDI playback and visualization, rhythm practice, and ear training for pitch, intonation, intervals, and chords.",
     "start_url": "/",
     "scope": "/",
     "display": "standalone",

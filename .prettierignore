@@ -2,4 +2,9 @@
 .yarn/
 .pnp.cjs
 .pnp.loader.mjs
+
+# Vendored packages
 **/vendor/
+
+# Generated files
+site/assets/midi/*.mid.js

@@ -1,6 +1,6 @@
 # 440 Lab
 
-A small browser-based music and ear-training tool for practicing absolute and relative pitch, intervals, intonation, tuning, rhythm, chord quality, and pitch memory using the Web Audio API.
+A small browser-based music and ear-training tool for MIDI playback and visualization, practicing absolute and relative pitch, intervals, intonation, tuning, rhythm, chord quality, and pitch memory using the Web Audio API.
 
 Live demo: [https://440lab.com/](https://440lab.com/)
 
@@ -23,7 +23,12 @@ Live demo: [https://440lab.com/](https://440lab.com/)
 - Global output volume control
 - Metronome with adjustable BPM and time signature
 - Tap tempo
-- Visualize and play Standard MIDI files with a selectable SoundFont
+- Play Standard MIDI files with a selectable SoundFont
+    - Choose an included file, attach a local file, or drag and drop it anywhere in the active MIDI view
+    - Drop an SF2 or SF3 SoundFont into a MIDI or rhythm sheet view to use it for the current session
+    - View synchronized multi-track sheet music or a color-coded scrolling piano roll
+    - Follow tempo and time-signature changes in the piano-roll tracker; sheet music currently requires a single meter
+    - Seek through playback and mute individual tracks
 - Practice identifying flat vs. sharp pitch
 - Identify chromatic notes by name without a reference
 - Pick the correctly tuned target from multiple candidates
@@ -42,7 +47,7 @@ Live demo: [https://440lab.com/](https://440lab.com/)
 
 Open `site/index.html` in a modern browser.
 
-Most features can run directly from a `file://` path without a web server. Some modules require microphone permission and may require HTTPS or localhost, depending on the browser.
+Most features can run directly from a `file://` path without a web server, including MIDI files and dropped SF2 or SF3 SoundFonts. Some modules require microphone permission and may require HTTPS or localhost, depending on the browser.
 
 To serve the site locally instead, install the dependencies and run:
 
@@ -58,25 +63,31 @@ Use the global A4 reference to change the tuning standard used throughout the ap
 
 The Tuning tab can play a selected reference note, detect live pitches through the microphone, or do both at the same time. Pitch Memory microphone responses have the same permission and secure-context requirements as the tuner.
 
+The MIDI tab includes a selection of MIDI files and parses local files in the browser. It can display them as multi-track sheet music or as a scrolling piano-roll tracker. The tracker follows tempo and time-signature changes; sheet music currently supports files with a single meter. Dropped SF2 and SF3 SoundFonts can also be used for the current session, including when the site is opened through `file://`. MIDI and SoundFont files are not uploaded.
+
 ## Files
 
 - `nginx.conf.example` - optional nginx HTTPS configuration template with installation and Certbot instructions
 - `serve.js` - optional local static-file server
-- `vendor.js` - copies third-party browser files into the site
+- `generate.js` - copies third-party browser files and generates `file://`-compatible SoundFont and MIDI data scripts
 - `site/index.html` - interface and application metadata
 - `site/assets/css/base.css` - shared variables and base element styles
 - `site/assets/css/controls.css` - shared settings, form control, tooltip, and icon button styles
-- `site/assets/css/tools.css` - tool-specific tuner, rhythm, pitch, and interval displays
+- `site/assets/css/tools.css` - tool-specific tuner, rhythm, MIDI, pitch, and interval displays
 - `site/assets/css/layout.css` - page and panel layout
 - `site/assets/css/practice.css` - practice-tool styles
-- `site/assets/js/index.js` - audio, microphone pitch detection, metronome, exercises, and application logic
+- `site/assets/js/index.js` - audio, MIDI playback and visualization, microphone pitch detection, exercises, and application logic
+- `site/assets/midi/` - included MIDI files and their generated `file://` data wrappers
 - `site/assets/vendor/` - checked-in third-party files organized by package and asset type
 
-Vendored third-party files are committed with the site. Run `yarn vendor` only
-when updating their source dependencies. The SpessaSynth module files and
-worklet are copied directly from its packages. `browser.js` and `processor.js`
-are a pinned pair retained for opening the site directly through `file://` and
-must be updated together.
+Generated browser assets are committed with the site. Run `yarn generate` after
+adding a file to `site/assets/midi/` or updating a SoundFont or source
+dependency. The generator discovers MIDI and SoundFont files automatically,
+converts SF2 files to SF3 with `sf3convert -z -q 0.8 -a -1`, creates their
+JavaScript data wrappers, and generates both dropdown catalogs.
+The SpessaSynth module files and worklet are copied directly from its packages.
+`browser.js` and `processor.js` are a pinned pair retained for opening the site
+directly through `file://` and must be updated together.
 
 ## Technologies
 
