@@ -25,6 +25,7 @@
     --button-gap: 6px;
     --practice-detail-gap: 10px;
     --practice-row-gap: 8px;
+    --main-padding: 8px;
     --footer-height: 1.7rem;
 
     --background: #111;
@@ -67,7 +68,7 @@ body {
 body {
     overflow-x: clip;
 
-    padding-bottom: calc(var(--footer-height) + 0.85rem);
+    padding-bottom: var(--footer-height);
 
     background: var(--background);
     color: var(--text);

@@ -11,6 +11,11 @@ const APP_SHELL = [
     './assets/css/practice.css',
 
     './assets/js/index.js',
+    './assets/js/music.js',
+    './assets/js/notation.js',
+    './assets/js/engine.js',
+    './assets/js/practice.js',
+    './assets/js/application.js',
 
     './assets/fonts/NotoMusic-Regular.ttf',
 
