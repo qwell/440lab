@@ -347,7 +347,7 @@ body.nav-open .site-nav {
 /* Main */
 
 main {
-    padding-block: 8px;
+    padding-block: var(--main-padding);
 }
 
 .section-panel[hidden] {

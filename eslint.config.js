@@ -38,12 +38,22 @@ export default defineConfig(
     {
         files: ['site/**/*.js'],
         languageOptions: {
+            sourceType: 'script',
             globals: {
                 ...globals.browser,
             },
         },
         rules: {
             curly: ['error', 'all'],
+        },
+    },
+
+    {
+        files: ['site/assets/js/*.js'],
+        ignores: ['site/assets/js/index.js'],
+        rules: {
+            'no-undef': 'off',
+            'no-unused-vars': 'off',
         },
     },
 
