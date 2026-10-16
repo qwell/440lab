@@ -514,6 +514,7 @@
 
 .midi-visualize-tracks .sheet-score {
     height: 8rem;
+    margin-bottom: 4rem;
 }
 
 .midi-tracker {
@@ -784,8 +785,9 @@
 
     position: relative;
 
-    width: 100%;
+    width: 66.6667%;
     height: 8.25rem;
+    margin-bottom: 4.125rem;
 
     border: 1px solid var(--border);
     border-radius: var(--border-radius);
@@ -795,6 +797,13 @@
     font-family: 'Noto Music', serif;
 
     overflow: hidden;
+
+    transform: scale(1.5);
+    transform-origin: top left;
+}
+
+#rhythm-sheet-score {
+    --sheet-heading-gap: 1.6rem;
 }
 
 .sheet-staff {
@@ -1064,6 +1073,7 @@
     line-height: 1.5rem;
 }
 
+.sheet-count-marker.is-current,
 .sheet-lane-note.is-current,
 .sheet-tie.is-current {
     color: var(--target);
