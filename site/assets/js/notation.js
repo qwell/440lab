@@ -216,20 +216,14 @@ function createSheetLayout(score) {
 
 function sheetPlayLinePosition(scoreSelector) {
     const score = document.querySelector(scoreSelector);
-    const configuredPosition = Number.parseFloat(
+    const percentage = Number.parseFloat(
         getComputedStyle(score).getPropertyValue('--sheet-play-line-position')
     );
-    if (Number.isFinite(configuredPosition)) {
-        return configuredPosition;
-    }
-    const buttons = score
-        .closest('.practice')
-        .querySelector(':scope > .practice-buttons');
     const rootFontSize = Number.parseFloat(
         getComputedStyle(document.documentElement).fontSize
     );
 
-    return buttons.getBoundingClientRect().width / rootFontSize;
+    return (score.clientWidth * percentage) / 100 / rootFontSize;
 }
 
 function positionSheetLane(score, scoreSelector, position) {
@@ -388,6 +382,20 @@ function renderSheetScore(notation, scoreSelector, options = {}) {
         line.textContent = bar === notation.bars ? '𝄂' : '𝄀';
 
         lane.append(line);
+
+        if (durationGuide && bar > 0 && bar < notation.bars) {
+            const glide = document.createElement('span');
+            glide.className = 'sheet-bar-glide';
+            glide.style.left = `${bar * layout.barWidth - musicEngine.SHEET_BAR_PADDING_REM}rem`;
+            glide.style.width = `${musicEngine.SHEET_BAR_PADDING_REM * 2}rem`;
+            glide.setAttribute('aria-hidden', 'true');
+            for (let index = 0; index < 5; index += 1) {
+                const chevron = document.createElement('span');
+                chevron.textContent = '›';
+                glide.append(chevron);
+            }
+            lane.append(glide);
+        }
     }
     const heading = document.createElement('span');
     heading.className = 'sheet-score-heading';
