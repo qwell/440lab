@@ -4790,7 +4790,7 @@ function finishRhythmSheet() {
     musicEngine.positionSheetLane(
         rhythmSheet,
         musicEngine.RHYTHM_SHEET_SCORE_SELECTOR,
-        -units
+        -units - 1
     );
     document.getElementById('rhythm-sheet-count-label').textContent =
         `Complete - durations in ${musicEngine.sheetDurationUnit(rhythmSheet.meter)}`;
@@ -4817,8 +4817,20 @@ function drawRhythmSheet() {
     musicEngine.positionSheetLane(
         rhythmSheet,
         musicEngine.RHYTHM_SHEET_SCORE_SELECTOR,
-        Math.max(position, -units)
+        position
     );
+    const activeCount =
+        position >= -units && position < 0
+            ? Math.floor(position + units)
+            : null;
+    for (const marker of document.querySelectorAll(
+        `${musicEngine.RHYTHM_SHEET_SCORE_SELECTOR} [data-sheet-count-index]`
+    )) {
+        marker.classList.toggle(
+            'is-current',
+            Number(marker.dataset.sheetCountIndex) === activeCount
+        );
+    }
     updateRhythmHold(position);
     renderRhythmFeedback(position);
     rhythmSheet.phrase.forEach((note, index) => {
@@ -5238,9 +5250,12 @@ async function startRhythm() {
     rhythm.running = true;
     rhythmSheet.starting = false;
     rhythm.beatIndex = 0;
-    rhythm.nextBeatTime =
-        musicEngine.audio.currentTime() +
-        (rhythmTimingEnabled() || rhythmSheetEnabled() ? 1 : 0.05);
+    const leadIn = rhythmSheetEnabled()
+        ? rhythmClickInterval(rhythm.signature, rhythm.bpm)
+        : rhythmTimingEnabled()
+          ? 1
+          : 0.05;
+    rhythm.nextBeatTime = musicEngine.audio.currentTime() + leadIn;
     rhythmTiming.originMs =
         performance.now() +
         (rhythm.nextBeatTime - musicEngine.audio.currentTime()) * 1000;

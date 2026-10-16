@@ -19,9 +19,12 @@
     font-size: 14px;
 
     --page-width: 1200px;
-    --field-width: 240px;
-    --control-width: 190px;
     --column-gap: 24px;
+    --layout-content-width: min(var(--page-width), calc(100vw - 28px));
+    --field-width: calc(
+        (var(--layout-content-width) - var(--column-gap) * 3) / 4
+    );
+    --control-width: var(--field-width);
     --button-gap: 6px;
     --practice-detail-gap: 10px;
     --practice-row-gap: 8px;
@@ -78,17 +81,31 @@ body {
     font-variant-numeric: tabular-nums;
 }
 
+@media (max-width: 1060px) {
+    :root {
+        --field-width: calc(
+            (var(--layout-content-width) - var(--column-gap) * 2) / 3
+        );
+    }
+}
+
+@media (max-width: 800px) {
+    :root {
+        --field-width: calc(
+            (var(--layout-content-width) - var(--column-gap)) / 2
+        );
+    }
+}
+
 @media (max-width: 560px) {
     :root {
         --column-gap: 12px;
-        --field-width: calc((100vw - 40px) / 2);
-        --control-width: min(190px, var(--field-width));
+        --layout-content-width: calc(100vw - 16px);
     }
 }
 
 @media (max-width: 340px) {
     :root {
-        --field-width: 100%;
-        --control-width: min(190px, 100%);
+        --field-width: var(--layout-content-width);
     }
 }

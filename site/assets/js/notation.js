@@ -370,6 +370,7 @@ function renderSheetScore(notation, scoreSelector, options = {}) {
         for (let index = 0; index < units; index += 1) {
             const marker = document.createElement('span');
             marker.className = 'sheet-count-marker';
+            marker.dataset.sheetCountIndex = String(index);
             marker.style.left = `${layout.writtenPosition(index - units)}rem`;
             marker.textContent = String(index + 1);
             lane.append(marker);
@@ -399,7 +400,7 @@ function renderSheetScore(notation, scoreSelector, options = {}) {
     }
     const heading = document.createElement('span');
     heading.className = 'sheet-score-heading';
-    heading.style.left = `${layout.writtenPosition(countIn ? -units : 0)}rem`;
+    heading.style.left = `${layout.writtenPosition(0)}rem`;
     const clef = document.createElement('span');
     clef.className = `sheet-clef sheet-clef-${notation.clef}`;
     clef.textContent = clefDefinition.symbol;
@@ -890,7 +891,7 @@ function renderSheetScore(notation, scoreSelector, options = {}) {
         scoreElements.push(pitchLine);
     }
     scoreElement.replaceChildren(...scoreElements);
-    const initialPosition = countIn ? -units : 0;
+    const initialPosition = countIn ? -units - 1 : 0;
     positionSheetLane(notation, scoreSelector, initialPosition);
 }
 
