@@ -2,6 +2,211 @@
 
 // Sheet music
 
+const sheetScoreViews = new WeakMap();
+
+function updateSheetLane(view) {
+    if (view.position === null) {
+        return;
+    }
+
+    view.lane.style.transform = `translateX(${view.playLinePosition - view.layout.playbackPosition(view.position)}rem)`;
+    updateSheetWindow(view);
+}
+
+function sheetRenderableIndexAtOrAfter(renderables, position) {
+    let low = 0;
+    let high = renderables.length;
+    while (low < high) {
+        const middle = Math.floor((low + high) / 2);
+        if (renderables[middle].start < position) {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    return low;
+}
+
+function updateSheetWindow(view, force = false) {
+    if (!view.virtualized || view.position === null) {
+        return;
+    }
+
+    const visibleUnits =
+        (view.widthRem / view.layout.barWidth) * view.notation.meter.units;
+    const leftUnits = visibleUnits * (view.playLinePercentage / 100);
+    const rightUnits = visibleUnits - leftUnits;
+    const start = view.position - leftUnits - view.notation.meter.units;
+    const end = view.position + rightUnits + view.notation.meter.units;
+    const refreshMargin = view.notation.meter.units / 4;
+    if (
+        !force &&
+        start >= view.windowStart + refreshMargin &&
+        end <= view.windowEnd - refreshMargin
+    ) {
+        return;
+    }
+
+    view.windowStart = start - refreshMargin * 2;
+    view.windowEnd = end + refreshMargin * 2;
+    const firstIndex = sheetRenderableIndexAtOrAfter(
+        view.renderables,
+        view.windowStart
+    );
+    const wanted = new Set();
+    for (
+        let index = firstIndex - 1;
+        index >= 0 && view.renderablePrefixEnds[index] > view.windowStart;
+        index -= 1
+    ) {
+        const renderable = view.renderables[index];
+        if (renderable.end > view.windowStart) {
+            wanted.add(renderable);
+        }
+    }
+    for (let index = firstIndex; index < view.renderables.length; index += 1) {
+        const renderable = view.renderables[index];
+        if (renderable.start >= view.windowEnd) {
+            break;
+        }
+        if (renderable.end <= view.windowStart) {
+            continue;
+        }
+        wanted.add(renderable);
+    }
+    const orderedWanted = [...wanted].sort(
+        (left, right) => left.order - right.order
+    );
+    for (const renderable of orderedWanted) {
+        if (view.rendered.has(renderable)) {
+            continue;
+        }
+
+        const nodes = [renderable.create()].flat();
+        const fragment = document.createDocumentFragment();
+        for (const node of nodes) {
+            if (
+                renderable.noteIndex !== null &&
+                view.notation.highlightState?.active.has(renderable.noteIndex)
+            ) {
+                node.classList.add('is-current');
+            }
+            fragment.append(node);
+            if (renderable.noteIndex !== null) {
+                view.noteElements[renderable.noteIndex].add(node);
+            }
+        }
+        let reference = null;
+        let referenceOrder = Infinity;
+        for (const [candidate, candidateNodes] of view.rendered) {
+            if (
+                candidate.order > renderable.order &&
+                candidate.order < referenceOrder
+            ) {
+                reference = candidateNodes[0];
+                referenceOrder = candidate.order;
+            }
+        }
+        view.lane.insertBefore(fragment, reference);
+        view.rendered.set(renderable, nodes);
+    }
+
+    for (const [renderable, nodes] of view.rendered) {
+        if (wanted.has(renderable)) {
+            continue;
+        }
+        for (const node of nodes) {
+            node.remove();
+            if (renderable.noteIndex !== null) {
+                view.noteElements[renderable.noteIndex].delete(node);
+            }
+        }
+        view.rendered.delete(renderable);
+    }
+}
+
+const sheetScoreResizeObserver = new ResizeObserver((entries) => {
+    const rootFontSize = Number.parseFloat(
+        getComputedStyle(document.documentElement).fontSize
+    );
+    for (const entry of entries) {
+        const view = sheetScoreViews.get(entry.target);
+        if (!view) {
+            continue;
+        }
+
+        view.rootFontSize = rootFontSize;
+        view.playLinePosition =
+            (entry.contentRect.width * view.playLinePercentage) /
+            100 /
+            rootFontSize;
+        view.widthRem = entry.contentRect.width / rootFontSize;
+        updateSheetWindow(view, true);
+        updateSheetLane(view);
+    }
+});
+
+function cacheSheetScoreView(
+    notation,
+    scoreElement,
+    lane,
+    noteElements,
+    renderables,
+    virtualized
+) {
+    destroySheetScore(notation);
+    const playLinePercentage = Number.parseFloat(
+        getComputedStyle(scoreElement).getPropertyValue(
+            '--sheet-play-line-position'
+        )
+    );
+    const rootFontSize = Number.parseFloat(
+        getComputedStyle(document.documentElement).fontSize
+    );
+    let maximumRenderableEnd = -Infinity;
+    const view = {
+        element: scoreElement,
+        lane,
+        layout: createSheetLayout(notation),
+        noteElements,
+        notation,
+        playLinePercentage,
+        playLinePosition:
+            (scoreElement.clientWidth * playLinePercentage) /
+            100 /
+            rootFontSize,
+        position: null,
+        renderables,
+        renderablePrefixEnds: renderables.map((renderable) => {
+            maximumRenderableEnd = Math.max(
+                maximumRenderableEnd,
+                renderable.end
+            );
+            return maximumRenderableEnd;
+        }),
+        rendered: new Map(),
+        rootFontSize,
+        virtualized,
+        widthRem: scoreElement.clientWidth / rootFontSize,
+        windowEnd: -Infinity,
+        windowStart: Infinity,
+    };
+    notation.sheetView = view;
+    sheetScoreViews.set(scoreElement, view);
+    sheetScoreResizeObserver.observe(scoreElement);
+}
+
+function destroySheetScore(notation) {
+    const view = notation.sheetView;
+    if (!view) {
+        return;
+    }
+
+    sheetScoreResizeObserver.unobserve(view.element);
+    sheetScoreViews.delete(view.element);
+    notation.sheetView = null;
+}
+
 function diatonicPositionFromMidi(midi) {
     const roundedMidi = Math.round(midi);
     const pitchClass = musicEngine.pitchClassFromMidi(roundedMidi);
@@ -214,22 +419,14 @@ function createSheetLayout(score) {
     return { barWidth, playbackPosition, writtenPosition };
 }
 
-function sheetPlayLinePosition(scoreSelector) {
-    const score = document.querySelector(scoreSelector);
-    const percentage = Number.parseFloat(
-        getComputedStyle(score).getPropertyValue('--sheet-play-line-position')
-    );
-    const rootFontSize = Number.parseFloat(
-        getComputedStyle(document.documentElement).fontSize
-    );
-
-    return (score.clientWidth * percentage) / 100 / rootFontSize;
-}
-
 function positionSheetLane(score, scoreSelector, position) {
-    const lane = document.querySelector(`${scoreSelector} .sheet-lane`);
-    const layout = createSheetLayout(score);
-    lane.style.transform = `translateX(${sheetPlayLinePosition(scoreSelector) - layout.playbackPosition(position)}rem)`;
+    const view = score.sheetView;
+    if (!view) {
+        throw new Error(`Sheet score is not rendered: ${scoreSelector}`);
+    }
+
+    view.position = position;
+    updateSheetLane(view);
 }
 
 function sheetBeamGroups(writtenNotes, meter, separateVoices = true) {
@@ -329,9 +526,11 @@ function sheetBeamGroups(writtenNotes, meter, separateVoices = true) {
 
 function renderSheetScore(notation, scoreSelector, options = {}) {
     const {
+        barGlide = false,
         countIn = false,
         durationGuide = false,
         pitchGuide = false,
+        virtualize = false,
     } = options;
     const scoreElement = document.querySelector(scoreSelector);
     const scoreStyles = getComputedStyle(scoreElement);
@@ -366,67 +565,98 @@ function renderSheetScore(notation, scoreSelector, options = {}) {
     }
     const lane = document.createElement('div');
     lane.className = 'sheet-lane';
+    const noteElements = Array.from(
+        { length: notation.phrase.length },
+        () => new Set()
+    );
+    const renderables = [];
+    const addRenderable = (start, end, create, noteIndex = null) => {
+        if (!virtualize) {
+            const nodes = [create()].flat();
+            lane.append(...nodes);
+            if (noteIndex !== null) {
+                for (const node of nodes) {
+                    noteElements[noteIndex].add(node);
+                }
+            }
+            return;
+        }
+        renderables.push({
+            create,
+            end,
+            noteIndex,
+            order: renderables.length,
+            start,
+        });
+    };
     if (countIn) {
         for (let index = 0; index < units; index += 1) {
-            const marker = document.createElement('span');
-            marker.className = 'sheet-count-marker';
-            marker.dataset.sheetCountIndex = String(index);
-            marker.style.left = `${layout.writtenPosition(index - units)}rem`;
-            marker.textContent = String(index + 1);
-            lane.append(marker);
+            addRenderable(index - units, index - units + 1, () => {
+                const marker = document.createElement('span');
+                marker.className = 'sheet-count-marker';
+                marker.dataset.sheetCountIndex = String(index);
+                marker.style.left = `${layout.writtenPosition(index - units)}rem`;
+                marker.textContent = String(index + 1);
+                return marker;
+            });
         }
     }
     for (let bar = 0; bar <= notation.bars; bar += 1) {
-        const line = document.createElement('span');
-        line.className = 'sheet-barline';
-        line.style.left = `${bar * layout.barWidth}rem`;
-        line.textContent = bar === notation.bars ? '𝄂' : '𝄀';
+        addRenderable(bar * units, bar * units + 0.000001, () => {
+            const line = document.createElement('span');
+            line.className = 'sheet-barline';
+            line.style.left = `${bar * layout.barWidth}rem`;
+            line.textContent = bar === notation.bars ? '𝄂' : '𝄀';
+            return line;
+        });
 
-        lane.append(line);
-
-        if (durationGuide && bar > 0 && bar < notation.bars) {
-            const glide = document.createElement('span');
-            glide.className = 'sheet-bar-glide';
-            glide.style.left = `${bar * layout.barWidth - musicEngine.SHEET_BAR_PADDING_REM}rem`;
-            glide.style.width = `${musicEngine.SHEET_BAR_PADDING_REM * 2}rem`;
-            glide.setAttribute('aria-hidden', 'true');
-            for (let index = 0; index < 5; index += 1) {
-                const chevron = document.createElement('span');
-                chevron.textContent = '›';
-                glide.append(chevron);
+        if ((barGlide || durationGuide) && bar > 0 && bar < notation.bars) {
+            addRenderable(bar * units, bar * units + 0.000001, () => {
+                const glide = document.createElement('span');
+                glide.className = 'sheet-bar-glide';
+                glide.style.left = `${bar * layout.barWidth - musicEngine.SHEET_BAR_PADDING_REM}rem`;
+                glide.style.width = `${musicEngine.SHEET_BAR_PADDING_REM * 2}rem`;
+                glide.setAttribute('aria-hidden', 'true');
+                for (let index = 0; index < 5; index += 1) {
+                    const chevron = document.createElement('span');
+                    chevron.textContent = '›';
+                    glide.append(chevron);
+                }
+                return glide;
+            });
+        }
+    }
+    addRenderable(0, 0.000001, () => {
+        const heading = document.createElement('span');
+        heading.className = 'sheet-score-heading';
+        heading.style.left = `${layout.writtenPosition(0)}rem`;
+        const clef = document.createElement('span');
+        clef.className = `sheet-clef sheet-clef-${notation.clef}`;
+        clef.textContent = clefDefinition.symbol;
+        clef.title = `${notation.clef[0].toUpperCase()}${notation.clef.slice(1)} clef`;
+        const signature = document.createElement('span');
+        signature.className = 'sheet-signature';
+        signature.title =
+            notation.signature === '4/4'
+                ? 'Common time (4/4)'
+                : notation.signature === '2/2'
+                  ? 'Cut time (2/2)'
+                  : `${notation.signature} time`;
+        if (musicEngine.SIGNATURE_SYMBOLS[notation.signature]) {
+            signature.textContent =
+                musicEngine.SIGNATURE_SYMBOLS[notation.signature];
+        } else {
+            signature.classList.add('is-numeric');
+            const [top, bottom] = notation.signature.split('/');
+            for (const number of [top, bottom]) {
+                const row = document.createElement('span');
+                row.textContent = number;
+                signature.append(row);
             }
-            lane.append(glide);
         }
-    }
-    const heading = document.createElement('span');
-    heading.className = 'sheet-score-heading';
-    heading.style.left = `${layout.writtenPosition(0)}rem`;
-    const clef = document.createElement('span');
-    clef.className = `sheet-clef sheet-clef-${notation.clef}`;
-    clef.textContent = clefDefinition.symbol;
-    clef.title = `${notation.clef[0].toUpperCase()}${notation.clef.slice(1)} clef`;
-    const signature = document.createElement('span');
-    signature.className = 'sheet-signature';
-    signature.title =
-        notation.signature === '4/4'
-            ? 'Common time (4/4)'
-            : notation.signature === '2/2'
-              ? 'Cut time (2/2)'
-              : `${notation.signature} time`;
-    if (musicEngine.SIGNATURE_SYMBOLS[notation.signature]) {
-        signature.textContent =
-            musicEngine.SIGNATURE_SYMBOLS[notation.signature];
-    } else {
-        signature.classList.add('is-numeric');
-        const [top, bottom] = notation.signature.split('/');
-        for (const number of [top, bottom]) {
-            const row = document.createElement('span');
-            row.textContent = number;
-            signature.append(row);
-        }
-    }
-    heading.append(clef, signature);
-    lane.append(heading);
+        heading.append(clef, signature);
+        return heading;
+    });
 
     const writtenNotes = notation.phrase
         .flatMap((note, noteIndex) =>
@@ -664,190 +894,223 @@ function renderSheetScore(notation, scoreSelector, options = {}) {
         const x = layout.writtenPosition(segment.beat);
         const width =
             layout.writtenPosition(segment.beat + segment.duration, 'end') - x;
-        const element = document.createElement('span');
-        element.className = `sheet-lane-note${note.rest ? ' is-rest' : ''}`;
-        element.dataset.sheetNoteIndex = String(noteIndex);
-        element.style.left = `${x}rem`;
-        element.style.width = `${width}rem`;
-        const pitchName = note.rest
-            ? ''
-            : `${note.percussionName ?? musicEngine.noteNameFromMidi(note.midi, 'sharp')} `;
-        const tied = sheetNoteSegments(note).length > 1 ? ' tied' : '';
-        element.title = `${pitchName}${sheetNoteName(segment, notation.meter)} ${note.rest ? 'rest' : `note${tied}`} - ${sheetDurationLabel(segment.duration)} ${sheetDurationUnit(notation.meter)}`;
-        const symbol = document.createElement('span');
-        symbol.className = 'sheet-note-symbol';
-        symbol.setAttribute('aria-hidden', 'true');
-        symbol.classList.add(`is-${value.name}`);
-        symbol.textContent = `${note.rest ? value.rest : value.symbol}${value.dotted ? '.' : ''}`;
-        if (!note.rest) {
-            symbol.style.setProperty('--staff-step', String(staffStep));
-            symbol.classList.toggle(
-                'is-stem-down',
-                writtenNote.stemDown && value.name !== 'whole'
-            );
-            if (beam) {
-                symbol.classList.add('is-beamed');
-                symbol.textContent = note.percussionNotehead ?? '𝅘';
-            } else {
-                if (note.percussionNotehead) {
-                    const flag =
-                        value.value >= 8
-                            ? String.fromCodePoint(
-                                  0x1d16d + Math.log2(value.value / 4)
-                              )
-                            : '';
-                    symbol.textContent = `${note.percussionNotehead}${value.value > 1 ? '𝅥' : ''}${flag}`;
+        addRenderable(
+            segment.beat,
+            segment.beat + segment.duration,
+            () => {
+                const element = document.createElement('span');
+                element.className = `sheet-lane-note${note.rest ? ' is-rest' : ''}`;
+                element.dataset.sheetNoteIndex = String(noteIndex);
+                element.style.left = `${x}rem`;
+                element.style.width = `${width}rem`;
+                const pitchName = note.rest
+                    ? ''
+                    : `${note.percussionName ?? musicEngine.noteNameFromMidi(note.midi, 'sharp')} `;
+                const tied = sheetNoteSegments(note).length > 1 ? ' tied' : '';
+                element.title = `${pitchName}${sheetNoteName(segment, notation.meter)} ${note.rest ? 'rest' : `note${tied}`} - ${sheetDurationLabel(segment.duration)} ${sheetDurationUnit(notation.meter)}`;
+                const symbol = document.createElement('span');
+                symbol.className = 'sheet-note-symbol';
+                symbol.setAttribute('aria-hidden', 'true');
+                symbol.classList.add(`is-${value.name}`);
+                symbol.textContent = `${note.rest ? value.rest : value.symbol}${value.dotted ? '.' : ''}`;
+                if (!note.rest) {
+                    symbol.style.setProperty('--staff-step', String(staffStep));
+                    symbol.classList.toggle(
+                        'is-stem-down',
+                        writtenNote.stemDown && value.name !== 'whole'
+                    );
+                    if (beam) {
+                        symbol.classList.add('is-beamed');
+                        symbol.textContent = note.percussionNotehead ?? '𝅘';
+                    } else if (note.percussionNotehead) {
+                        const flag =
+                            value.value >= 8
+                                ? String.fromCodePoint(
+                                      0x1d16d + Math.log2(value.value / 4)
+                                  )
+                                : '';
+                        symbol.textContent = `${note.percussionNotehead}${value.value > 1 ? '𝅥' : ''}${flag}`;
+                    } else {
+                        symbol.textContent = value.symbol;
+                    }
+                    if (writtenNote.accidental) {
+                        const accidental = document.createElement('span');
+                        accidental.className = 'sheet-note-accidental';
+                        accidental.setAttribute('aria-hidden', 'true');
+                        accidental.style.setProperty(
+                            '--staff-step',
+                            String(staffStep)
+                        );
+                        accidental.textContent = writtenNote.accidental;
+                        element.append(accidental);
+                    }
+                    if (value.dotted) {
+                        const dot = document.createElement('span');
+                        dot.className = 'sheet-note-dot';
+                        dot.style.setProperty(
+                            '--staff-step',
+                            String(
+                                staffStep % 2 === 0 ? staffStep + 1 : staffStep
+                            )
+                        );
+                        element.append(dot);
+                    }
+                    const ledgerSteps = [];
+                    for (let step = -2; step >= staffStep; step -= 2) {
+                        ledgerSteps.push(step);
+                    }
+                    for (let step = 10; step <= staffStep; step += 2) {
+                        ledgerSteps.push(step);
+                    }
+                    for (const ledgerStep of ledgerSteps) {
+                        const ledger = document.createElement('span');
+                        ledger.className = 'sheet-ledger-line';
+                        ledger.style.setProperty(
+                            '--staff-step',
+                            String(ledgerStep)
+                        );
+                        element.append(ledger);
+                    }
+                    if (note.octaveSymbol && writtenNote.segmentIndex === 0) {
+                        const octave = document.createElement('span');
+                        octave.className = `sheet-note-octave is-${note.octaveBelow ? 'below' : 'above'}`;
+                        octave.textContent = note.octaveSymbol;
+                        element.append(octave);
+                    }
                 } else {
-                    symbol.textContent = value.symbol;
+                    symbol.textContent = `${value.rest}${value.dotted ? '.' : ''}`;
                 }
-            }
-            if (writtenNote.accidental) {
-                const accidental = document.createElement('span');
-                accidental.className = 'sheet-note-accidental';
-                accidental.setAttribute('aria-hidden', 'true');
-                accidental.style.setProperty('--staff-step', String(staffStep));
-                accidental.textContent = writtenNote.accidental;
-                element.append(accidental);
-            }
-            if (value.dotted) {
-                const dot = document.createElement('span');
-                dot.className = 'sheet-note-dot';
-                dot.style.setProperty(
-                    '--staff-step',
-                    String(staffStep % 2 === 0 ? staffStep + 1 : staffStep)
-                );
-                element.append(dot);
-            }
-            const ledgerSteps = [];
-            for (let step = -2; step >= staffStep; step -= 2) {
-                ledgerSteps.push(step);
-            }
-            for (let step = 10; step <= staffStep; step += 2) {
-                ledgerSteps.push(step);
-            }
-            for (const ledgerStep of ledgerSteps) {
-                const ledger = document.createElement('span');
-                ledger.className = 'sheet-ledger-line';
-                ledger.style.setProperty('--staff-step', String(ledgerStep));
-                element.append(ledger);
-            }
-            if (note.octaveSymbol && writtenNote.segmentIndex === 0) {
-                const octave = document.createElement('span');
-                octave.className = `sheet-note-octave is-${note.octaveBelow ? 'below' : 'above'}`;
-                octave.textContent = note.octaveSymbol;
-                element.append(octave);
-            }
-        }
-        element.append(symbol);
-        if (durationGuide) {
-            const track = document.createElement('span');
-            track.className = 'rhythm-sheet-duration-track';
-            element.append(track);
-        }
-        lane.append(element);
+                element.append(symbol);
+                if (durationGuide) {
+                    const track = document.createElement('span');
+                    track.className = 'rhythm-sheet-duration-track';
+                    element.append(track);
+                }
+                return element;
+            },
+            noteIndex
+        );
     }
 
     for (const group of beamGroups) {
-        const beamLayout = beamLayouts.get(group);
-        const { stemDown, noteYOffset, xStart, xEnd, yStart, yEnd } =
-            beamLayout;
-        const geometry = beamGeometry[stemDown ? 'down' : 'up'];
-        const slope = (yEnd - yStart) / (xEnd - xStart);
-        const beamYAt = (x) => yStart + (x - xStart) * slope;
-        const appendBeamAt = (startX, endX, level = 0) => {
-            const offset =
-                level * (stemDown ? -beamLevelSpacing : beamLevelSpacing);
-            const beamInset = stemDown ? -beamThickness : beamThickness;
-            const startY = beamYAt(startX) + offset + beamInset;
-            const endY = beamYAt(endX) + offset + beamInset;
-            const top = Math.min(startY, endY);
-            const leftTop = startY - top;
-            const rightTop = endY - top;
-            const beam = document.createElement('span');
-            beam.className = `sheet-beam${level > 0 ? ' is-secondary' : ''}`;
-            beam.style.left = `${startX}rem`;
-            beam.style.top = `${top}rem`;
-            beam.style.width = `${endX - startX}rem`;
-            beam.style.height = `${Math.abs(endY - startY) + beamThickness}rem`;
-            beam.style.clipPath = `polygon(0 ${leftTop}rem, 100% ${rightTop}rem, 100% ${rightTop + beamThickness}rem, 0 ${leftTop + beamThickness}rem)`;
-            lane.append(beam);
-        };
-        const beamX = (event) =>
-            layout.writtenPosition(event.segment.beat) + geometry.beamX;
-        const appendBeam = (start, end, level = 0) => {
-            appendBeamAt(beamX(start), beamX(end) + beamWidthExtension, level);
-        };
-
-        appendBeam(group[0], group.at(-1));
-
-        for (const event of group) {
-            const x =
-                layout.writtenPosition(event.segment.beat) + geometry.stemX;
-            const noteY =
-                noteheadY -
-                event.stemStaffStep * 0.375 +
-                noteYOffset +
-                geometry.stemAtNoteInset;
-            const beamY =
-                beamYAt(x) +
-                (stemDown ? -beamStemInset : beamThickness + beamStemInset);
-            const stem = document.createElement('span');
-            stem.className = 'sheet-beam-stem';
-            stem.style.left = `${x}rem`;
-            stem.style.top = `${Math.min(noteY, beamY)}rem`;
-            stem.style.height = `${Math.abs(noteY - beamY)}rem`;
-            lane.append(stem);
-        }
-
-        const appendAdditionalBeams = (beamValue, level) => {
-            let levelGroup = [];
-            const finishLevelGroup = () => {
-                if (levelGroup.length > 1) {
-                    appendBeam(levelGroup[0], levelGroup.at(-1), level);
-                } else if (levelGroup.length === 1) {
-                    const note = levelGroup[0];
-                    const index = group.indexOf(note);
-                    const previous = group[index - 1];
-                    const next = group[index + 1];
-                    const previousDistance = previous
-                        ? note.segment.beat - previous.segment.beat
-                        : Infinity;
-                    const nextDistance = next
-                        ? next.segment.beat - note.segment.beat
-                        : Infinity;
-                    const pointsRight = nextDistance <= previousDistance;
-                    const neighbor = pointsRight ? next : previous;
-                    const noteX = beamX(note);
-                    const hookLength = Math.abs(beamX(neighbor) - noteX) / 2;
+        addRenderable(
+            group[0].segment.beat,
+            group.at(-1).segment.beat + group.at(-1).segment.duration,
+            () => {
+                const elements = [];
+                const beamLayout = beamLayouts.get(group);
+                const { stemDown, noteYOffset, xStart, xEnd, yStart, yEnd } =
+                    beamLayout;
+                const geometry = beamGeometry[stemDown ? 'down' : 'up'];
+                const slope = (yEnd - yStart) / (xEnd - xStart);
+                const beamYAt = (x) => yStart + (x - xStart) * slope;
+                const appendBeamAt = (startX, endX, level = 0) => {
+                    const offset =
+                        level *
+                        (stemDown ? -beamLevelSpacing : beamLevelSpacing);
+                    const beamInset = stemDown ? -beamThickness : beamThickness;
+                    const startY = beamYAt(startX) + offset + beamInset;
+                    const endY = beamYAt(endX) + offset + beamInset;
+                    const top = Math.min(startY, endY);
+                    const leftTop = startY - top;
+                    const rightTop = endY - top;
+                    const beam = document.createElement('span');
+                    beam.className = `sheet-beam${level > 0 ? ' is-secondary' : ''}`;
+                    beam.style.left = `${startX}rem`;
+                    beam.style.top = `${top}rem`;
+                    beam.style.width = `${endX - startX}rem`;
+                    beam.style.height = `${Math.abs(endY - startY) + beamThickness}rem`;
+                    beam.style.clipPath = `polygon(0 ${leftTop}rem, 100% ${rightTop}rem, 100% ${rightTop + beamThickness}rem, 0 ${leftTop + beamThickness}rem)`;
+                    elements.push(beam);
+                };
+                const beamX = (event) =>
+                    layout.writtenPosition(event.segment.beat) + geometry.beamX;
+                const appendBeam = (start, end, level = 0) => {
                     appendBeamAt(
-                        pointsRight ? noteX : noteX - hookLength,
-                        pointsRight ? noteX + hookLength : noteX,
+                        beamX(start),
+                        beamX(end) + beamWidthExtension,
                         level
                     );
-                }
-                levelGroup = [];
-            };
+                };
 
-            for (const event of group) {
-                if (event.value.value >= beamValue) {
-                    levelGroup.push(event);
-                } else {
+                appendBeam(group[0], group.at(-1));
+
+                for (const event of group) {
+                    const x =
+                        layout.writtenPosition(event.segment.beat) +
+                        geometry.stemX;
+                    const noteY =
+                        noteheadY -
+                        event.stemStaffStep * 0.375 +
+                        noteYOffset +
+                        geometry.stemAtNoteInset;
+                    const beamY =
+                        beamYAt(x) +
+                        (stemDown
+                            ? -beamStemInset
+                            : beamThickness + beamStemInset);
+                    const stem = document.createElement('span');
+                    stem.className = 'sheet-beam-stem';
+                    stem.style.left = `${x}rem`;
+                    stem.style.top = `${Math.min(noteY, beamY)}rem`;
+                    stem.style.height = `${Math.abs(noteY - beamY)}rem`;
+                    elements.push(stem);
+                }
+
+                const appendAdditionalBeams = (beamValue, level) => {
+                    let levelGroup = [];
+                    const finishLevelGroup = () => {
+                        if (levelGroup.length > 1) {
+                            appendBeam(levelGroup[0], levelGroup.at(-1), level);
+                        } else if (levelGroup.length === 1) {
+                            const note = levelGroup[0];
+                            const index = group.indexOf(note);
+                            const previous = group[index - 1];
+                            const next = group[index + 1];
+                            const previousDistance = previous
+                                ? note.segment.beat - previous.segment.beat
+                                : Infinity;
+                            const nextDistance = next
+                                ? next.segment.beat - note.segment.beat
+                                : Infinity;
+                            const pointsRight =
+                                nextDistance <= previousDistance;
+                            const neighbor = pointsRight ? next : previous;
+                            const noteX = beamX(note);
+                            const hookLength =
+                                Math.abs(beamX(neighbor) - noteX) / 2;
+                            appendBeamAt(
+                                pointsRight ? noteX : noteX - hookLength,
+                                pointsRight ? noteX + hookLength : noteX,
+                                level
+                            );
+                        }
+                        levelGroup = [];
+                    };
+
+                    for (const event of group) {
+                        if (event.value.value >= beamValue) {
+                            levelGroup.push(event);
+                        } else {
+                            finishLevelGroup();
+                        }
+                    }
                     finishLevelGroup();
-                }
-            }
-            finishLevelGroup();
-        };
+                };
 
-        const maximumBeamValue = Math.max(
-            ...group.map((event) => event.value.value)
+                const maximumBeamValue = Math.max(
+                    ...group.map((event) => event.value.value)
+                );
+                for (
+                    let beamValue = 16, level = 1;
+                    beamValue <= maximumBeamValue;
+                    beamValue *= 2, level += 1
+                ) {
+                    appendAdditionalBeams(beamValue, level);
+                }
+                return elements;
+            }
         );
-        for (
-            let beamValue = 16, level = 1;
-            beamValue <= maximumBeamValue;
-            beamValue *= 2, level += 1
-        ) {
-            appendAdditionalBeams(beamValue, level);
-        }
     }
 
     notation.phrase.forEach((note, noteIndex) => {
@@ -866,20 +1129,30 @@ function renderSheetScore(notation, scoreSelector, options = {}) {
             const continuation = writtenNotesBySegment.get(
                 `${noteIndex}:${segmentIndex + 1}`
             );
-            const tie = document.createElement('span');
             const start =
                 layout.writtenPosition(segments[segmentIndex].beat) + 1.1;
             const end =
                 layout.writtenPosition(segments[segmentIndex + 1].beat) + 0.55;
-            tie.className = `sheet-tie ${continuation?.stemDown ? 'is-above' : 'is-below'}`;
-            tie.dataset.sheetNoteIndex = String(noteIndex);
-            tie.style.left = `${start}rem`;
-            tie.style.width = `${end - start}rem`;
-            tie.style.setProperty('--staff-step', String(staffStep));
-            tie.setAttribute('aria-hidden', 'true');
-            lane.append(tie);
+            addRenderable(
+                segments[segmentIndex].beat,
+                segments[segmentIndex + 1].beat,
+                () => {
+                    const tie = document.createElement('span');
+                    tie.className = `sheet-tie ${continuation?.stemDown ? 'is-above' : 'is-below'}`;
+                    tie.dataset.sheetNoteIndex = String(noteIndex);
+                    tie.style.left = `${start}rem`;
+                    tie.style.width = `${end - start}rem`;
+                    tie.style.setProperty('--staff-step', String(staffStep));
+                    tie.setAttribute('aria-hidden', 'true');
+                    return tie;
+                },
+                noteIndex
+            );
         }
     });
+    renderables.sort(
+        (left, right) => left.start - right.start || left.end - right.end
+    );
     const playLine = document.createElement('span');
     playLine.className = 'sheet-play-line';
     const scoreElements = [staff, lane, playLine];
@@ -891,6 +1164,14 @@ function renderSheetScore(notation, scoreSelector, options = {}) {
         scoreElements.push(pitchLine);
     }
     scoreElement.replaceChildren(...scoreElements);
+    cacheSheetScoreView(
+        notation,
+        scoreElement,
+        lane,
+        noteElements,
+        renderables,
+        virtualize
+    );
     const initialPosition = countIn ? -units - 1 : 0;
     positionSheetLane(notation, scoreSelector, initialPosition);
 }
@@ -916,8 +1197,8 @@ const musicNotation = Object.freeze({
     sheetDurationLabel,
     sheetDurationUnit,
     createSheetLayout,
-    sheetPlayLinePosition,
     positionSheetLane,
+    destroySheetScore,
     sheetBeamGroups,
     renderSheetScore,
     describeSheetScore,

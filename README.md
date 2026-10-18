@@ -57,7 +57,7 @@ yarn serve
 
 The site will be available at [http://localhost:3000/](http://localhost:3000/).
 
-For an nginx deployment with HTTPS, use `nginx.conf.example` and follow the installation instructions at the top of the file.
+For an nginx deployment with HTTPS, run `yarn deploy <host>` or follow the deployment instructions at the top of `nginx.conf.example`. Use `yarn deploy --http-only <host>` to serve without TLS; IP addresses imply `--http-only`.
 
 Use the global A4 reference to change the tuning standard used throughout the application. The global volume control adjusts generated audio output.
 
@@ -67,9 +67,10 @@ The MIDI tab includes a selection of MIDI files and parses local files in the br
 
 ## Files
 
-- `nginx.conf.example` - optional nginx HTTPS configuration template with installation and Certbot instructions
-- `serve.js` - optional local static-file server
-- `generate.js` - copies third-party browser files and generates `file://`-compatible SoundFont and MIDI data scripts
+- `nginx.conf.example` - optional nginx HTTPS configuration template with deployment and Certbot instructions
+- `scripts/deploy.js` - deploys the site and nginx configuration
+- `scripts/serve.js` - optional local static-file server
+- `scripts/generate.js` - copies third-party browser files and generates `file://`-compatible SoundFont and MIDI data scripts
 - `site/index.html` - interface and application metadata
 - `site/assets/css/base.css` - shared variables and base element styles
 - `site/assets/css/controls.css` - shared settings, form control, tooltip, and icon button styles

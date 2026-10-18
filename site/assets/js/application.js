@@ -1324,9 +1324,15 @@ const midiVisualizer = {
     trackerPosition: 0,
     trackerSegments: [],
     trackerSegmentElements: new Map(),
+    trackerMarkers: [],
+    trackerMarkerElements: new Map(),
     trackerMaximumNote: 0,
-    trackerMaximumSegmentDuration: 0,
+    trackerSegmentPrefixEnds: [],
     trackerResizeObserver: null,
+    trackerTimeline: null,
+    trackerVisibleDuration: 0,
+    trackerWindowEnd: -Infinity,
+    trackerWindowStart: Infinity,
 };
 
 const midiPlayback = {
@@ -1844,6 +1850,34 @@ function midiTrackerSegmentIndexAtOrAfter(position) {
     return low;
 }
 
+function midiTrackerMarkerIndexAtOrAfter(position) {
+    let low = 0;
+    let high = midiVisualizer.trackerMarkers.length;
+    while (low < high) {
+        const middle = Math.floor((low + high) / 2);
+        if (midiVisualizer.trackerMarkers[middle].position < position) {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    return low;
+}
+
+function midiMeasureDurationAtPosition(position) {
+    let signature = midiVisualizer.signatureMap[0];
+    for (const candidate of midiVisualizer.signatureMap) {
+        if (candidate.position > position) {
+            break;
+        }
+        signature = candidate;
+    }
+    return signature
+        ? (signature.numerator * midiVisualizer.unitsPerQuarter * 4) /
+              signature.denominator
+        : midiVisualizer.unitsPerQuarter * 4;
+}
+
 function createMidiTrackerNote(segment) {
     const track = midiVisualizer.tracks.find(
         (candidate) => candidate.trackIndex === segment.trackIndex
@@ -1883,28 +1917,44 @@ function createMidiTrackerNote(segment) {
     return bar;
 }
 
-function renderMidiTrackerNotes(position = midiVisualizer.position) {
-    const roll = document.querySelector('.midi-tracker-roll');
-    const timeline = document.querySelector('.midi-tracker-timeline');
-    if (!roll || !timeline || !roll.clientWidth) {
+function renderMidiTrackerNotes(
+    position = midiVisualizer.position,
+    force = false
+) {
+    const timeline = midiVisualizer.trackerTimeline;
+    const visibleDuration = midiVisualizer.trackerVisibleDuration;
+    if (!timeline || !visibleDuration) {
         return;
     }
 
-    const remPixels = parseFloat(
-        getComputedStyle(document.documentElement).fontSize
-    );
-    const visibleDuration =
-        (roll.clientWidth /
-            remPixels /
-            musicEngine.MIDI_TRACKER_REM_PER_QUARTER) *
-        midiVisualizer.unitsPerQuarter;
-    const renderEnd =
-        position + visibleDuration * musicEngine.MIDI_TRACKER_RENDER_VIEWPORTS;
-    const firstIndex = midiTrackerSegmentIndexAtOrAfter(
-        position - midiVisualizer.trackerMaximumSegmentDuration
-    );
+    const measureDuration = midiMeasureDurationAtPosition(position);
+    const wantedStart = position - measureDuration;
+    const wantedEnd = position + visibleDuration + measureDuration;
+    const refreshMargin = measureDuration / 4;
+    if (
+        !force &&
+        wantedStart >= midiVisualizer.trackerWindowStart + refreshMargin &&
+        wantedEnd <= midiVisualizer.trackerWindowEnd - refreshMargin
+    ) {
+        return;
+    }
+    const renderStart = wantedStart - refreshMargin * 2;
+    const renderEnd = wantedEnd + refreshMargin * 2;
+    midiVisualizer.trackerWindowStart = renderStart;
+    midiVisualizer.trackerWindowEnd = renderEnd;
+    const firstIndex = midiTrackerSegmentIndexAtOrAfter(renderStart);
     const renderedIndexes = new Set();
-
+    for (
+        let index = firstIndex - 1;
+        index >= 0 &&
+        midiVisualizer.trackerSegmentPrefixEnds[index] > renderStart;
+        index -= 1
+    ) {
+        const segment = midiVisualizer.trackerSegments[index];
+        if (segment.start + segment.duration > renderStart) {
+            renderedIndexes.add(index);
+        }
+    }
     for (
         let index = firstIndex;
         index < midiVisualizer.trackerSegments.length;
@@ -1914,11 +1964,14 @@ function renderMidiTrackerNotes(position = midiVisualizer.position) {
         if (segment.start >= renderEnd) {
             break;
         }
-        if (segment.start + segment.duration <= position) {
+        if (segment.start + segment.duration <= renderStart) {
             continue;
         }
         renderedIndexes.add(index);
+    }
+    for (const index of renderedIndexes) {
         if (!midiVisualizer.trackerSegmentElements.has(index)) {
+            const segment = midiVisualizer.trackerSegments[index];
             const bar = createMidiTrackerNote(segment);
             midiVisualizer.trackerSegmentElements.set(index, bar);
             timeline.append(bar);
@@ -1931,13 +1984,42 @@ function renderMidiTrackerNotes(position = midiVisualizer.position) {
             midiVisualizer.trackerSegmentElements.delete(index);
         }
     }
+
+    const firstMarkerIndex = midiTrackerMarkerIndexAtOrAfter(renderStart);
+    const renderedMarkerIndexes = new Set();
+    for (
+        let index = firstMarkerIndex;
+        index < midiVisualizer.trackerMarkers.length;
+        index += 1
+    ) {
+        const marker = midiVisualizer.trackerMarkers[index];
+        if (marker.position >= renderEnd) {
+            break;
+        }
+        renderedMarkerIndexes.add(index);
+        if (!midiVisualizer.trackerMarkerElements.has(index)) {
+            const element = document.createElement('span');
+            element.className = marker.className;
+            element.style.left = `${(marker.position / midiVisualizer.unitsPerQuarter) * musicEngine.MIDI_TRACKER_REM_PER_QUARTER}rem`;
+            element.textContent = marker.textContent;
+            element.setAttribute('aria-hidden', 'true');
+            midiVisualizer.trackerMarkerElements.set(index, element);
+            timeline.append(element);
+        }
+    }
+    for (const [index, marker] of midiVisualizer.trackerMarkerElements) {
+        if (!renderedMarkerIndexes.has(index)) {
+            marker.remove();
+            midiVisualizer.trackerMarkerElements.delete(index);
+        }
+    }
 }
 
 function updateMidiTracker(
     position = midiVisualizer.position,
     flashAttacks = false
 ) {
-    const timeline = document.querySelector('.midi-tracker-timeline');
+    const timeline = midiVisualizer.trackerTimeline;
     if (!timeline) {
         return;
     }
@@ -1952,26 +2034,26 @@ function updateMidiTracker(
     );
     const activePitches = new Set();
     const attackedPitches = new Set();
-    for (const note of midiVisualizer.notes) {
-        if (!enabledTrackIndexes.has(note.trackIndex)) {
+    for (const index of midiVisualizer.trackerSegmentElements.keys()) {
+        const segment = midiVisualizer.trackerSegments[index];
+        if (!enabledTrackIndexes.has(segment.trackIndex)) {
             continue;
         }
-        const timing = midiTrackerNoteTiming(note);
         if (
-            position >= timing.start &&
-            position < timing.start + timing.duration
+            position >= segment.start &&
+            position < segment.start + segment.duration
         ) {
-            activePitches.add(note.midi);
+            activePitches.add(segment.midi);
         }
         if (
             flashAttacks &&
             musicEngine.compareSheetPositions(
-                timing.start,
+                segment.start,
                 midiVisualizer.trackerPosition
             ) > 0 &&
-            musicEngine.compareSheetPositions(timing.start, position) <= 0
+            musicEngine.compareSheetPositions(segment.start, position) <= 0
         ) {
-            attackedPitches.add(note.midi);
+            attackedPitches.add(segment.midi);
         }
     }
     for (const key of document.querySelectorAll('[data-midi-tracker-key]')) {
@@ -1992,6 +2074,13 @@ function renderMidiTracker() {
     midiVisualizer.trackerResizeObserver = null;
     midiVisualizer.trackerSegments = [];
     midiVisualizer.trackerSegmentElements = new Map();
+    midiVisualizer.trackerMarkers = [];
+    midiVisualizer.trackerMarkerElements = new Map();
+    midiVisualizer.trackerSegmentPrefixEnds = [];
+    midiVisualizer.trackerTimeline = null;
+    midiVisualizer.trackerVisibleDuration = 0;
+    midiVisualizer.trackerWindowEnd = -Infinity;
+    midiVisualizer.trackerWindowStart = Infinity;
     tracker.replaceChildren();
     if (!midiVisualizer.notes.length) {
         tracker.hidden = true;
@@ -2014,12 +2103,17 @@ function renderMidiTracker() {
     const timeline = document.createElement('div');
     const legend = document.createElement('ul');
     const segments = midiTrackerSegments(midiVisualizer.notes);
+    const markers = [];
     midiVisualizer.trackerSegments = segments;
     midiVisualizer.trackerMaximumNote = maximumNote;
-    midiVisualizer.trackerMaximumSegmentDuration = segments.reduce(
-        (maximum, segment) => Math.max(maximum, segment.duration),
-        0
-    );
+    let maximumSegmentEnd = -Infinity;
+    midiVisualizer.trackerSegmentPrefixEnds = segments.map((segment) => {
+        maximumSegmentEnd = Math.max(
+            maximumSegmentEnd,
+            segment.start + segment.duration
+        );
+        return maximumSegmentEnd;
+    });
     stage.className = 'midi-tracker-stage';
     stage.setAttribute('role', 'img');
     stage.setAttribute(
@@ -2059,21 +2153,26 @@ function renderMidiTracker() {
             barlineCount < musicEngine.MIDI_TRACKER_MAX_BARLINES;
             position += measureDuration
         ) {
-            const barline = document.createElement('span');
-            barline.className = 'midi-tracker-barline';
-            barline.style.left = `${(position / midiVisualizer.unitsPerQuarter) * musicEngine.MIDI_TRACKER_REM_PER_QUARTER}rem`;
-            barline.setAttribute('aria-hidden', 'true');
-            timeline.append(barline);
+            markers.push({
+                className: 'midi-tracker-barline',
+                position,
+                textContent: '',
+            });
             barlineCount += 1;
         }
 
-        const label = document.createElement('span');
-        label.className = 'midi-tracker-signature';
-        label.style.left = `${(signature.position / midiVisualizer.unitsPerQuarter) * musicEngine.MIDI_TRACKER_REM_PER_QUARTER}rem`;
-        label.textContent = `${signature.numerator}/${signature.denominator}`;
-        label.setAttribute('aria-hidden', 'true');
-        timeline.append(label);
+        markers.push({
+            className: 'midi-tracker-signature',
+            position: signature.position,
+            textContent: `${signature.numerator}/${signature.denominator}`,
+        });
     }
+    markers.sort(
+        (left, right) =>
+            left.position - right.position ||
+            left.className.localeCompare(right.className)
+    );
+    midiVisualizer.trackerMarkers = markers;
 
     const blackPitchClasses = new Set([1, 3, 6, 8, 10]);
     for (let midi = maximumNote; midi >= minimumNote; midi -= 1) {
@@ -2146,8 +2245,19 @@ function renderMidiTracker() {
     roll.append(rows, timeline);
     stage.append(keyboard, roll, legend);
     tracker.append(stage);
-    midiVisualizer.trackerResizeObserver = new ResizeObserver(() => {
-        renderMidiTrackerNotes();
+    midiVisualizer.trackerTimeline = timeline;
+    const updateVisibleDuration = (width) => {
+        const remPixels = Number.parseFloat(
+            getComputedStyle(document.documentElement).fontSize
+        );
+        midiVisualizer.trackerVisibleDuration =
+            (width / remPixels / musicEngine.MIDI_TRACKER_REM_PER_QUARTER) *
+            midiVisualizer.unitsPerQuarter;
+        renderMidiTrackerNotes(midiVisualizer.position, true);
+    };
+    updateVisibleDuration(roll.clientWidth);
+    midiVisualizer.trackerResizeObserver = new ResizeObserver(([entry]) => {
+        updateVisibleDuration(entry.contentRect.width);
     });
     midiVisualizer.trackerResizeObserver.observe(roll);
     for (const track of midiVisualizer.tracks) {
@@ -2733,7 +2843,7 @@ function midiTrackScores(phrase, trackIndex, score) {
                 score.meter
             ),
             clef,
-            highlightedNotes: new Set(),
+            highlightState: null,
             selector: `#midi-visualize-track-${trackIndex + 1}-${clef}`,
         }));
 }
@@ -2762,7 +2872,7 @@ function midiPercussionScore(phrase, trackIndex, score) {
             score.meter
         ),
         clef: 'percussion',
-        highlightedNotes: new Set(),
+        highlightState: null,
         selector: `#midi-visualize-track-${trackIndex + 1}-percussion`,
     };
 }
@@ -2840,6 +2950,14 @@ function midiIntervalAtPosition(parsed, unitsPerQuarter, position) {
         tempo = event;
     }
     return (tempo.microseconds / 1000000) * (4 / parsed.denominator);
+}
+
+function destroyMidiSheetViews() {
+    for (const track of midiVisualizer.tracks) {
+        for (const score of track.scores) {
+            musicEngine.destroySheetScore(score);
+        }
+    }
 }
 
 function setMidiVisualization(parsed, fileName) {
@@ -2983,6 +3101,7 @@ function setMidiVisualization(parsed, fileName) {
     summaryParts.push(tempoLabel);
     const summary = `${fileName}\n${summaryParts.join(', ')}`;
 
+    destroyMidiSheetViews();
     Object.assign(midiVisualizer, {
         tracks,
         notes,
@@ -3081,7 +3200,10 @@ function setMidiVisualization(parsed, fileName) {
     if (!hasSignatureChanges) {
         for (const track of tracks) {
             for (const score of track.scores) {
-                musicEngine.renderSheetScore(score, score.selector);
+                musicEngine.renderSheetScore(score, score.selector, {
+                    barGlide: true,
+                    virtualize: true,
+                });
             }
         }
     }
@@ -3207,47 +3329,137 @@ function midiTimeAtPosition(position) {
     );
 }
 
-function updateMidiSheetHighlights(notation, scoreSelector, position) {
-    const highlightedNotes = new Set();
-    notation.phrase.forEach((note, index) => {
-        const start = note.performanceBeat ?? note.beat;
-        const duration = note.soundingDuration ?? note.duration;
-        if (position >= start && position < start + duration) {
-            highlightedNotes.add(index);
-        }
-    });
+function midiSheetHighlightState(notation) {
+    if (notation.highlightState) {
+        return notation.highlightState;
+    }
 
-    for (const index of notation.highlightedNotes) {
-        if (!highlightedNotes.has(index)) {
-            for (const element of document.querySelectorAll(
-                `${scoreSelector} [data-sheet-note-index="${index}"]`
-            )) {
-                element.classList.remove('is-current');
-            }
+    const starts = notation.phrase
+        .map((note, index) => {
+            const start = note.performanceBeat ?? note.beat;
+            const duration = note.soundingDuration ?? note.duration;
+
+            return { end: start + duration, index, start };
+        })
+        .sort(
+            (left, right) =>
+                left.start - right.start || left.index - right.index
+        );
+    let maximumEnd = -Infinity;
+    const prefixEnds = starts.map(({ end }) => {
+        maximumEnd = Math.max(maximumEnd, end);
+        return maximumEnd;
+    });
+    const ends = [...starts].sort(
+        (left, right) => left.end - right.end || left.index - right.index
+    );
+    notation.highlightState = {
+        active: new Set(),
+        ends,
+        nextEnd: 0,
+        nextStart: 0,
+        position: -Infinity,
+        prefixEnds,
+        starts,
+    };
+
+    return notation.highlightState;
+}
+
+function midiEventUpperBound(events, position, property) {
+    let low = 0;
+    let high = events.length;
+
+    while (low < high) {
+        const middle = Math.floor((low + high) / 2);
+        if (events[middle][property] <= position) {
+            low = middle + 1;
+        } else {
+            high = middle;
         }
     }
-    for (const index of highlightedNotes) {
-        if (!notation.highlightedNotes.has(index)) {
-            for (const element of document.querySelectorAll(
-                `${scoreSelector} [data-sheet-note-index="${index}"]`
-            )) {
-                element.classList.add('is-current');
+
+    return low;
+}
+
+function setMidiSheetNoteHighlighted(notation, state, index, highlighted) {
+    if (state.active.has(index) === highlighted) {
+        return;
+    }
+
+    if (highlighted) {
+        state.active.add(index);
+    } else {
+        state.active.delete(index);
+    }
+    for (const element of notation.sheetView.noteElements[index]) {
+        element.classList.toggle('is-current', highlighted);
+    }
+}
+
+function resetMidiSheetHighlights(notation) {
+    const state = midiSheetHighlightState(notation);
+    for (const index of [...state.active]) {
+        setMidiSheetNoteHighlighted(notation, state, index, false);
+    }
+    state.nextEnd = 0;
+    state.nextStart = 0;
+    state.position = -Infinity;
+}
+
+function updateMidiSheetHighlights(notation, position) {
+    const state = midiSheetHighlightState(notation);
+
+    if (position < state.position) {
+        for (const index of [...state.active]) {
+            setMidiSheetNoteHighlighted(notation, state, index, false);
+        }
+        state.nextStart = midiEventUpperBound(state.starts, position, 'start');
+        state.nextEnd = midiEventUpperBound(state.ends, position, 'end');
+        for (
+            let index = state.nextStart - 1;
+            index >= 0 && state.prefixEnds[index] > position;
+            index -= 1
+        ) {
+            const event = state.starts[index];
+            if (event.end > position) {
+                setMidiSheetNoteHighlighted(notation, state, event.index, true);
             }
         }
+        state.position = position;
+        return;
     }
-    notation.highlightedNotes = highlightedNotes;
+
+    while (
+        state.nextEnd < state.ends.length &&
+        state.ends[state.nextEnd].end <= position
+    ) {
+        setMidiSheetNoteHighlighted(
+            notation,
+            state,
+            state.ends[state.nextEnd].index,
+            false
+        );
+        state.nextEnd += 1;
+    }
+    while (
+        state.nextStart < state.starts.length &&
+        state.starts[state.nextStart].start <= position
+    ) {
+        const event = state.starts[state.nextStart];
+        if (event.end > position) {
+            setMidiSheetNoteHighlighted(notation, state, event.index, true);
+        }
+        state.nextStart += 1;
+    }
+    state.position = position;
 }
 
 function resetMidiScores(position = 0) {
     for (const track of midiVisualizer.tracks) {
         for (const score of track.scores) {
             musicEngine.positionSheetLane(score, score.selector, position);
-            for (const element of document.querySelectorAll(
-                `${score.selector} .is-current`
-            )) {
-                element.classList.remove('is-current');
-            }
-            score.highlightedNotes.clear();
+            resetMidiSheetHighlights(score);
         }
     }
     updateMidiTracker(position);
@@ -3589,7 +3801,7 @@ function drawMidiVisualization() {
     for (const track of midiVisualizer.tracks) {
         for (const score of track.scores) {
             musicEngine.positionSheetLane(score, score.selector, position);
-            updateMidiSheetHighlights(score, score.selector, position);
+            updateMidiSheetHighlights(score, position);
         }
     }
     updateMidiTracker(position, true);
@@ -3750,6 +3962,7 @@ async function loadMidiVisualization(file, included = false) {
         if (loadRequest !== midiVisualizer.loadRequest) {
             return;
         }
+        destroyMidiSheetViews();
         midiVisualizer.notes = [];
         midiVisualizer.tracks = [];
         const tracksElement = document.getElementById('midi-visualize-tracks');
@@ -3760,6 +3973,13 @@ async function loadMidiVisualization(file, included = false) {
         midiVisualizer.trackerResizeObserver = null;
         midiVisualizer.trackerSegments = [];
         midiVisualizer.trackerSegmentElements = new Map();
+        midiVisualizer.trackerMarkers = [];
+        midiVisualizer.trackerMarkerElements = new Map();
+        midiVisualizer.trackerSegmentPrefixEnds = [];
+        midiVisualizer.trackerTimeline = null;
+        midiVisualizer.trackerVisibleDuration = 0;
+        midiVisualizer.trackerWindowEnd = -Infinity;
+        midiVisualizer.trackerWindowStart = Infinity;
         tracker.replaceChildren();
         tracker.hidden = true;
         midiVisualizer.position = 0;

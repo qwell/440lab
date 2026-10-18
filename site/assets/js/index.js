@@ -5,6 +5,7 @@ function loadApplicationScript(name) {
         const script = document.createElement('script');
         const source = `assets/js/${name}.js`;
 
+        script.async = false;
         script.src = source;
         script.addEventListener(
             'load',
@@ -19,25 +20,17 @@ function loadApplicationScript(name) {
     });
 }
 
-async function loadApplication() {
+function loadApplication() {
     const names = document.body.dataset.applicationScripts
         .split(/\s+/u)
         .filter(Boolean);
 
-    for (const name of names) {
-        await loadApplicationScript(name);
-    }
+    return Promise.all(names.map(loadApplicationScript));
 }
 
-window.addEventListener(
-    'load',
-    () => {
-        void loadApplication().catch((error) => {
-            console.error('Unable to load the application.', error);
-        });
-    },
-    { once: true }
-);
+void loadApplication().catch((error) => {
+    console.error('Unable to load the application.', error);
+});
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () =>

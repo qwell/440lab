@@ -25,7 +25,7 @@ export default defineConfig(
     },
 
     {
-        files: ['serve.js', 'generate.js', 'eslint.config.js'],
+        files: ['scripts/*.js', 'eslint.config.js'],
         languageOptions: {
             globals: {
                 ...globals.node,

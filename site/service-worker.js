@@ -1,4 +1,5 @@
-const CACHE_NAME = '440lab-v1';
+const CACHE_NAME = '440lab-v2';
+const UNCACHED_AUDIO_ASSET_PATTERN = /\.(?:mid|midi|sf2|sf3)(?:\.js)?$/iu;
 
 const APP_SHELL = [
     './',
@@ -55,6 +56,10 @@ self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
     if (url.origin !== self.location.origin) {
+        return;
+    }
+
+    if (UNCACHED_AUDIO_ASSET_PATTERN.test(url.pathname)) {
         return;
     }
 

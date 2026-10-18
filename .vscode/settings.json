@@ -1,6 +1,9 @@
 {
     "editor.tabSize": 4,
     "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "files.associations": {
+        "nginx.conf.example": "nginx"
+    },
     "search.exclude": {
         "**/.yarn": true,
         "**/.pnp.*": true
@@ -9,5 +12,8 @@
     "prettier.prettierPath": ".yarn/sdks/prettier/index.cjs",
     "[xml]": {
         "editor.defaultFormatter": "DotJoshJohnson.xml"
+    },
+    "[nginx]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
     }
 }

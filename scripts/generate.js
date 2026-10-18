@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import module from 'node:module';
 import path from 'node:path';
@@ -172,3 +173,28 @@ await fs.writeFile(
     path.join(midiDirectory, 'files.js'),
     `globalThis.midiFiles = ${JSON.stringify(midiFiles, null, 4)};\n`
 );
+
+const indexFile = 'site/index.html';
+const nginxFile = 'nginx.conf.example';
+const html = await fs.readFile(indexFile, 'utf8');
+const importMap = html.match(
+    /<script\s+type=["']importmap["'][^>]*>([\s\S]*?)<\/script>/iu
+);
+if (!importMap) {
+    throw new Error(`Import map not found in ${indexFile}`);
+}
+const importMapHash = `sha256-${crypto
+    .createHash('sha256')
+    .update(importMap[1])
+    .digest('base64')}`;
+const nginx = await fs.readFile(nginxFile, 'utf8');
+const cspHashPattern = /'sha256-[A-Za-z0-9+/]+={0,2}'/gu;
+const cspHashes = nginx.match(cspHashPattern) ?? [];
+if (cspHashes.length !== 1) {
+    throw new Error(`Expected one CSP hash in ${nginxFile}`);
+}
+const updatedNginx = nginx.replace(cspHashPattern, `'${importMapHash}'`);
+if (updatedNginx !== nginx) {
+    await fs.writeFile(nginxFile, updatedNginx);
+    console.log(`Updated CSP import-map hash to ${importMapHash}`);
+}
