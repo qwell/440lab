@@ -50,7 +50,7 @@
     "engines": {
         "node": ">=24.0.0"
     },
-    "packageManager": "yarn@4.18.0",
+    "packageManager": "yarn@4.18.1",
     "scripts": {
         "serve": "node scripts/serve.js",
         "generate": "node scripts/generate.js && yarn hygiene",
@@ -68,7 +68,7 @@
     "devDependencies": {
         "@eslint/css": "^2.0.0",
         "@eslint/js": "^10.0.1",
-        "@html-eslint/eslint-plugin": "^0.66.1",
+        "@html-eslint/eslint-plugin": "^0.67.0",
         "@yarnpkg/sdks": "^3.3.1",
         "eslint": "^10.12.0",
         "eslint-config-prettier": "^10.1.8",
