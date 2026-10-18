@@ -1087,33 +1087,37 @@ let midiAssetsPromise = null;
 let soundFontCatalogPromise = null;
 let soundFontStatusRequest = 0;
 
-function bundledSoundFontName(file) {
-    return file
-        .split('/')
-        .at(-1)
-        .replace(/\.(?:sf2|sf3)$/iu, '');
+function assetFileName(file) {
+    return file.slice(file.lastIndexOf('/') + 1);
+}
+
+function assetName(file) {
+    return assetFileName(file).replace(/\.[^./]+$/u, '');
+}
+
+function assetPath(file, extension) {
+    return file?.replace(/\.[^./]+$/u, `.${extension}`);
+}
+
+function assetExtension(file) {
+    return file?.match(/\.([^./]+)$/u)?.[1];
 }
 
 function bundledSoundFontFile(name) {
-    return bundledSoundFontFiles.find(
-        (file) => bundledSoundFontName(file) === name
-    );
+    return bundledSoundFontFiles.find((file) => assetName(file) === name);
 }
 
 function soundFontPath(name, extension) {
-    return bundledSoundFontFile(name)?.replace(
-        /\.(?:sf2|sf3)$/iu,
-        `.${extension}`
-    );
+    return assetPath(bundledSoundFontFile(name), extension);
 }
 
 function soundFontExtension(name) {
-    return bundledSoundFontFile(name)?.match(/\.(sf2|sf3)$/iu)?.[1];
+    return assetExtension(bundledSoundFontFile(name));
 }
 
 function initializeSoundFonts() {
     bundledSoundFontFiles = globalThis.soundFontFiles ?? [];
-    bundledSoundFonts = bundledSoundFontFiles.map(bundledSoundFontName);
+    bundledSoundFonts = bundledSoundFontFiles.map(assetName);
 
     for (const select of musicEngine.getControls('shared-soundfont')) {
         const selected = select.value;
@@ -1137,15 +1141,15 @@ function initializeSoundFonts() {
 }
 
 function initializeMidiLibrary() {
-    const names = globalThis.midiFiles ?? [];
+    const files = globalThis.midiFiles ?? [];
     for (const select of musicEngine.getControls('shared-midi-library')) {
         const placeholder = document.createElement('option');
         placeholder.value = '';
         placeholder.textContent = 'Included MIDI file';
-        const options = names.map((name) => {
+        const options = files.map((file) => {
             const option = document.createElement('option');
-            option.value = name;
-            option.textContent = name.replace(/\.mid$/iu, '');
+            option.value = file;
+            option.textContent = assetName(file);
             return option;
         });
         select.replaceChildren(placeholder, ...options);
@@ -4007,27 +4011,25 @@ function isMidiFile(file) {
     );
 }
 
-function midiFilePath(name, script = false) {
-    const encodedName = encodeURIComponent(name);
-    return script
-        ? `assets/midi/${encodedName}.js`
-        : `assets/midi/${encodedName}`;
+function midiFilePath(file, script = false) {
+    return script ? assetPath(file, 'js') : file;
 }
 
-async function loadIncludedMidi(name) {
+async function loadIncludedMidi(filePath) {
+    const name = assetFileName(filePath);
     const file = {
         name,
         async arrayBuffer() {
             if (window.location.protocol === 'file:') {
-                await loadScript(midiFilePath(name, true));
-                const encoded = globalThis.midiData?.[name];
+                await loadScript(midiFilePath(filePath, true));
+                const encoded = globalThis.midiData?.[assetName(filePath)];
                 if (!encoded) {
                     throw new Error(`Unable to load ${name}.`);
                 }
                 return base64ToArrayBuffer(encoded);
             }
 
-            const response = await fetch(midiFilePath(name));
+            const response = await fetch(midiFilePath(filePath));
             if (!response.ok) {
                 throw new Error(`Unable to load ${name}.`);
             }

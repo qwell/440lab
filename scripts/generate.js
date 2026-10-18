@@ -5,69 +5,135 @@ import module from 'node:module';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
-const destination = 'site/assets/vendor';
-const soundFontCatalogDirectory = 'site/assets/soundfonts';
+const vendorDestination = 'site/assets/vendor';
+
+const indexFile = 'site/index.html';
+const nginxFile = 'nginx.conf.example';
+
+const soundFontDirectory = 'site/assets/soundfonts';
+await generateBrowserDataAssets({
+    assetType: 'SoundFont',
+    catalogDirectory: soundFontDirectory,
+    catalogVariable: 'soundFontFiles',
+    dataVariable: 'soundFontData',
+    patterns: soundFontPatterns('sf3'),
+});
+
+const midiDirectory = 'site/assets/midi';
+await generateBrowserDataAssets({
+    assetType: 'MIDI',
+    catalogDirectory: midiDirectory,
+    catalogVariable: 'midiFiles',
+    dataVariable: 'midiData',
+    patterns: [`${midiDirectory}/*.mid`],
+});
 
 function soundFontPatterns(extension) {
     return [
-        `${soundFontCatalogDirectory}/*.${extension}`,
-        `${destination}/*/soundfonts/*.${extension}`,
+        `${soundFontDirectory}/*.${extension}`,
+        `${vendorDestination}/*/soundfonts/*.${extension}`,
     ];
+}
+
+function siteRelativePath(file) {
+    return path.relative('site', file).split(path.sep).join('/');
+}
+
+async function generateBrowserDataAssets({
+    assetType,
+    catalogDirectory,
+    catalogVariable,
+    dataVariable,
+    patterns,
+}) {
+    const files = [];
+    const names = new Set();
+
+    for (const pattern of patterns) {
+        for await (const file of fs.glob(pattern)) {
+            const { dir, name } = path.parse(file);
+            const normalizedName = name.toLowerCase();
+            if (names.has(normalizedName)) {
+                throw new Error(`Duplicate ${assetType} name: ${name}`);
+            }
+
+            const relativeFile = siteRelativePath(file);
+            const buffer = await fs.readFile(file);
+            const script = [
+                `globalThis.${dataVariable} = globalThis.${dataVariable} || {};`,
+                `globalThis.${dataVariable}[${JSON.stringify(name)}] = ${JSON.stringify(buffer.toString('base64'))};`,
+                '',
+            ].join('\n');
+
+            names.add(normalizedName);
+            files.push(relativeFile);
+            await fs.writeFile(path.join(dir, `${name}.js`), script);
+        }
+    }
+
+    files.sort((left, right) => left.localeCompare(right));
+    await fs.mkdir(catalogDirectory, { recursive: true });
+    await fs.writeFile(
+        path.join(catalogDirectory, 'files.js'),
+        `globalThis.${catalogVariable} = ${JSON.stringify(files, null, 4)};\n`
+    );
 }
 
 const rootRequire = module.createRequire(import.meta.url);
 const execFileAsync = promisify(execFile);
 
-const spessaLibPackage = path.dirname(
-    rootRequire.resolve('spessasynth_lib/package.json')
-);
-const spessaLibRequire = module.createRequire(
-    path.join(spessaLibPackage, 'package.json')
-);
+function browserPackages() {
+    const spessaLibPackage = path.dirname(
+        rootRequire.resolve('spessasynth_lib/package.json')
+    );
+    const spessaLibRequire = module.createRequire(
+        path.join(spessaLibPackage, 'package.json')
+    );
 
-const spessaCorePackage = path.dirname(
-    spessaLibRequire.resolve('spessasynth_core/package.json')
-);
-const spessaCoreRequire = module.createRequire(
-    path.join(spessaCorePackage, 'package.json')
-);
+    const spessaCorePackage = path.dirname(
+        spessaLibRequire.resolve('spessasynth_core/package.json')
+    );
+    const spessaCoreRequire = module.createRequire(
+        path.join(spessaCorePackage, 'package.json')
+    );
 
-const stbVorbisPackage = path.dirname(
-    spessaCoreRequire.resolve('stb-vorbis/package.json')
-);
+    const stbVorbisPackage = path.dirname(
+        spessaCoreRequire.resolve('stb-vorbis/package.json')
+    );
 
-const packages = [
-    [
-        spessaLibPackage,
-        {
-            js: [
-                'dist/index.js',
-                'dist/index.js.map',
-                'dist/spessasynth_processor.min.js',
-                'dist/spessasynth_processor.min.js.map',
-            ],
-            root: ['LICENSE'],
-        },
-    ],
-    [
-        spessaCorePackage,
-        {
-            js: ['dist/index.js', 'dist/index.js.map'],
-            root: ['LICENSE'],
-        },
-    ],
-    [
-        stbVorbisPackage,
-        {
-            js: ['dist/index.js'],
-            root: ['LICENSE'],
-        },
-    ],
-];
+    return [
+        [
+            spessaLibPackage,
+            {
+                js: [
+                    'dist/index.js',
+                    'dist/index.js.map',
+                    'dist/spessasynth_processor.min.js',
+                    'dist/spessasynth_processor.min.js.map',
+                ],
+                root: ['LICENSE'],
+            },
+        ],
+        [
+            spessaCorePackage,
+            {
+                js: ['dist/index.js', 'dist/index.js.map'],
+                root: ['LICENSE'],
+            },
+        ],
+        [
+            stbVorbisPackage,
+            {
+                js: ['dist/index.js'],
+                root: ['LICENSE'],
+            },
+        ],
+    ];
+}
 
-for (const [packageDirectory, assetGroups] of packages) {
+for (const [packageDirectory, assetGroups] of browserPackages()) {
     const packageDestination = path.join(
-        destination,
+        vendorDestination,
         path.basename(packageDirectory)
     );
 
@@ -115,67 +181,6 @@ for (const pattern of soundFontPatterns('sf2')) {
     }
 }
 
-const soundFontFiles = [];
-const soundFontNames = new Set();
-for (const pattern of soundFontPatterns('sf3')) {
-    for await (const soundFontFile of fs.glob(pattern)) {
-        const name = path.basename(soundFontFile, '.sf3');
-        const normalizedName = name.toLowerCase();
-        if (soundFontNames.has(normalizedName)) {
-            throw new Error(`Duplicate SoundFont name: ${name}`);
-        }
-        const fileDirectory = path.dirname(soundFontFile);
-        const soundFontBuffer = await fs.readFile(soundFontFile);
-        const soundFontScript = [
-            'globalThis.soundFontData = globalThis.soundFontData || {};',
-            `globalThis.soundFontData[${JSON.stringify(name)}] = ${JSON.stringify(soundFontBuffer.toString('base64'))};`,
-            '',
-        ].join('\n');
-        const relativeFile = path
-            .relative('site', soundFontFile)
-            .split(path.sep)
-            .join('/');
-
-        soundFontNames.add(normalizedName);
-        soundFontFiles.push(relativeFile);
-        await fs.writeFile(
-            path.join(fileDirectory, `${name}.js`),
-            soundFontScript
-        );
-    }
-}
-
-soundFontFiles.sort((left, right) => left.localeCompare(right));
-await fs.mkdir(soundFontCatalogDirectory, { recursive: true });
-await fs.writeFile(
-    path.join(soundFontCatalogDirectory, 'files.js'),
-    `globalThis.soundFontFiles = ${JSON.stringify(soundFontFiles, null, 4)};\n`
-);
-
-const midiDirectory = 'site/assets/midi';
-const midiFiles = [];
-
-for await (const midiFile of fs.glob(`${midiDirectory}/*.mid`)) {
-    const name = path.basename(midiFile);
-    const midiBuffer = await fs.readFile(midiFile);
-    const midiScript = [
-        'globalThis.midiData = globalThis.midiData || {};',
-        `globalThis.midiData[${JSON.stringify(name)}] = ${JSON.stringify(midiBuffer.toString('base64'))};`,
-        '',
-    ].join('\n');
-
-    midiFiles.push(name);
-    await fs.writeFile(path.join(midiDirectory, `${name}.js`), midiScript);
-}
-
-midiFiles.sort((left, right) => left.localeCompare(right));
-await fs.writeFile(
-    path.join(midiDirectory, 'files.js'),
-    `globalThis.midiFiles = ${JSON.stringify(midiFiles, null, 4)};\n`
-);
-
-const indexFile = 'site/index.html';
-const nginxFile = 'nginx.conf.example';
 const html = await fs.readFile(indexFile, 'utf8');
 const importMap = html.match(
     /<script\s+type=["']importmap["'][^>]*>([\s\S]*?)<\/script>/iu
