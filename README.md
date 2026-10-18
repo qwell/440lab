@@ -10,6 +10,7 @@ Live demo: [https://440lab.com/](https://440lab.com/)
 - [Usage](#usage)
 - [Files](#files)
 - [Technologies](#technologies)
+- [Development](#development)
 - [License](#license)
 
 ## Features
@@ -81,15 +82,6 @@ The MIDI tab includes a selection of MIDI files and parses local files in the br
 - `site/assets/midi/` - included MIDI files and their generated `file://` data wrappers
 - `site/assets/vendor/` - checked-in third-party files organized by package and asset type
 
-Generated browser assets are committed with the site. Run `yarn generate` after
-adding a file to `site/assets/midi/` or updating a SoundFont or source
-dependency. The generator discovers MIDI and SoundFont files automatically,
-converts SF2 files to SF3 with `sf3convert -z -q 0.8 -a -1`, creates their
-JavaScript data wrappers, and generates both dropdown catalogs.
-The SpessaSynth module files and worklet are copied directly from its packages.
-`browser.js` and `processor.js` are a pinned pair retained for opening the site
-directly through `file://` and must be updated together.
-
 ## Technologies
 
 HTML, CSS, and JavaScript using browser APIs including:
@@ -101,6 +93,41 @@ HTML, CSS, and JavaScript using browser APIs including:
 - SpessaSynth for MIDI and SoundFont playback
 
 No frameworks, build step, or external runtime services are required.
+
+## Development
+
+SoundFont assets are stored with Git LFS. Before working on the project,
+install and configure Git LFS, then clone the repository:
+
+```sh
+git lfs install
+git clone https://github.com/qwell/440lab.git
+cd 440lab
+```
+
+The clone downloads the LFS objects automatically. Subsequent `git pull`
+commands also download updated LFS objects; a separate `git lfs pull` is not
+normally required.
+
+If the repository was cloned before Git LFS was configured, run the following
+inside the clone to replace any LFS pointer files with their contents:
+
+```sh
+git lfs install --local
+git lfs pull
+```
+
+Generated browser assets are committed with the site. Run `yarn generate`
+after changing MIDI files in `site/assets/midi/`, SoundFonts in
+`site/assets/soundfonts/` or `site/assets/vendor/*/soundfonts/`, the
+vendored browser dependencies, or the HTML import map.
+
+For MIDI and SoundFont assets, the generator creates base64 JavaScript wrappers
+for `file://` use and rebuilds the corresponding `files.js` dropdown catalogs.
+It also converts SF2 inputs to SF3 with `sf3convert -z -q 0.8 -a -1`.
+
+The generator refreshes configured browser files and licenses from their
+installed packages, and updates the nginx CSP hash when the import map changes.
 
 ## License
 

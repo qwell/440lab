@@ -305,10 +305,17 @@
 
 /* MIDI */
 
-[data-mode-panel].is-drag-over:has([data-control='shared-soundfont']) {
+main.is-drag-over::after {
+    position: fixed;
+    z-index: 1000;
+    inset: 4px;
+
     border-radius: var(--border-radius);
-    outline: 2px dashed var(--target);
-    outline-offset: 8px;
+    border: 2px dashed var(--target);
+
+    pointer-events: none;
+
+    content: '';
 }
 
 .soundfont-status {
@@ -316,7 +323,7 @@
 
     margin: 0.25rem 0 0;
 
-    color: var(--muted);
+    color: var(--incorrect);
 
     font-size: 12px;
 }
@@ -325,6 +332,11 @@
     display: block;
 
     white-space: pre-line;
+}
+
+.midi-status.is-loading,
+#rhythm-sheet-count-label.is-loading {
+    color: var(--incorrect);
 }
 
 .midi-status + .soundfont-status {

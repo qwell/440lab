@@ -1,6 +1,9 @@
 globalThis.midiFiles = [
     'assets/midi/Bach - Violin Concerto in A Minor, BWV 1041.mid',
     'assets/midi/Eagles - Hotel California (Unplugged).mid',
+    'assets/midi/Paganini - Caprice No. 24 in A Minor, Op. 1 - Tema con Variazioni.mid',
+    'assets/midi/Paganini - Caprice No. 4 in C Minor, Op. 1 - Maestoso.mid',
+    'assets/midi/Paganini - Caprice No. 5 in A Minor, Op. 1 - Agitato.mid',
     'assets/midi/Rage Against the Machine - Know Your Enemy.mid',
     'assets/midi/Tool - Eulogy.mid',
     'assets/midi/Tool - Forty Six & 2.mid',

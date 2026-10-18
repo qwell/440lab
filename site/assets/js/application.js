@@ -1081,11 +1081,13 @@ async function activateTunerMicrophone() {
 
 let bundledSoundFontFiles = [];
 let bundledSoundFonts = [];
+const localMidiFiles = new Map();
 const localSoundFonts = new Map();
 const vendorScripts = new Map();
 let midiAssetsPromise = null;
 let soundFontCatalogPromise = null;
 let soundFontStatusRequest = 0;
+let midiControlLoadingCount = 0;
 
 function assetFileName(file) {
     return file.slice(file.lastIndexOf('/') + 1);
@@ -1143,6 +1145,7 @@ function initializeSoundFonts() {
 function initializeMidiLibrary() {
     const files = globalThis.midiFiles ?? [];
     for (const select of musicEngine.getControls('shared-midi-library')) {
+        const selected = select.value;
         const placeholder = document.createElement('option');
         placeholder.value = '';
         placeholder.textContent = 'Included MIDI file';
@@ -1152,30 +1155,39 @@ function initializeMidiLibrary() {
             option.textContent = assetName(file);
             return option;
         });
+        for (const [name] of localMidiFiles) {
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = `Custom (${name})`;
+            options.push(option);
+        }
         select.replaceChildren(placeholder, ...options);
+        if ([...select.options].some((option) => option.value === selected)) {
+            select.value = selected;
+        }
     }
 }
 
-function addSoundFontOption(name, label) {
-    for (const select of musicEngine.getControls('shared-soundfont')) {
+function setSharedSelectOption(controlName, value, label) {
+    for (const select of musicEngine.getControls(controlName)) {
         let option = [...select.options].find(
-            (candidate) => candidate.value === name
+            (candidate) => candidate.value === value
         );
         if (!option) {
             option = document.createElement('option');
-            option.value = name;
+            option.value = value;
             select.append(option);
         }
         option.textContent = label;
-        select.value = name;
+        select.value = value;
         select.setCustomValidity('');
     }
 }
 
-function removeSoundFontOption(name) {
-    for (const select of musicEngine.getControls('shared-soundfont')) {
+function removeSharedSelectOption(controlName, value) {
+    for (const select of musicEngine.getControls(controlName)) {
         for (const option of select.options) {
-            if (option.value === name) {
+            if (option.value === value) {
                 option.remove();
                 break;
             }
@@ -1273,35 +1285,91 @@ function readFourCC(view, offset) {
     );
 }
 
-function soundFontName(buffer) {
+function nextRiffChunkOffset(view, dataEnd, size, containerEnd) {
+    if (size % 2 === 0 || dataEnd === containerEnd) {
+        return dataEnd;
+    }
+    if (/^[\x20-\x7e]{4}$/u.test(readFourCC(view, dataEnd))) {
+        return dataEnd;
+    }
+    return dataEnd + 1 <= containerEnd ? dataEnd + 1 : null;
+}
+
+function soundFontMetadata(buffer) {
     const view = new DataView(buffer);
+    if (view.byteLength < 12) {
+        return null;
+    }
     if (
         readFourCC(view, 0) !== 'RIFF' ||
-        !['sfbk', 'sfpk', 'sfen'].includes(readFourCC(view, 8)) ||
-        readFourCC(view, 12) !== 'LIST' ||
-        readFourCC(view, 20) !== 'INFO'
+        !['sfbk', 'sfpk', 'sfen'].includes(readFourCC(view, 8))
     ) {
         return null;
     }
 
-    const infoEnd = Math.min(view.byteLength, 20 + view.getUint32(16, true));
-    for (let offset = 24; offset + 8 <= infoEnd;) {
-        const size = view.getUint32(offset + 4, true);
-        const dataOffset = offset + 8;
-        const dataEnd = dataOffset + size;
-        if (dataEnd > infoEnd) {
+    const riffEnd = view.getUint32(4, true) + 8;
+    if (riffEnd < 12 || riffEnd > view.byteLength) {
+        return null;
+    }
+
+    const lists = new Set();
+    let name = null;
+    for (let offset = 12; offset + 8 <= riffEnd;) {
+        const chunkSize = view.getUint32(offset + 4, true);
+        const chunkData = offset + 8;
+        const chunkEnd = chunkData + chunkSize;
+        if (chunkEnd > riffEnd) {
             return null;
         }
-        if (readFourCC(view, offset) === 'INAM') {
-            const name = new TextDecoder()
-                .decode(new Uint8Array(buffer, dataOffset, size))
-                .replace(/\0.*$/su, '')
-                .trim();
-            return name || null;
+
+        if (readFourCC(view, offset) === 'LIST' && chunkSize >= 4) {
+            const listType = readFourCC(view, chunkData);
+            lists.add(listType);
+            if (listType === 'INFO') {
+                for (
+                    let infoOffset = chunkData + 4;
+                    infoOffset + 8 <= chunkEnd;
+                ) {
+                    const infoSize = view.getUint32(infoOffset + 4, true);
+                    const infoData = infoOffset + 8;
+                    const infoEnd = infoData + infoSize;
+                    if (infoEnd > chunkEnd) {
+                        return null;
+                    }
+                    if (readFourCC(view, infoOffset) === 'INAM') {
+                        name = new TextDecoder()
+                            .decode(new Uint8Array(buffer, infoData, infoSize))
+                            .replace(/\0.*$/su, '')
+                            .trim();
+                    }
+                    const nextInfoOffset = nextRiffChunkOffset(
+                        view,
+                        infoEnd,
+                        infoSize,
+                        chunkEnd
+                    );
+                    if (nextInfoOffset === null) {
+                        return null;
+                    }
+                    infoOffset = nextInfoOffset;
+                }
+            }
         }
-        offset = dataEnd + (size % 2);
+        const nextOffset = nextRiffChunkOffset(
+            view,
+            chunkEnd,
+            chunkSize,
+            riffEnd
+        );
+        if (nextOffset === null) {
+            return null;
+        }
+        offset = nextOffset;
     }
-    return null;
+
+    return ['INFO', 'sdta', 'pdta'].every((list) => lists.has(list))
+        ? { name: name || null }
+        : null;
 }
 
 // MIDI: visualizer
@@ -1353,9 +1421,10 @@ const midiPlayback = {
 
 const midiTrackerPianoVoices = new Map();
 
-function setMidiStatus(status) {
+function setMidiStatus(status, loading = false) {
     for (const output of musicEngine.getOutputs('midi-status')) {
         output.textContent = status;
+        output.classList.toggle('is-loading', loading);
     }
 }
 
@@ -3219,14 +3288,15 @@ function setMidiVisualization(parsed, fileName) {
 
 function updateMidiTransport() {
     const hasFile = midiVisualizer.notes.length > 0;
+    const loading = midiVisualizer.loading || midiControlLoadingCount > 0;
     for (const row of document.querySelectorAll('.midi-visualize-time-row')) {
         row.hidden = !hasFile;
     }
     for (const seek of musicEngine.getControls('shared-midi-seek')) {
-        seek.disabled = !hasFile || midiVisualizer.loading;
+        seek.disabled = !hasFile || loading;
     }
     for (const play of musicEngine.getModuleActions('midi', 'play')) {
-        play.disabled = !hasFile || midiVisualizer.loading;
+        play.disabled = !hasFile || loading;
         play.setAttribute('aria-pressed', String(midiVisualizer.active));
         play.setAttribute(
             'aria-label',
@@ -3237,10 +3307,25 @@ function updateMidiTransport() {
     for (const stop of musicEngine.getModuleActions('midi', 'stop')) {
         stop.disabled =
             !hasFile ||
-            midiVisualizer.loading ||
+            loading ||
             (!midiVisualizer.active && midiVisualizer.position === 0);
     }
     updateMidiTimer();
+}
+
+function beginMidiControlLoading() {
+    midiControlLoadingCount += 1;
+    updateMidiTransport();
+    let loading = true;
+
+    return () => {
+        if (!loading) {
+            return;
+        }
+        loading = false;
+        midiControlLoadingCount = Math.max(0, midiControlLoadingCount - 1);
+        updateMidiTransport();
+    };
 }
 
 function formatMidiTime(seconds) {
@@ -3473,6 +3558,7 @@ function resetMidiScores(position = 0) {
 
 async function initializeMidiSynthesizer() {
     if (!midiPlayback.initializePromise) {
+        const finishLoading = beginMidiControlLoading();
         midiPlayback.initializePromise = (async () => {
             const context = musicEngine.audio.getContext();
             let spessaSynth;
@@ -3512,13 +3598,41 @@ async function initializeMidiSynthesizer() {
             midiPlayback.synth = synth;
             midiPlayback.sequencer = sequencer;
             synchronizeMidiTrackMutes();
-        })().catch((error) => {
-            midiPlayback.initializePromise = null;
-            throw error;
-        });
+        })()
+            .catch((error) => {
+                midiPlayback.initializePromise = null;
+                throw error;
+            })
+            .finally(() => {
+                finishLoading();
+            });
     }
 
     await midiPlayback.initializePromise;
+}
+
+function addSoundBank(soundBankManager, soundFontBuffer, soundFontId) {
+    const eventId = 'soundfont-load';
+    const failed = new Promise((_, reject) => {
+        midiPlayback.synth.eventHandler.addEvent(
+            'soundBankError',
+            eventId,
+            (error) => {
+                const message =
+                    error instanceof Error
+                        ? error.message
+                        : (error?.message ?? String(error));
+                reject(new Error(message || `Unable to load ${soundFontId}.`));
+            }
+        );
+    });
+
+    return Promise.race([
+        soundBankManager.addSoundBank(soundFontBuffer, soundFontId),
+        failed,
+    ]).finally(() => {
+        midiPlayback.synth.eventHandler.removeEvent('soundBankError', eventId);
+    });
 }
 
 async function loadSoundFont() {
@@ -3537,6 +3651,7 @@ async function loadSoundFont() {
 
     const name = control.selectedOptions[0]?.textContent ?? soundFontId;
     const hideLoading = showSoundFontLoading(name);
+    const finishLoading = beginMidiControlLoading();
     midiPlayback.soundFontPromise = (async () => {
         const localSoundFont = localSoundFonts.get(soundFontId);
         if (!localSoundFont && !bundledSoundFonts.includes(soundFontId)) {
@@ -3561,9 +3676,22 @@ async function loadSoundFont() {
             soundFontBuffer = await response.arrayBuffer();
         }
 
+        const metadata = soundFontMetadata(soundFontBuffer);
+        if (!metadata) {
+            throw new Error(`${name} is not a valid SoundFont.`);
+        }
+        if (localSoundFont) {
+            localSoundFont.label = `Custom (${metadata.name ?? localSoundFont.file.name})`;
+            setSharedSelectOption(
+                'shared-soundfont',
+                soundFontId,
+                localSoundFont.label
+            );
+        }
+
         const soundBankManager = midiPlayback.synth.soundBankManager;
         const previousSoundFontId = midiPlayback.soundFontId;
-        await soundBankManager.addSoundBank(soundFontBuffer, soundFontId);
+        await addSoundBank(soundBankManager, soundFontBuffer, soundFontId);
         if (previousSoundFontId && previousSoundFontId !== soundFontId) {
             await soundBankManager.deleteSoundBank(previousSoundFontId);
         }
@@ -3582,6 +3710,7 @@ async function loadSoundFont() {
         return await midiPlayback.soundFontPromise;
     } finally {
         midiPlayback.soundFontPromise = null;
+        finishLoading();
         hideLoading();
     }
 }
@@ -3596,19 +3725,17 @@ async function loadLocalSoundFont(file, reportControl) {
         label: `Custom (${file.name})`,
     };
     const resumeMidi = pauseForSoundFontChange();
+    const finishLoading = beginMidiControlLoading();
     const hideLoading = showSoundFontLoading(
         file.name,
         reportControl.closest('.field')
     );
 
     localSoundFonts.set(soundFontId, soundFont);
-    addSoundFontOption(soundFontId, soundFont.label);
+    setSharedSelectOption('shared-soundfont', soundFontId, soundFont.label);
     midiPlayback.loadedBuffer = null;
 
     try {
-        const buffer = await file.arrayBuffer();
-        soundFont.label = `Custom (${soundFontName(buffer) ?? file.name})`;
-        addSoundFontOption(soundFontId, soundFont.label);
         await initializeMidiSynthesizer();
         if (midiPlayback.soundFontPromise) {
             await midiPlayback.soundFontPromise;
@@ -3618,10 +3745,14 @@ async function loadLocalSoundFont(file, reportControl) {
     } catch (error) {
         if (previousLocalSoundFont) {
             localSoundFonts.set(soundFontId, previousLocalSoundFont);
-            addSoundFontOption(soundFontId, previousLocalSoundFont.label);
+            setSharedSelectOption(
+                'shared-soundfont',
+                soundFontId,
+                previousLocalSoundFont.label
+            );
         } else {
             localSoundFonts.delete(soundFontId);
-            removeSoundFontOption(soundFontId);
+            removeSharedSelectOption('shared-soundfont', soundFontId);
         }
         for (const select of musicEngine.getControls('shared-soundfont')) {
             select.value = previousSoundFontId;
@@ -3642,6 +3773,7 @@ async function loadLocalSoundFont(file, reportControl) {
         if (resumeMidi) {
             await playMidiVisualization();
         }
+        finishLoading();
         hideLoading();
     }
 }
@@ -3692,6 +3824,7 @@ function pauseForSoundFontChange() {
 
 async function changeSoundFont(control) {
     const resumeMidi = pauseForSoundFontChange();
+    const finishLoading = beginMidiControlLoading();
     const name = control.selectedOptions[0]?.textContent ?? control.value;
     const hideLoading = showSoundFontLoading(name, control.closest('.field'));
     midiPlayback.loadedBuffer = null;
@@ -3711,6 +3844,7 @@ async function changeSoundFont(control) {
         if (resumeMidi) {
             await playMidiVisualization();
         }
+        finishLoading();
         hideLoading();
     }
 }
@@ -3942,13 +4076,9 @@ function stopMidiVisualization() {
 
 async function loadMidiVisualization(file, included = false) {
     stopAllAudio();
-    if (!included) {
-        for (const select of musicEngine.getControls('shared-midi-library')) {
-            select.value = '';
-        }
-    }
     const loadRequest = ++midiVisualizer.loadRequest;
-    setMidiStatus(`Loading ${file.name}...`);
+    const finishLoading = beginMidiControlLoading();
+    setMidiStatus(`Loading ${file.name}...`, true);
 
     try {
         const buffer = await file.arrayBuffer();
@@ -3956,12 +4086,26 @@ async function loadMidiVisualization(file, included = false) {
             return;
         }
         const parsed = parseMidiFile(buffer);
+        if (!included) {
+            localMidiFiles.set(file.name, file);
+            setSharedSelectOption(
+                'shared-midi-library',
+                file.name,
+                `Custom (${file.name})`
+            );
+        }
         midiVisualizer.buffer = buffer;
         midiPlayback.loadedBuffer = null;
         setMidiVisualization(parsed, file.name);
         void Promise.all([loadSoundFontCatalog(), initializeMidiSynthesizer()])
             .then(loadSoundFont)
-            .catch(() => undefined);
+            .catch((error) => {
+                setMidiStatus(
+                    error instanceof Error
+                        ? error.message
+                        : 'Unable to load the SoundFont.'
+                );
+            });
     } catch (error) {
         if (loadRequest !== midiVisualizer.loadRequest) {
             return;
@@ -4001,6 +4145,8 @@ async function loadMidiVisualization(file, included = false) {
                 ? error.message
                 : 'Unable to read the MIDI file.'
         );
+    } finally {
+        finishLoading();
     }
 }
 
@@ -4045,7 +4191,10 @@ function isSoundFontFile(file) {
 
 async function loadDroppedFiles(dropZone, files) {
     const midiDropZone = dropZone.closest('[data-panel="midi"]');
-    const soundFontControl = dropZone.querySelector(
+    const activeModePanel = dropZone.querySelector(
+        '[data-mode-panel]:not([hidden])'
+    );
+    const soundFontControl = (activeModePanel ?? dropZone).querySelector(
         '[data-control="shared-soundfont"]'
     );
     const soundFontFile = files.find(isSoundFontFile);
@@ -5449,9 +5598,11 @@ async function startRhythm() {
     }
 
     if (soundFontPromise) {
-        document.getElementById('rhythm-sheet-count-label').textContent =
-            'Loading sound font...';
+        const countLabel = document.getElementById('rhythm-sheet-count-label');
+        countLabel.textContent = 'Loading sound font...';
+        countLabel.classList.add('is-loading');
         await soundFontPromise;
+        countLabel.classList.remove('is-loading');
         if (
             soundFontRequest !== rhythmSheet.soundFontRequest ||
             !rhythmSheetEnabled() ||
@@ -5587,8 +5738,21 @@ function initializeEvents() {
     const synchronizeChangedSharedControl = (event) => {
         musicEngine.synchronizeSharedControl(event.target);
     };
+    const hasFiles = (event) =>
+        [...(event.dataTransfer?.types ?? [])].includes('Files') ||
+        [...(event.dataTransfer?.items ?? [])].some(
+            (item) => item.kind === 'file'
+        ) ||
+        (event.dataTransfer?.files.length ?? 0) > 0;
+    const preventFileNavigation = (event) => {
+        if (hasFiles(event)) {
+            event.preventDefault();
+        }
+    };
     document.addEventListener('input', synchronizeChangedSharedControl, true);
     document.addEventListener('change', synchronizeChangedSharedControl, true);
+    document.addEventListener('dragover', preventFileNavigation, true);
+    document.addEventListener('drop', preventFileNavigation, true);
 
     for (const button of musicEngine.getModuleActions('midi', 'attach')) {
         button.addEventListener('click', () => {
@@ -5609,53 +5773,83 @@ function initializeEvents() {
     }
     for (const select of musicEngine.getControls('shared-midi-library')) {
         select.addEventListener('change', () => {
-            if (select.value) {
+            const file = localMidiFiles.get(select.value);
+            if (file) {
+                void loadMidiVisualization(file);
+            } else if (select.value) {
                 void loadIncludedMidi(select.value);
             }
         });
     }
-    const fileDropZones = new Set(
-        [...musicEngine.getControls('shared-soundfont')].map((control) =>
-            control.closest('[data-mode-panel]')
-        )
-    );
-    for (const dropZone of fileDropZones) {
-        let dragDepth = 0;
-        const hasFiles = (event) =>
-            [...(event.dataTransfer?.types ?? [])].includes('Files');
+    const dropSurface = document.querySelector('main');
+    const activeFileDropPanel = () => {
+        const panel = dropSurface.querySelector('.section-panel:not([hidden])');
+        if (panel?.dataset.panel === 'midi') {
+            return panel;
+        }
+        if (
+            panel?.dataset.panel === 'rhythm' &&
+            !panel.querySelector('[data-mode-panel="sheet"]')?.hidden
+        ) {
+            return panel;
+        }
+        return null;
+    };
 
-        dropZone.addEventListener('dragenter', (event) => {
-            if (!hasFiles(event)) {
-                return;
-            }
-            event.preventDefault();
-            dragDepth += 1;
-            dropZone.classList.add('is-drag-over');
-        });
-        dropZone.addEventListener('dragover', (event) => {
-            if (!hasFiles(event)) {
-                return;
-            }
-            event.preventDefault();
-            event.dataTransfer.dropEffect = 'copy';
-        });
-        dropZone.addEventListener('dragleave', () => {
-            if (dragDepth === 0) {
-                return;
-            }
-            dragDepth = Math.max(0, dragDepth - 1);
-            dropZone.classList.toggle('is-drag-over', dragDepth > 0);
-        });
-        dropZone.addEventListener('drop', (event) => {
-            if (!hasFiles(event)) {
-                return;
-            }
-            event.preventDefault();
-            dragDepth = 0;
-            dropZone.classList.remove('is-drag-over');
-            const files = [...event.dataTransfer.files];
-            void loadDroppedFiles(dropZone, files);
-        });
+    {
+        let dragDepth = 0;
+
+        dropSurface.addEventListener(
+            'dragenter',
+            (event) => {
+                if (!activeFileDropPanel()) {
+                    return;
+                }
+                event.preventDefault();
+                dragDepth += 1;
+                dropSurface.classList.add('is-drag-over');
+            },
+            true
+        );
+        dropSurface.addEventListener(
+            'dragover',
+            (event) => {
+                if (!activeFileDropPanel()) {
+                    return;
+                }
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'copy';
+            },
+            true
+        );
+        dropSurface.addEventListener(
+            'dragleave',
+            () => {
+                if (dragDepth === 0) {
+                    return;
+                }
+                dragDepth = Math.max(0, dragDepth - 1);
+                dropSurface.classList.toggle('is-drag-over', dragDepth > 0);
+            },
+            true
+        );
+        dropSurface.addEventListener(
+            'drop',
+            (event) => {
+                const panel = activeFileDropPanel();
+                if (!panel) {
+                    return;
+                }
+                event.preventDefault();
+                dragDepth = 0;
+                dropSurface.classList.remove('is-drag-over');
+                const files = [...event.dataTransfer.files];
+                if (files.length) {
+                    void loadDroppedFiles(panel, files);
+                }
+            },
+            true
+        );
     }
     for (const control of musicEngine.getControls('shared-soundfont')) {
         control.addEventListener('change', () => {
