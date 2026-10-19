@@ -546,6 +546,7 @@ main.is-drag-over::after {
 
     overflow-x: hidden;
     overflow-y: auto;
+    overflow-anchor: none;
 
     border: 1px solid var(--border);
     border-radius: var(--border-radius);
@@ -773,6 +774,50 @@ main.is-drag-over::after {
     min-width: 0;
 
     overflow-wrap: anywhere;
+}
+
+.midi-tracker-instrument {
+    position: relative;
+
+    min-width: 0;
+    max-width: 100%;
+
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+
+    cursor: pointer;
+}
+
+.midi-tracker-instrument::after {
+    font-size: 12px;
+    content: '▾';
+
+    color: #777;
+}
+
+.midi-tracker-instrument:focus-within {
+    outline: 2px solid var(--target);
+    outline-offset: 2px;
+}
+
+.midi-tracker-instrument-select {
+    position: absolute;
+    inset: 0;
+
+    width: 100%;
+    height: 100%;
+
+    opacity: 0;
+    cursor: pointer;
+}
+
+.midi-tracker-instrument-select:disabled {
+    cursor: default;
+}
+
+.midi-tracker-instrument-select:focus-visible {
+    outline: 0;
 }
 
 .midi-tracker-legend .midi-tracker-legend-toggle {

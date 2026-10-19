@@ -1436,8 +1436,10 @@ function updateMidiMode() {
     }
 }
 
-function midiPresetName(patch) {
-    const presets = midiPlayback.synth?.presetList ?? [];
+function midiPresetForPatch(
+    patch,
+    presets = midiPlayback.synth?.presetList ?? []
+) {
     const exact = presets.find(
         (preset) =>
             preset.program === patch.program &&
@@ -1449,10 +1451,23 @@ function midiPresetName(patch) {
         (preset) =>
             preset.program === patch.program && preset.isDrum === patch.isDrum
     );
-    return (exact ?? fallback)?.name;
+    return exact ?? fallback;
+}
+
+function midiPresetName(patch) {
+    return midiPresetForPatch(patch)?.name;
 }
 
 function midiTrackLabel(track) {
+    if (track.instrumentOverride) {
+        return track.instrumentOverride.name.localeCompare(
+            track.name,
+            undefined,
+            { sensitivity: 'accent' }
+        ) === 0
+            ? `*${track.name}`
+            : `${track.name} (*${track.instrumentOverride.name})`;
+    }
     const instruments = [
         ...new Set(track.patches.map(midiPresetName).filter(Boolean)),
     ];
@@ -1465,6 +1480,105 @@ function midiTrackLabel(track) {
     return distinctInstruments.length
         ? `${track.name} (${distinctInstruments.join(', ')})`
         : track.name;
+}
+
+function midiPresetValue(preset) {
+    return [
+        Number(preset.isDrum),
+        preset.bankMSB,
+        preset.bankLSB,
+        preset.program,
+    ].join(':');
+}
+
+function midiInstrumentPresets(track) {
+    const drumStates = new Set(track.patches.map((patch) => patch.isDrum));
+    return (midiPlayback.synth?.presetList ?? []).filter(
+        (preset) =>
+            drumStates.size !== 1 || drumStates.has(Boolean(preset.isDrum))
+    );
+}
+
+function midiOriginalPresetValue(
+    track,
+    presets = midiInstrumentPresets(track)
+) {
+    for (const patch of track.patches) {
+        const preset = midiPresetForPatch(patch, presets);
+        if (preset) {
+            return midiPresetValue(preset);
+        }
+    }
+    return '';
+}
+
+function updateMidiInstrumentControl(track) {
+    const select = document.querySelector(
+        `[data-midi-tracker-track-index="${track.trackIndex}"] .midi-tracker-instrument-select`
+    );
+    if (!select) {
+        return;
+    }
+    const presets = midiInstrumentPresets(track);
+    const names = new Map();
+    for (const preset of presets) {
+        names.set(preset.name, (names.get(preset.name) ?? 0) + 1);
+    }
+    const options = [new Option('Reset', '')];
+    for (const preset of presets) {
+        const duplicate = names.get(preset.name) > 1;
+        const suffix = duplicate
+            ? ` — bank ${preset.bankMSB}:${preset.bankLSB}, program ${preset.program + 1}`
+            : '';
+        options.push(
+            new Option(`${preset.name}${suffix}`, midiPresetValue(preset))
+        );
+    }
+    const selectedValue = track.instrumentOverride
+        ? midiPresetValue(track.instrumentOverride)
+        : midiOriginalPresetValue(track, presets);
+    select.replaceChildren(...options);
+    select.value = selectedValue;
+    select.disabled = presets.length === 0;
+}
+
+function updateMidiInstrumentControls() {
+    const presetValues = new Set(
+        (midiPlayback.synth?.presetList ?? []).map(midiPresetValue)
+    );
+    if (
+        midiVisualizer.tracks.some(
+            (track) =>
+                track.instrumentOverride &&
+                !presetValues.has(midiPresetValue(track.instrumentOverride))
+        )
+    ) {
+        for (const track of midiVisualizer.tracks) {
+            track.instrumentOverride = null;
+        }
+        applyMidiInstrumentOverrides();
+        updateMidiTrackLabels();
+    }
+    for (const track of midiVisualizer.tracks) {
+        updateMidiInstrumentControl(track);
+    }
+    const legend = document.querySelector('.midi-tracker-legend');
+    if (legend) {
+        balanceMidiTrackerLegend(legend);
+    }
+}
+
+function synchronizeMidiInstrumentSelections() {
+    for (const track of midiVisualizer.tracks) {
+        const select = document.querySelector(
+            `[data-midi-tracker-track-index="${track.trackIndex}"] .midi-tracker-instrument-select`
+        );
+        if (select) {
+            select.value = track.instrumentOverride
+                ? midiPresetValue(track.instrumentOverride)
+                : midiOriginalPresetValue(track);
+        }
+    }
 }
 
 function updateMidiTrackLabels() {
@@ -1553,6 +1667,98 @@ function midiTrackMuteGroup(selectedTrack) {
     }
 
     return tracks;
+}
+
+function applyMidiInstrumentOverrides() {
+    if (!midiPlayback.synth) {
+        return;
+    }
+    const overrides = new Map();
+    for (const track of midiVisualizer.tracks) {
+        if (!track.instrumentOverride) {
+            continue;
+        }
+        for (const channel of track.channels) {
+            overrides.set(channel, track.instrumentOverride);
+        }
+    }
+    for (const [
+        channel,
+        midiChannel,
+    ] of midiPlayback.synth.midiChannels.entries()) {
+        midiChannel.setSystemParameter('presetLock', false);
+        const override = overrides.get(channel);
+        if (!override) {
+            continue;
+        }
+        midiChannel.setDrums(Boolean(override.isDrum));
+        midiPlayback.synth.controllerChange(channel, 0, override.bankMSB);
+        midiPlayback.synth.controllerChange(channel, 32, override.bankLSB);
+        midiPlayback.synth.programChange(channel, override.program);
+        midiChannel.setSystemParameter('presetLock', true);
+    }
+}
+
+function resetMidiInstrumentOverrides() {
+    for (const track of midiVisualizer.tracks) {
+        track.instrumentOverride = null;
+    }
+    applyMidiInstrumentOverrides();
+    updateMidiTrackLabels();
+    updateMidiInstrumentControls();
+}
+
+async function changeMidiTrackInstrument(track, value) {
+    const preset = value
+        ? midiInstrumentPresets(track).find(
+              (candidate) => midiPresetValue(candidate) === value
+          )
+        : null;
+    if (value && !preset) {
+        updateMidiInstrumentControl(track);
+        return;
+    }
+    const group = midiTrackMuteGroup(track);
+    const previous = new Map(
+        [...group].map((candidate) => [candidate, candidate.instrumentOverride])
+    );
+    const reloadOriginal = !preset;
+    const resumeMidi = reloadOriginal && midiVisualizer.active;
+    if (resumeMidi) {
+        pauseMidiVisualization();
+    }
+    if (reloadOriginal) {
+        midiPlayback.synth?.stopAll(true);
+    }
+    for (const candidate of group) {
+        candidate.instrumentOverride = preset ? { ...preset } : null;
+    }
+
+    try {
+        if (preset) {
+            applyMidiInstrumentOverrides();
+        } else {
+            await reloadLoadedMidiSequence();
+        }
+        updateMidiTrackLabels();
+        synchronizeMidiInstrumentSelections();
+    } catch (error) {
+        for (const [candidate, override] of previous) {
+            candidate.instrumentOverride = override;
+        }
+        applyMidiInstrumentOverrides();
+        updateMidiTrackLabels();
+        synchronizeMidiInstrumentSelections();
+        setMidiStatus(
+            error instanceof Error
+                ? error.message
+                : 'Unable to change the instrument.'
+        );
+    } finally {
+        if (resumeMidi) {
+            await playMidiVisualization();
+        }
+    }
 }
 
 function setMidiTrackEnabled(selectedTrack, enabled) {
@@ -2291,10 +2497,10 @@ function renderMidiTracker() {
         return maximumSegmentEnd;
     });
     stage.className = 'midi-tracker-stage';
-    stage.setAttribute('role', 'img');
+    stage.setAttribute('role', 'group');
     stage.setAttribute(
         'aria-label',
-        'Piano-roll tracker with notes moving from right to left'
+        'Interactive piano-roll tracker with notes moving from right to left'
     );
     keyboard.className = 'midi-tracker-keyboard';
     keyboard.style.height = `${height}rem`;
@@ -2395,7 +2601,9 @@ function renderMidiTracker() {
         const item = document.createElement('li');
         const toggle = document.createElement('button');
         const swatch = document.createElement('span');
+        const instrument = document.createElement('label');
         const label = document.createElement('span');
+        const select = document.createElement('select');
         item.dataset.midiTrackerTrackIndex = String(track.trackIndex);
         item.dataset.midiTrackerActiveState = '';
         toggle.type = 'button';
@@ -2416,17 +2624,25 @@ function renderMidiTracker() {
         swatch.className = 'midi-tracker-legend-swatch';
         swatch.style.setProperty('--midi-track-color', track.color);
         swatch.setAttribute('aria-hidden', 'true');
+        instrument.className = 'midi-tracker-instrument';
+        instrument.title = `Choose an instrument for ${track.name}`;
         label.className = 'midi-tracker-legend-label';
         label.textContent = midiTrackLabel(track);
+        select.className = 'midi-tracker-instrument-select';
+        select.setAttribute('aria-label', `Instrument for ${track.name}`);
+        select.addEventListener('change', () => {
+            void changeMidiTrackInstrument(track, select.value);
+        });
         toggle.append(swatch);
-        item.append(toggle, label);
+        instrument.append(label, select);
+        item.append(toggle, instrument);
         legend.append(item);
     }
 
     roll.append(rows, timeline);
     stage.append(keyboard, roll, legend);
     tracker.append(stage);
-    balanceMidiTrackerLegend(legend);
+    updateMidiInstrumentControls();
     midiVisualizer.trackerLegendResizeObserver = new ResizeObserver(() => {
         balanceMidiTrackerLegend(legend);
     });
@@ -3244,6 +3460,7 @@ function setMidiVisualization(parsed, fileName) {
                     ).values(),
                 ],
                 enabled: true,
+                instrumentOverride: null,
                 minimized: false,
                 scores: hasSignatureChanges
                     ? []
@@ -3815,7 +4032,12 @@ async function loadSoundFont() {
             ),
         ];
         midiPlayback.soundFontId = soundFontId;
-        updateMidiTrackLabels();
+        if (previousSoundFontId && previousSoundFontId !== soundFontId) {
+            resetMidiInstrumentOverrides();
+        } else {
+            updateMidiTrackLabels();
+            updateMidiInstrumentControls();
+        }
         return true;
     })();
 
@@ -3921,6 +4143,7 @@ async function reloadLoadedMidiSequence() {
     midiPlayback.loadedBuffer = null;
     await loadMidiSequence();
     synchronizeMidiTrackMutes();
+    applyMidiInstrumentOverrides();
 }
 
 function pauseForSoundFontChange() {
@@ -3992,6 +4215,7 @@ async function prepareMidiPlayback() {
     midiPlayback.generatedToneIndex = 0;
     await loadMidiSequence();
     synchronizeMidiTrackMutes();
+    applyMidiInstrumentOverrides();
     return midiPlayback.sequencer;
 }
 
@@ -4232,6 +4456,8 @@ async function loadMidiVisualization(file, included = false) {
         const tracker = document.getElementById('midi-tracker');
         midiVisualizer.trackerResizeObserver?.disconnect();
         midiVisualizer.trackerResizeObserver = null;
+        midiVisualizer.trackerLegendResizeObserver?.disconnect();
+        midiVisualizer.trackerLegendResizeObserver = null;
         midiVisualizer.trackerSegments = [];
         midiVisualizer.trackerSegmentElements = new Map();
         midiVisualizer.trackerMarkers = [];
