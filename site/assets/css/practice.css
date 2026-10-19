@@ -177,6 +177,10 @@
     font-size: 12px;
 }
 
+.blurb + .practice-note {
+    margin-top: 4px;
+}
+
 .practice input[type='range'] {
     display: block;
     width: 100%;
