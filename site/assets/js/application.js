@@ -1401,6 +1401,7 @@ const midiVisualizer = {
     trackerMaximumNote: 0,
     trackerSegmentPrefixEnds: [],
     trackerResizeObserver: null,
+    trackerLegendResizeObserver: null,
     trackerTimeline: null,
     trackerVisibleDuration: 0,
     trackerWindowEnd: -Infinity,
@@ -1481,6 +1482,10 @@ function updateMidiTrackLabels() {
             trackerLabel.textContent = midiTrackLabel(track);
         }
     }
+    const legend = document.querySelector('.midi-tracker-legend');
+    if (legend) {
+        balanceMidiTrackerLegend(legend);
+    }
 }
 
 function updateMidiTrackToggle(track) {
@@ -1496,15 +1501,18 @@ function updateMidiTrackToggle(track) {
         toggle.title = `${track.enabled ? 'Disable' : 'Enable'} ${track.name}`;
     }
     const legendToggle = document.querySelector(
-        `[data-midi-tracker-track-index="${track.trackIndex}"]`
+        `[data-midi-tracker-track-index="${track.trackIndex}"] .midi-tracker-legend-toggle`
     );
     if (legendToggle) {
         legendToggle.setAttribute('aria-pressed', String(track.enabled));
         legendToggle.setAttribute(
             'aria-label',
-            `${track.enabled ? 'Disable' : 'Enable'} ${track.name}`
+            `${track.enabled ? 'Mute' : 'Unmute'} ${track.name}`
         );
-        legendToggle.title = `${track.enabled ? 'Disable' : 'Enable'} ${track.name}`;
+        legendToggle.title = `${track.enabled ? 'Mute' : 'Unmute'} ${track.name}`;
+        legendToggle
+            .closest('li')
+            ?.classList.toggle('is-disabled', !track.enabled);
     }
     for (const note of document.querySelectorAll(
         `.midi-tracker-note[data-midi-track-index="${track.trackIndex}"]`
@@ -1986,7 +1994,13 @@ function createMidiTrackerNote(segment) {
     bar.style.width = `${baseWidth - leftInset - rightInset}rem`;
     bar.style.top = `${rowIndex * musicEngine.MIDI_TRACKER_ROW_HEIGHT_REM + segment.lane * laneHeight + inset}rem`;
     bar.style.height = `${laneHeight - inset * 2}rem`;
-    bar.title = `${midiTrackLabel(track)}: ${musicEngine.noteNameFromMidi(segment.midi, 'sharp')}`;
+    const noteLabel = track.channels.every(
+        (channel) => channel === musicEngine.MIDI_PERCUSSION_CHANNEL
+    )
+        ? (musicEngine.MIDI_PERCUSSION_NOTATION[segment.midi]?.name ??
+          'Percussion')
+        : musicEngine.noteNameFromMidi(segment.midi, 'sharp');
+    bar.title = `${midiTrackLabel(track)}: ${noteLabel}`;
     return bar;
 }
 
@@ -2106,6 +2120,8 @@ function updateMidiTracker(
             .map((track) => track.trackIndex)
     );
     const activePitches = new Set();
+    const activeTrackIndexes = new Set();
+    const activeTrackStates = new Map();
     const attackedPitches = new Set();
     for (const index of midiVisualizer.trackerSegmentElements.keys()) {
         const segment = midiVisualizer.trackerSegments[index];
@@ -2117,6 +2133,12 @@ function updateMidiTracker(
             position < segment.start + segment.duration
         ) {
             activePitches.add(segment.midi);
+            if (midiVisualizer.active) {
+                activeTrackIndexes.add(segment.trackIndex);
+                const state = activeTrackStates.get(segment.trackIndex) ?? [];
+                state.push(index);
+                activeTrackStates.set(segment.trackIndex, state);
+            }
         }
         if (
             flashAttacks &&
@@ -2138,13 +2160,94 @@ function updateMidiTracker(
             key.classList.add('is-struck');
         }
     }
+    for (const item of document.querySelectorAll(
+        '[data-midi-tracker-track-index]'
+    )) {
+        const trackIndex = Number(item.dataset.midiTrackerTrackIndex);
+        const activeState = (activeTrackStates.get(trackIndex) ?? [])
+            .sort((left, right) => left - right)
+            .join(',');
+        const stateChanged =
+            item.dataset.midiTrackerActiveState !== activeState;
+        item.dataset.midiTrackerActiveState = activeState;
+        item.classList.toggle('is-playing', activeTrackIndexes.has(trackIndex));
+        if (flashAttacks && stateChanged) {
+            item.classList.remove('is-switching');
+            void item.offsetWidth;
+            item.classList.add('is-switching');
+        }
+    }
     midiVisualizer.trackerPosition = position;
+}
+
+function balanceMidiTrackerLegend(legend) {
+    const items = [
+        ...legend.querySelectorAll(
+            ':scope > li:not(.midi-tracker-legend-break)'
+        ),
+    ];
+    const styles = getComputedStyle(legend);
+    const availableWidth =
+        legend.clientWidth -
+        Number.parseFloat(styles.paddingLeft) -
+        Number.parseFloat(styles.paddingRight);
+    const gap = Number.parseFloat(styles.columnGap) || 0;
+    const widths = items.map((item) => item.getBoundingClientRect().width);
+    const layoutKey = `${availableWidth}:${widths.join(',')}`;
+    if (legend.dataset.layoutKey === layoutKey) {
+        return;
+    }
+    legend.dataset.layoutKey = layoutKey;
+    for (const breaker of legend.querySelectorAll(
+        ':scope > .midi-tracker-legend-break'
+    )) {
+        breaker.remove();
+    }
+    if (items.length < 2 || availableWidth <= 0) {
+        return;
+    }
+
+    const layouts = Array(items.length + 1).fill(null);
+    layouts[0] = { rows: 0, raggedness: 0, breaks: [] };
+    for (let end = 1; end <= items.length; end += 1) {
+        let rowWidth = 0;
+        for (let start = end - 1; start >= 0; start -= 1) {
+            rowWidth += widths[start] + (start === end - 1 ? 0 : gap);
+            if (rowWidth > availableWidth && start < end - 1) {
+                break;
+            }
+            const previous = layouts[start];
+            const candidate = {
+                rows: previous.rows + 1,
+                raggedness:
+                    previous.raggedness + (availableWidth - rowWidth) ** 2,
+                breaks: start ? [...previous.breaks, start] : [],
+            };
+            const current = layouts[end];
+            if (
+                !current ||
+                candidate.rows < current.rows ||
+                (candidate.rows === current.rows &&
+                    candidate.raggedness < current.raggedness)
+            ) {
+                layouts[end] = candidate;
+            }
+        }
+    }
+    for (const index of layouts.at(-1).breaks) {
+        const breaker = document.createElement('li');
+        breaker.className = 'midi-tracker-legend-break';
+        breaker.setAttribute('aria-hidden', 'true');
+        legend.insertBefore(breaker, items[index]);
+    }
 }
 
 function renderMidiTracker() {
     const tracker = document.getElementById('midi-tracker');
     midiVisualizer.trackerResizeObserver?.disconnect();
     midiVisualizer.trackerResizeObserver = null;
+    midiVisualizer.trackerLegendResizeObserver?.disconnect();
+    midiVisualizer.trackerLegendResizeObserver = null;
     midiVisualizer.trackerSegments = [];
     midiVisualizer.trackerSegmentElements = new Map();
     midiVisualizer.trackerMarkers = [];
@@ -2293,31 +2396,41 @@ function renderMidiTracker() {
         const toggle = document.createElement('button');
         const swatch = document.createElement('span');
         const label = document.createElement('span');
+        item.dataset.midiTrackerTrackIndex = String(track.trackIndex);
+        item.dataset.midiTrackerActiveState = '';
         toggle.type = 'button';
-        toggle.dataset.midiTrackerTrackIndex = String(track.trackIndex);
+        toggle.className = 'midi-tracker-legend-toggle';
         toggle.setAttribute('aria-pressed', String(track.enabled));
         toggle.addEventListener('click', () => {
             setMidiTrackEnabled(track, !track.enabled);
         });
-        toggle.addEventListener('pointerenter', () => {
+        item.addEventListener('pointerenter', () => {
             previewMidiTrack(track, true);
         });
-        toggle.addEventListener('pointerleave', () => {
+        item.addEventListener('pointerleave', () => {
             previewMidiTrack(track, false);
+        });
+        item.addEventListener('animationend', () => {
+            item.classList.remove('is-switching');
         });
         swatch.className = 'midi-tracker-legend-swatch';
         swatch.style.setProperty('--midi-track-color', track.color);
         swatch.setAttribute('aria-hidden', 'true');
         label.className = 'midi-tracker-legend-label';
         label.textContent = midiTrackLabel(track);
-        toggle.append(swatch, label);
-        item.append(toggle);
+        toggle.append(swatch);
+        item.append(toggle, label);
         legend.append(item);
     }
 
     roll.append(rows, timeline);
     stage.append(keyboard, roll, legend);
     tracker.append(stage);
+    balanceMidiTrackerLegend(legend);
+    midiVisualizer.trackerLegendResizeObserver = new ResizeObserver(() => {
+        balanceMidiTrackerLegend(legend);
+    });
+    midiVisualizer.trackerLegendResizeObserver.observe(legend);
     midiVisualizer.trackerTimeline = timeline;
     const updateVisibleDuration = (width) => {
         const remPixels = Number.parseFloat(
