@@ -120,7 +120,10 @@ function renderConfiguration(template, host, noWww, httpOnly) {
                 ''
             )
             .replaceAll(' -d www.<< DOMAIN >>', '')
-            .replaceAll(' www.<< DOMAIN >>', '');
+            .replace(
+                /^[\t ]*server_name[\t ]+www\.<< DOMAIN >>;[\t ]*\r?\n/gmu,
+                ''
+            );
     }
 
     template = template.replaceAll(domainPlaceholder, host);
