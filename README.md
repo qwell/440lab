@@ -58,7 +58,7 @@ yarn serve
 
 The site will be available at [http://localhost:3000/](http://localhost:3000/).
 
-For an nginx deployment with HTTPS, run `yarn deploy <host>` or follow the deployment instructions at the top of `nginx.conf.example`. Use `yarn deploy --http-only <host>` to serve without TLS; IP addresses imply `--http-only`.
+For an nginx deployment with HTTPS, run `yarn deploy <host>` or follow the deployment instructions at the top of `nginx.conf.example`. Use `-d <domain>` one or more times to add domain aliases that redirect to the primary host, and/or `--no-www` to omit the default `www` alias. Use `yarn deploy --no-https <host>` to serve without TLS; IP addresses imply `--no-https`.
 
 Use the global A4 reference to change the tuning standard used throughout the application. The global volume control adjusts generated audio output.
 

@@ -1,51 +1,63 @@
 # DEPLOYMENT
 #
-# 1) Replace every instance of << DOMAIN >> below with the apex domain name.
-#    If www. is not required, all instances (including the entire redirect block) can be safely removed.
+# The simplest option is to run the deployment script from the repository root:
+#   yarn deploy [--no-https] [--no-www] [-d ALIAS]... HOST
+#
+# To deploy manually, follow these steps:
+#
+# 1) Replace every instance of << HOST >> below with the apex domain name.
+#    Uncomment the canonical server and one of its settings sections. For HTTPS,
+#    also uncomment the canonical redirect. If aliases are required, uncomment
+#    the HTTPS or HTTP-only alias redirect. Add a separate server_name line for
+#    every non-canonical domain to each activated alias block, and include every
+#    domain in the canonical HTTP-to-HTTPS redirect.
 #
 # 2) Deploy and enable the nginx configuration.
-#    sudo cp nginx.conf.example /etc/nginx/sites-available/<< DOMAIN >>.conf
-#    sudo ln -s ../sites-available/<< DOMAIN >>.conf \
-#      /etc/nginx/sites-enabled/<< DOMAIN >>.conf
+#    sudo cp nginx.conf.example /etc/nginx/sites-available/<< HOST >>.conf
+#    sudo ln -s ../sites-available/<< HOST >>.conf \
+#      /etc/nginx/sites-enabled/<< HOST >>.conf
 #
 #    Do not reload nginx yet; the referenced certificate files do not exist.
 #
 # 3) Create the site directory.  Site files must be added manually.
-#    sudo mkdir -p /var/www/<< DOMAIN >>/site
+#    sudo mkdir -p /var/www/<< HOST >>/site
 #    OR
-#    sudo git clone https://github.com/qwell/440lab.git /var/www/<< DOMAIN >>/
+#    sudo git clone https://github.com/qwell/440lab.git /var/www/<< HOST >>/
 #
 # 4) Run the following command to obtain a new certificate.
-#    sudo certbot certonly --standalone --cert-name << DOMAIN >> -d << DOMAIN >> -d www.<< DOMAIN >> \
+#    sudo certbot certonly --standalone --cert-name << HOST >> -d << HOST >> -d www.<< HOST >> \
 #      --pre-hook "systemctl stop nginx" --post-hook "systemctl start nginx"
+#
+#    Add another -d <host> for every additional alias.
 #
 #    For a staging certificate, add --test-cert.
 
 server {
-    listen              443 ssl;
-    listen              [::]:443 ssl;
-    server_name         << DOMAIN >>;
-    server_name         www.<< DOMAIN >>;
+    #     BEGIN HTTPS settings.
+    #     listen      443 ssl;
+    #     listen      [::]:443 ssl;
+    #
+    #     ssl_certificate     /etc/letsencrypt/live/<< HOST >>/fullchain.pem;
+    #     ssl_certificate_key /etc/letsencrypt/live/<< HOST >>/privkey.pem;
+    #     ssl_dhparam         /etc/letsencrypt/ssl-dhparams.pem;
+    #     include             /etc/letsencrypt/options-ssl-nginx.conf;
+    #
+    #     add_header  Strict-Transport-Security
+    #       "max-age=31536000; includeSubDomains; preload" always;
+    #     END HTTPS settings.
+    #     BEGIN HTTP settings.
+    #     listen      80;
+    #     listen      [::]:80;
+    #     END HTTP settings.
 
-    ssl_certificate     /etc/letsencrypt/live/<< DOMAIN >>/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/<< DOMAIN >>/privkey.pem;
-    ssl_dhparam         /etc/letsencrypt/ssl-dhparams.pem;
-    include             /etc/letsencrypt/options-ssl-nginx.conf;
+    root       /var/www/<< HOST >>/site;
+    index      index.html;
 
-    if ($host = www.<< DOMAIN >>) {
-        return 301 https://<< DOMAIN >>$request_uri;
-    }
+    access_log /var/log/nginx/<< HOST >>.access.log;
+    error_log  /var/log/nginx/<< HOST >>.error.log warn;
 
-    root                /var/www/<< DOMAIN >>/site;
-    index               index.html;
-
-    access_log          /var/log/nginx/<< DOMAIN >>.access.log;
-    error_log           /var/log/nginx/<< DOMAIN >>.error.log warn;
-
-    expires             1h;
-    add_header          Strict-Transport-Security
-      "max-age=31536000; includeSubDomains; preload" always;
-    add_header          Content-Security-Policy
+    expires    1h;
+    add_header Content-Security-Policy
       "default-src 'none'; script-src 'self' 'wasm-unsafe-eval' 'sha256-iIY2TwlaCTpPSFSbruLQ9SL9y7OX1rhF9yW42iQ82U4='; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'"
       always;
 
@@ -54,12 +66,34 @@ server {
     }
 }
 
-# HTTP-to-HTTPS redirect.
-server {
-    listen      80;
-    listen      [::]:80;
-    server_name << DOMAIN >>;
-    server_name www.<< DOMAIN >>;
+# BEGIN Canonical HTTP-to-HTTPS redirect.
+#server {
+#    listen 80;
+#    listen [::]:80;
+#
+#    return 301 https://<< HOST >>$request_uri;
+#}
+# END Canonical HTTP-to-HTTPS redirect.
 
-    return      301 https://<< DOMAIN >>$request_uri;
-}
+# BEGIN HTTPS aliases redirect.
+#server {
+#    listen 443 ssl;
+#    listen [::]:443 ssl;
+#
+#    ssl_certificate     /etc/letsencrypt/live/<< HOST >>/fullchain.pem;
+#    ssl_certificate_key /etc/letsencrypt/live/<< HOST >>/privkey.pem;
+#    ssl_dhparam         /etc/letsencrypt/ssl-dhparams.pem;
+#    include             /etc/letsencrypt/options-ssl-nginx.conf;
+#
+#    return 301 https://<< HOST >>$request_uri;
+#}
+# END HTTPS aliases redirect.
+
+# BEGIN HTTP-only aliases redirect.
+#server {
+#    listen 80;
+#    listen [::]:80;
+#
+#    return 301 http://<< HOST >>$request_uri;
+#}
+# END HTTP-only aliases redirect.

@@ -6,7 +6,7 @@ import { isIP } from 'node:net';
 import path from 'node:path';
 import { domainToASCII, fileURLToPath } from 'node:url';
 
-const domainPlaceholder = '<< DOMAIN >>';
+const hostPlaceholder = '<< HOST >>';
 const localhostCertificateDirectory = '/etc/nginx/ssl';
 const localhostCertificate = path.join(
     localhostCertificateDirectory,
@@ -19,17 +19,21 @@ const localhostPrivateKey = path.join(
 const scriptFile = fileURLToPath(import.meta.url);
 const projectDirectory = path.dirname(path.dirname(scriptFile));
 
+let noHttps = false;
+let noWww = false;
+
 function usage(stream = process.stdout) {
-    stream.write(`Usage: yarn deploy [--http-only] [--no-www] HOST
+    stream.write(`Usage: yarn deploy [--no-https] [--no-www] [-d ALIAS]... HOST
 
 Render and enable the NGINX configuration, then copy site files to its root.
 
 Arguments:
-  HOST         Domain name, IP address, or localhost.
+  HOST         Hostname / domain, IP address, or localhost.
 
 Options:
-  --http-only  Serve over HTTP without configuring a certificate. Implied for IPs.
+  --no-https   Serve over HTTP without configuring a certificate. Implied for IPs.
   --no-www     Do not add a www alias or certificate name.
+  -d ALIAS     Add another host alias and certificate name. Repeatable; unavailable for localhost.
   -h, --help   Show this help.
 `);
 }
@@ -64,113 +68,186 @@ function normalizeHost(value) {
 }
 
 function parseArguments(arguments_) {
-    let host;
-    let httpOnly = false;
-    let noWww = false;
+    if (arguments_.includes('-h') || arguments_.includes('--help')) {
+        return { help: true };
+    }
 
-    for (const argument of arguments_) {
+    const hostAliases = [];
+    const hostArgument = arguments_.at(-1);
+    if (!hostArgument || hostArgument.startsWith('-')) {
+        throw new Error("missing required argument 'HOST'");
+    }
+    const host = normalizeHost(hostArgument);
+
+    for (let index = 0; index < arguments_.length - 1; index += 1) {
+        const argument = arguments_[index];
         switch (argument) {
-            case '--http-only':
-                httpOnly = true;
+            case '--no-https':
+                noHttps = true;
                 break;
             case '--no-www':
                 noWww = true;
                 break;
-            case '-h':
-            case '--help':
-                return { help: true };
+            case '-d': {
+                const alias = arguments_[index + 1];
+                if (
+                    index + 1 >= arguments_.length - 1 ||
+                    alias.startsWith('-')
+                ) {
+                    throw new Error('A alias is required after -d.');
+                }
+
+                const normalizedAlias = normalizeHost(alias);
+                if (isIP(normalizedAlias) || normalizedAlias === 'localhost') {
+                    throw new Error(`Invalid host alias: ${alias}`);
+                }
+                hostAliases.push(normalizedAlias);
+                index += 1;
+                break;
+            }
             default:
                 if (argument.startsWith('-')) {
                     throw new Error(`Unknown option: ${argument}`);
                 }
 
-                if (host) {
-                    throw new Error('Only one host may be specified.');
-                }
-
-                host = normalizeHost(argument);
+                throw new Error('Host must be the final argument.');
         }
     }
-
-    if (!host) {
-        throw new Error('A host is required.');
+    if (host === 'localhost' && hostAliases.length) {
+        throw new Error('-d cannot be used with localhost.');
     }
 
     // isIP() is poorly named, it isn't a bool.
     // It returns 0 for non-IPs, and 4 or 6 for their respective IP versions.
     const isIpAddress = !!isIP(host);
+    noHttps ||= isIpAddress;
+    noWww ||= isIpAddress || host === 'localhost' || host.startsWith('www.');
 
     return {
+        hostAliases: [
+            ...new Set(hostAliases.filter((alias) => alias !== host)),
+        ],
         host,
         help: false,
-        httpOnly: httpOnly || isIpAddress,
-        noWww:
-            noWww ||
-            isIpAddress ||
-            host === 'localhost' ||
-            host.startsWith('www.'),
+        httpOnly: noHttps,
+        noWww,
     };
 }
 
-function renderConfiguration(template, host, noWww, httpOnly) {
-    if (noWww) {
-        template = template
-            .replace(
-                /^[\t ]*if \(\$host = www\.<< DOMAIN >>\) \{\r?\n(?:.*\r?\n)*?^[\t ]*\}/mu,
-                ''
-            )
-            .replaceAll(' -d www.<< DOMAIN >>', '')
-            .replace(
-                /^[\t ]*server_name[\t ]+www\.<< DOMAIN >>;[\t ]*\r?\n/gmu,
-                ''
-            );
+function deploymentHosts(host, hostAliases) {
+    return [
+        ...new Set([host, ...(noWww ? [] : [`www.${host}`]), ...hostAliases]),
+    ];
+}
+
+function markedSection(template, name) {
+    const markerName = name.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+    const marker = (position) =>
+        new RegExp(
+            `^[\\t ]*#[\\t ]*${position} ${markerName}\\.[\\t ]*$`,
+            'mu'
+        );
+    const startMarker = marker('BEGIN').exec(template);
+    const markerEnd = startMarker
+        ? template.indexOf('\n', startMarker.index)
+        : -1;
+    const endMarker = marker('END').exec(template.slice(markerEnd + 1));
+    if (!startMarker || markerEnd === -1 || !endMarker) {
+        throw new Error(`The NGINX template has no ${name} section.`);
     }
+    return {
+        contentStart: markerEnd + 1,
+        end: markerEnd + 1 + endMarker.index,
+    };
+}
 
-    template = template.replaceAll(domainPlaceholder, host);
+function enableMarkedSection(template, name) {
+    const { contentStart, end } = markedSection(template, name);
+    const content = template
+        .slice(contentStart, end)
+        .replace(/^(?:[\t ]+#[\t ]?|#)/gmu, '');
+    return `${template.slice(0, contentStart)}${content}${template.slice(end)}`;
+}
 
-    if (!httpOnly) {
-        if (host === 'localhost') {
-            template = template
-                .replace(
-                    '/etc/letsencrypt/live/localhost/fullchain.pem',
-                    localhostCertificate
-                )
-                .replace(
-                    '/etc/letsencrypt/live/localhost/privkey.pem',
-                    localhostPrivateKey
-                );
+function serverNameDirectives(hosts) {
+    return hosts.map((host) => `    server_name ${host};`).join('\n');
+}
+
+function addServerNames(template, hosts) {
+    const rendered = template.replace(
+        /^server \{(\r?\n)/mu,
+        `server {$1${serverNameDirectives(hosts)}$1$1`
+    );
+    if (rendered === template) {
+        throw new Error('The NGINX template has no active server block.');
+    }
+    return rendered;
+}
+
+function enableRedirectServer(template, name, hosts) {
+    const enabled = enableMarkedSection(template, name);
+    const { contentStart, end } = markedSection(enabled, name);
+    const content = addServerNames(enabled.slice(contentStart, end), hosts);
+    return `${enabled.slice(0, contentStart)}${content}${enabled.slice(end)}`;
+}
+
+function renderConfiguration(template, host, hostAliases, httpOnly) {
+    const hosts = deploymentHosts(host, hostAliases);
+    const aliases = hosts.slice(1);
+    const certificateHosts = hosts.map((host) => `-d ${host}`).join(' ');
+
+    template = template.replace(
+        '-d << HOST >> -d www.<< HOST >>',
+        certificateHosts
+    );
+
+    if (httpOnly) {
+        template = addServerNames(template, [host]);
+        template = enableMarkedSection(template, 'HTTP settings');
+        if (aliases.length) {
+            template = enableRedirectServer(
+                template,
+                'HTTP-only aliases redirect',
+                aliases
+            );
         }
     } else {
-        template = template
-            .replace(
-                /^[\t ]*listen\s+443\s+ssl\s*;[^\r\n]*$/mu,
-                '    listen 80;'
-            )
-            .replace(
-                /^[\t ]*listen\s+\[::\]:443\s+ssl\s*;[^\r\n]*$/mu,
-                '    listen [::]:80;'
-            )
-            .replace(/^[\t ]*ssl_certificate(?:_key)?\s+[^;]+;/gmu, '')
-            .replace(
-                /^[\t ]*return\s+301\s+https:\/\//mu,
-                '        return 301 http://'
-            )
-            .replace(
-                /^[\t ]*add_header\s+Strict-Transport-Security(?:(?!\s+always;)[\s\S])+\s+always;/mu,
-                ''
+        template = addServerNames(template, [host]);
+        template = enableMarkedSection(template, 'HTTPS settings');
+        template = enableRedirectServer(
+            template,
+            'Canonical HTTP-to-HTTPS redirect',
+            hosts
+        );
+        if (aliases.length) {
+            template = enableRedirectServer(
+                template,
+                'HTTPS aliases redirect',
+                aliases
             );
-
-        const redirectMarker = '# HTTP-to-HTTPS redirect.';
-        const redirectIndex = template.indexOf(redirectMarker);
-
-        if (redirectIndex === -1) {
-            throw new Error('The NGINX template has no HTTPS redirect marker.');
         }
-
-        template = `${template.slice(0, redirectIndex).trimEnd()}\n`;
     }
 
-    return template;
+    template = template.replaceAll(hostPlaceholder, host);
+
+    if (!httpOnly && host === 'localhost') {
+        template = template
+            .replace(
+                '/etc/letsencrypt/live/localhost/fullchain.pem',
+                localhostCertificate
+            )
+            .replace(
+                '/etc/letsencrypt/live/localhost/privkey.pem',
+                localhostPrivateKey
+            );
+    }
+
+    template = template
+        .replace(/^[\t ]*#.*(?:\r?\n|$)/gmu, '')
+        .replace(/(?:\r?\n[\t ]*){3,}/gu, '\n\n')
+        .trim();
+
+    return `${template}\n`;
 }
 
 function configurationRoot(configuration) {
@@ -193,15 +270,19 @@ function configurationRoot(configuration) {
     return root;
 }
 
-function runAsRoot(host, noWww, httpOnly) {
+function runAsRoot(host, hostAliases, httpOnly) {
     const arguments_ = [process.execPath, scriptFile];
 
     if (httpOnly) {
-        arguments_.push('--http-only');
+        arguments_.push('--no-https');
     }
 
     if (noWww) {
         arguments_.push('--no-www');
+    }
+
+    for (const alias of hostAliases) {
+        arguments_.push('-d', alias);
     }
 
     arguments_.push(host);
@@ -385,10 +466,10 @@ async function main() {
         return 0;
     }
 
-    const { host, httpOnly, noWww } = options;
+    const { hostAliases, host, httpOnly } = options;
 
     if (process.getuid?.() !== 0) {
-        return runAsRoot(host, noWww, httpOnly);
+        return runAsRoot(host, hostAliases, httpOnly);
     }
 
     const templateFile = path.join(projectDirectory, 'nginx.conf.example');
@@ -398,7 +479,12 @@ async function main() {
     const nginxConfig = path.join(nginxAvailable, `${host}.conf`);
     const enabledConfig = path.join(nginxEnabled, `${host}.conf`);
     const template = await fs.readFile(templateFile, 'utf8');
-    const configuration = renderConfiguration(template, host, noWww, httpOnly);
+    const configuration = renderConfiguration(
+        template,
+        host,
+        hostAliases,
+        httpOnly
+    );
     const root = configurationRoot(configuration);
     const generatedLocalhostCertificate =
         host === 'localhost' &&
@@ -449,10 +535,12 @@ importing the public server certificate separately as a trusted authority.`);
 
     console.log('\nNext, obtain the TLS certificate:');
 
-    const domains = noWww ? `-d ${host}` : `-d ${host} -d www.${host}`;
+    const hostArguments = deploymentHosts(host, hostAliases)
+        .map((alias) => `-d ${alias}`)
+        .join(' ');
 
     console.log(
-        `sudo certbot certonly --standalone --cert-name ${host} ${domains} --pre-hook "systemctl stop nginx" --post-hook "systemctl start nginx"`
+        `sudo certbot certonly --standalone --cert-name ${host} ${hostArguments} --pre-hook "systemctl stop nginx" --post-hook "systemctl start nginx"`
     );
 
     return 0;
