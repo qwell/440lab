@@ -709,6 +709,7 @@ main.is-drag-over::after {
 
 .midi-tracker-note {
     position: absolute;
+    z-index: 1;
 
     min-height: 1px;
 
