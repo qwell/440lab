@@ -1406,6 +1406,7 @@ const midiVisualizer = {
     trackerVisibleDuration: 0,
     trackerWindowEnd: -Infinity,
     trackerWindowStart: Infinity,
+    leadInStartedAt: null,
 };
 
 const midiPlayback = {
@@ -3519,6 +3520,7 @@ function setMidiVisualization(parsed, fileName) {
         ticksPerQuarter: parsed.ticksPerQuarter,
         unitsPerQuarter,
         trackerPosition: 0,
+        leadInStartedAt: null,
     });
     synchronizeMidiTrackMutes();
 
@@ -3605,6 +3607,9 @@ function setMidiVisualization(parsed, fileName) {
             for (const score of track.scores) {
                 musicEngine.renderSheetScore(score, score.selector, {
                     barGlide: true,
+                    initialPosition:
+                        -midiVisualizer.unitsPerQuarter *
+                        musicEngine.MIDI_SHEET_LEAD_IN_QUARTERS,
                     virtualize: true,
                 });
             }
@@ -3875,9 +3880,14 @@ function updateMidiSheetHighlights(notation, position) {
 }
 
 function resetMidiScores(position = 0) {
+    const sheetPosition =
+        position === 0 && !midiVisualizer.active
+            ? -midiVisualizer.unitsPerQuarter *
+              musicEngine.MIDI_SHEET_LEAD_IN_QUARTERS
+            : position;
     for (const track of midiVisualizer.tracks) {
         for (const score of track.scores) {
-            musicEngine.positionSheetLane(score, score.selector, position);
+            musicEngine.positionSheetLane(score, score.selector, sheetPosition);
             resetMidiSheetHighlights(score);
         }
     }
@@ -4264,6 +4274,33 @@ function drawMidiVisualization() {
         return;
     }
 
+    if (midiVisualizer.leadInStartedAt !== null) {
+        const leadInSeconds =
+            (midiVisualizer.tempoMap[0].microseconds / 1000000) *
+            musicEngine.MIDI_SHEET_LEAD_IN_QUARTERS;
+        const progress = musicEngine.clamp(
+            (performance.now() - midiVisualizer.leadInStartedAt) /
+                (leadInSeconds * 1000),
+            0,
+            1
+        );
+        const position =
+            (progress - 1) *
+            midiVisualizer.unitsPerQuarter *
+            musicEngine.MIDI_SHEET_LEAD_IN_QUARTERS;
+        for (const track of midiVisualizer.tracks) {
+            for (const score of track.scores) {
+                musicEngine.positionSheetLane(score, score.selector, position);
+            }
+        }
+        if (progress < 1) {
+            midiVisualizer.frame = requestAnimationFrame(drawMidiVisualization);
+            return;
+        }
+        midiVisualizer.leadInStartedAt = null;
+        midiPlayback.sequencer.play();
+    }
+
     midiVisualizer.elapsed = musicEngine.clamp(
         midiPlayback.sequencer.currentHighResolutionTime,
         0,
@@ -4323,7 +4360,13 @@ async function playMidiVisualization() {
             sequencer.currentTime = midiVisualizer.elapsed;
         }
         midiPlayback.generatedToneIndex = 0;
-        sequencer.play();
+        midiVisualizer.leadInStartedAt =
+            midiVisualizer.elapsed === 0 && sectionView('midi') === 'sheet'
+                ? performance.now()
+                : null;
+        if (midiVisualizer.leadInStartedAt === null) {
+            sequencer.play();
+        }
         midiVisualizer.active = true;
         setMidiStatus(midiVisualizer.summary);
         drawMidiVisualization();
@@ -4365,6 +4408,7 @@ function pauseMidiVisualization(status = 'Paused') {
         midiVisualizer.elapsed = midiVisualizer.duration;
     }
     midiVisualizer.active = false;
+    midiVisualizer.leadInStartedAt = null;
     if (midiPlayback.generatedTones) {
         musicEngine.audio.stopTransient();
         midiPlayback.generatedToneIndex = 0;
@@ -4388,6 +4432,7 @@ function stopMidiVisualization() {
     const hadPosition = midiVisualizer.active || midiVisualizer.position > 0;
     midiVisualizer.playRequest += 1;
     midiVisualizer.active = false;
+    midiVisualizer.leadInStartedAt = null;
     cancelAnimationFrame(midiVisualizer.frame);
     midiVisualizer.frame = null;
     if (midiPlayback.sequencer) {
@@ -5500,7 +5545,7 @@ function finishRhythmSheet() {
     musicEngine.positionSheetLane(
         rhythmSheet,
         musicEngine.RHYTHM_SHEET_SCORE_SELECTOR,
-        -units - 1
+        -units - musicEngine.SHEET_COUNT_IN_LEAD_UNITS
     );
     document.getElementById('rhythm-sheet-count-label').textContent =
         `Complete - durations in ${musicEngine.sheetDurationUnit(rhythmSheet.meter)}`;
@@ -5963,7 +6008,8 @@ async function startRhythm() {
     rhythmSheet.starting = false;
     rhythm.beatIndex = 0;
     const leadIn = rhythmSheetEnabled()
-        ? rhythmClickInterval(rhythm.signature, rhythm.bpm)
+        ? rhythmClickInterval(rhythm.signature, rhythm.bpm) *
+          musicEngine.SHEET_COUNT_IN_LEAD_UNITS
         : rhythmTimingEnabled()
           ? 1
           : 0.05;

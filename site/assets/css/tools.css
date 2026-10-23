@@ -368,6 +368,10 @@ main.is-drag-over::after {
     gap: 16px;
 }
 
+.midi-visualize-tracks .sheet-score-heading {
+    width: 5rem;
+}
+
 .midi-visualize-tracks[hidden],
 .midi-tracker[hidden] {
     display: none;
@@ -872,7 +876,7 @@ main.is-drag-over::after {
 }
 
 .sheet-score {
-    --sheet-play-line-position: 25%;
+    --sheet-play-line-position: 7.5%;
     --sheet-beam-thickness: 0.24rem;
     --sheet-notehead-y: 5.25rem;
     --sheet-stem-length: 1.75rem;

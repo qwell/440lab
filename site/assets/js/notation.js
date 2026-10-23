@@ -529,6 +529,9 @@ function renderSheetScore(notation, scoreSelector, options = {}) {
         barGlide = false,
         countIn = false,
         durationGuide = false,
+        initialPosition = countIn
+            ? -notation.meter.units - musicEngine.SHEET_COUNT_IN_LEAD_UNITS
+            : 0,
         pitchGuide = false,
         virtualize = false,
     } = options;
@@ -1172,7 +1175,6 @@ function renderSheetScore(notation, scoreSelector, options = {}) {
         renderables,
         virtualize
     );
-    const initialPosition = countIn ? -units - 1 : 0;
     positionSheetLane(notation, scoreSelector, initialPosition);
 }
 
