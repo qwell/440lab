@@ -361,47 +361,47 @@ main.is-drag-over::after {
     width: var(--control-width);
 }
 
-.midi-visualize-tracks {
+.midi-player-tracks {
     --sheet-heading-gap: 2rem;
 
     display: grid;
     gap: 16px;
 }
 
-.midi-visualize-tracks .sheet-score-heading {
+.midi-player-tracks .sheet-score-heading {
     width: 5rem;
 }
 
-.midi-visualize-tracks[hidden],
-.midi-tracker[hidden] {
+.midi-player-tracks[hidden],
+.midi-piano-roll[hidden] {
     display: none;
 }
 
-.midi-visualize-track {
+.midi-player-track {
     display: block;
 }
 
-.midi-visualize-track-body {
+.midi-player-track-body {
     min-height: 0;
 }
 
-.midi-visualize-track-body,
-.midi-visualize-track-header {
+.midi-player-track-body,
+.midi-player-track-header {
     display: grid;
     grid-template-columns: 1.25rem minmax(0, 1fr);
     column-gap: 0.3rem;
 }
 
-.midi-visualize-track .midi-visualize-track-body[hidden] {
+.midi-player-track .midi-player-track-body[hidden] {
     display: none;
 }
 
-.midi-visualize-track-heading,
-.midi-visualize-track-content {
+.midi-player-track-heading,
+.midi-player-track-content {
     grid-column: 2;
 }
 
-.midi-visualize-track-toggle {
+.midi-player-track-toggle {
     width: 100%;
     height: auto;
     min-height: 0;
@@ -417,21 +417,21 @@ main.is-drag-over::after {
     cursor: pointer;
 }
 
-.midi-visualize-track-toggle[aria-pressed='false'] {
+.midi-player-track-toggle[aria-pressed='false'] {
     background: var(--incorrect);
 }
 
 @media (hover: hover) {
-    .midi-visualize-track-toggle:hover:not(:disabled) {
+    .midi-player-track-toggle:hover:not(:disabled) {
         background: var(--correct);
     }
 
-    .midi-visualize-track-toggle[aria-pressed='false']:hover:not(:disabled) {
+    .midi-player-track-toggle[aria-pressed='false']:hover:not(:disabled) {
         background: var(--incorrect);
     }
 }
 
-.midi-visualize-track-header {
+.midi-player-track-header {
     margin-bottom: 5px;
 
     align-items: center;
@@ -441,12 +441,13 @@ main.is-drag-over::after {
     width: 32px;
 }
 
-[data-action^='midi-'][data-action$='-play'] > span {
+[data-action^='midi-'][data-action$='-play'] > span,
+[data-action='rhythm-sheet-play'] > span {
     display: inline-block;
     transform: scaleX(1.2);
 }
 
-.midi-visualize-time-row {
+.midi-player-time-row {
     margin: 0 0 0.5rem;
 
     display: flex;
@@ -462,18 +463,18 @@ main.is-drag-over::after {
     font-variant-numeric: tabular-nums;
 }
 
-.midi-visualize-time-row[hidden] {
+.midi-player-time-row[hidden] {
     display: none;
 }
 
-.midi-visualize-time-row > span {
+.midi-player-time-row > span {
     height: 16px;
 
     display: flex;
     align-items: center;
 }
 
-.practice input.midi-visualize-seek {
+.practice input.midi-player-seek {
     flex: 1;
 
     width: auto;
@@ -483,7 +484,7 @@ main.is-drag-over::after {
     padding: 0;
 }
 
-.midi-visualize-track-heading {
+.midi-player-track-heading {
     margin: 0;
 
     color: var(--muted);
@@ -492,7 +493,7 @@ main.is-drag-over::after {
     font-weight: 600;
 }
 
-.midi-visualize-track-minimize {
+.midi-player-track-minimize {
     width: 100%;
     height: 1.25rem;
     padding: 0;
@@ -501,51 +502,51 @@ main.is-drag-over::after {
     line-height: 1;
 }
 
-.midi-visualize-track-minimize > span {
+.midi-player-track-minimize > span {
     display: block;
 
     transform: translateY(-0.1rem);
 }
 
-.midi-visualize-track-scores {
+.midi-player-track-scores {
     display: grid;
     gap: 4px;
 }
 
-.midi-visualize-track-scores:empty {
+.midi-player-track-scores:empty {
     display: none;
 }
 
-.midi-visualize-track-scores[hidden] {
+.midi-player-track-scores[hidden] {
     display: none;
 }
 
-.midi-visualize-track-content[hidden] {
+.midi-player-track-content[hidden] {
     display: none;
 }
 
-.midi-visualize-track-content > .practice-note {
+.midi-player-track-content > .practice-note {
     margin-top: 0;
 }
 
-.midi-visualize-tracks .sheet-score {
+.midi-player-tracks .sheet-score {
     height: 8rem;
     margin-bottom: 4rem;
 }
 
-.midi-tracker {
-    --midi-tracker-keyboard-width: 6rem;
-    --midi-tracker-row-height: 1rem;
-    --midi-tracker-header-clearance: 5rem;
+.midi-piano-roll {
+    --midi-piano-roll-keyboard-width: 6rem;
+    --midi-piano-roll-row-height: 1rem;
+    --midi-piano-roll-header-clearance: 5rem;
 }
 
-.midi-tracker-stage {
+.midi-piano-roll-stage {
     display: grid;
-    grid-template-columns: var(--midi-tracker-keyboard-width) minmax(0, 1fr);
+    grid-template-columns: var(--midi-piano-roll-keyboard-width) minmax(0, 1fr);
 
     max-height: calc(
-        100dvh - var(--midi-tracker-header-clearance) - var(--footer-height) -
-            var(--main-padding) - 0.5rem
+        100dvh - var(--midi-piano-roll-header-clearance) -
+            var(--footer-height) - var(--main-padding) - 0.5rem
     );
 
     overflow-x: hidden;
@@ -558,12 +559,12 @@ main.is-drag-over::after {
     background: var(--surface);
 }
 
-.midi-tracker-keyboard,
-.midi-tracker-roll {
+.midi-piano-roll-keyboard,
+.midi-piano-roll-viewport {
     position: relative;
 }
 
-.midi-tracker-keyboard {
+.midi-piano-roll-keyboard {
     border-right: 2px solid #777;
 
     background: var(--surface);
@@ -572,20 +573,20 @@ main.is-drag-over::after {
     user-select: none;
 }
 
-.midi-tracker-roll {
+.midi-piano-roll-viewport {
     overflow: hidden;
 }
 
-.midi-tracker-key,
-.midi-tracker-row {
+.midi-piano-roll-key,
+.midi-piano-roll-row {
     position: absolute;
     right: 0;
 
     box-sizing: border-box;
-    height: var(--midi-tracker-row-height);
+    height: var(--midi-piano-roll-row-height);
 }
 
-.midi-tracker-key {
+.midi-piano-roll-key {
     appearance: none;
 
     width: 100%;
@@ -600,42 +601,42 @@ main.is-drag-over::after {
 
     font-family: inherit;
     font-size: 0.625rem;
-    line-height: var(--midi-tracker-row-height);
+    line-height: var(--midi-piano-roll-row-height);
     text-align: right;
 
     cursor: pointer;
 }
 
-.midi-tracker-key.is-black {
+.midi-piano-roll-key.is-black {
     border-color: #000;
 
     color: #ddd;
     background: #000;
 }
 
-.midi-tracker-key:hover {
+.midi-piano-roll-key:hover {
     background: #f6f6f6;
 }
 
-.midi-tracker-key.is-black:hover {
+.midi-piano-roll-key.is-black:hover {
     background: #333;
 }
 
-.midi-tracker-key.is-active {
+.midi-piano-roll-key.is-active {
     background: linear-gradient(to right, #eee 35%, var(--target) 35%);
 }
 
-.midi-tracker-key.is-black.is-active {
+.midi-piano-roll-key.is-black.is-active {
     background: linear-gradient(to right, #000 35%, var(--target) 35%);
 }
 
-.midi-tracker-key.is-auditioned,
-.midi-tracker-key.is-black.is-auditioned {
+.midi-piano-roll-key.is-auditioned,
+.midi-piano-roll-key.is-black.is-auditioned {
     color: #222;
     background: var(--warning);
 }
 
-.midi-tracker-key.is-auditioned.is-active {
+.midi-piano-roll-key.is-auditioned.is-active {
     background: linear-gradient(
         to right,
         var(--warning) 35%,
@@ -643,11 +644,11 @@ main.is-drag-over::after {
     );
 }
 
-.midi-tracker-key.is-struck {
-    animation: midi-tracker-key-strike 120ms ease-out;
+.midi-piano-roll-key.is-struck {
+    animation: midi-piano-roll-key-strike 120ms ease-out;
 }
 
-@keyframes midi-tracker-key-strike {
+@keyframes midi-piano-roll-key-strike {
     from {
         filter: brightness(1.75);
     }
@@ -657,17 +658,17 @@ main.is-drag-over::after {
     }
 }
 
-.midi-tracker-rows,
-.midi-tracker-timeline {
+.midi-piano-roll-rows,
+.midi-piano-roll-timeline {
     position: absolute;
     inset: 0 auto auto 0;
 }
 
-.midi-tracker-rows {
+.midi-piano-roll-rows {
     width: 100%;
 }
 
-.midi-tracker-row {
+.midi-piano-roll-row {
     left: 0;
 
     width: 100%;
@@ -675,18 +676,18 @@ main.is-drag-over::after {
     border-bottom: 1px solid #3b3b3b;
 }
 
-.midi-tracker-row.is-black {
+.midi-piano-roll-row.is-black {
     background: #161616;
 }
 
-.midi-tracker-timeline {
+.midi-piano-roll-timeline {
     will-change: transform;
 
     background-image: linear-gradient(to right, #555 1px, transparent 1px);
-    background-size: var(--midi-tracker-quarter-width) 100%;
+    background-size: var(--midi-piano-roll-quarter-width) 100%;
 }
 
-.midi-tracker-barline {
+.midi-piano-roll-barline {
     position: absolute;
     top: 0;
     bottom: 0;
@@ -696,7 +697,7 @@ main.is-drag-over::after {
     background: #777;
 }
 
-.midi-tracker-signature {
+.midi-piano-roll-signature {
     position: absolute;
     top: 0.125rem;
 
@@ -711,7 +712,7 @@ main.is-drag-over::after {
     transform: translateX(2px);
 }
 
-.midi-tracker-note {
+.midi-piano-roll-note {
     position: absolute;
     z-index: 1;
 
@@ -727,15 +728,15 @@ main.is-drag-over::after {
     transition: opacity 100ms ease;
 }
 
-.midi-tracker-note.is-disabled {
+.midi-piano-roll-note.is-disabled {
     opacity: 0.2;
 }
 
-.midi-tracker-note.is-previewed {
+.midi-piano-roll-note.is-previewed {
     opacity: 0.55;
 }
 
-.midi-tracker-legend {
+.midi-piano-roll-legend {
     grid-column: 1 / -1;
 
     margin: 0;
@@ -750,7 +751,7 @@ main.is-drag-over::after {
     list-style: none;
 }
 
-.midi-tracker-legend li {
+.midi-piano-roll-legend li {
     min-width: 0;
     max-width: 100%;
 
@@ -765,23 +766,23 @@ main.is-drag-over::after {
     font-size: 0.75rem;
 }
 
-.midi-tracker-legend li.is-disabled {
+.midi-piano-roll-legend li.is-disabled {
     opacity: 0.4;
 }
 
-.midi-tracker-legend .midi-tracker-legend-break {
+.midi-piano-roll-legend .midi-piano-roll-legend-break {
     height: 0;
 
     flex: 0 0 100%;
 }
 
-.midi-tracker-legend-label {
+.midi-piano-roll-legend-label {
     min-width: 0;
 
     overflow-wrap: anywhere;
 }
 
-.midi-tracker-instrument {
+.midi-piano-roll-instrument {
     position: relative;
 
     min-width: 0;
@@ -794,19 +795,19 @@ main.is-drag-over::after {
     cursor: pointer;
 }
 
-.midi-tracker-instrument::after {
+.midi-piano-roll-instrument::after {
     font-size: 12px;
     content: '▾';
 
     color: #777;
 }
 
-.midi-tracker-instrument:focus-within {
+.midi-piano-roll-instrument:focus-within {
     outline: 2px solid var(--target);
     outline-offset: 2px;
 }
 
-.midi-tracker-instrument-select {
+.midi-piano-roll-instrument-select {
     position: absolute;
     inset: 0;
 
@@ -817,15 +818,15 @@ main.is-drag-over::after {
     cursor: pointer;
 }
 
-.midi-tracker-instrument-select:disabled {
+.midi-piano-roll-instrument-select:disabled {
     cursor: default;
 }
 
-.midi-tracker-instrument-select:focus-visible {
+.midi-piano-roll-instrument-select:focus-visible {
     outline: 0;
 }
 
-.midi-tracker-legend .midi-tracker-legend-toggle {
+.midi-piano-roll-legend .midi-piano-roll-legend-toggle {
     width: 1.25rem;
     min-width: 0;
     height: 1.5rem;
@@ -843,7 +844,7 @@ main.is-drag-over::after {
     background: transparent;
 }
 
-.midi-tracker-legend-swatch {
+.midi-piano-roll-legend-swatch {
     width: 0.75rem;
     height: 0.75rem;
 
@@ -857,17 +858,17 @@ main.is-drag-over::after {
         transform 100ms ease;
 }
 
-.midi-tracker-legend li.is-playing .midi-tracker-legend-swatch {
+.midi-piano-roll-legend li.is-playing .midi-piano-roll-legend-swatch {
     box-shadow: 0 0 0.4rem var(--midi-track-color);
     filter: brightness(1.35) saturate(1.25);
     transform: scale(1.2);
 }
 
-.midi-tracker-legend li.is-switching .midi-tracker-legend-swatch {
-    animation: midi-tracker-legend-switch 160ms ease-out;
+.midi-piano-roll-legend li.is-switching .midi-piano-roll-legend-swatch {
+    animation: midi-piano-roll-legend-switch 160ms ease-out;
 }
 
-@keyframes midi-tracker-legend-switch {
+@keyframes midi-piano-roll-legend-switch {
     from {
         box-shadow: 0 0 0.7rem var(--midi-track-color);
         filter: brightness(1.9) saturate(1.45);
@@ -1407,14 +1408,14 @@ main.is-drag-over::after {
 }
 
 @media (max-width: 800px) {
-    .midi-tracker {
-        --midi-tracker-header-clearance: 8rem;
+    .midi-piano-roll {
+        --midi-piano-roll-header-clearance: 8rem;
     }
 }
 
 @media (max-width: 560px) {
-    .midi-tracker {
-        --midi-tracker-keyboard-width: 4.75rem;
+    .midi-piano-roll {
+        --midi-piano-roll-keyboard-width: 4.75rem;
     }
 
     .tuner-note {
@@ -1427,7 +1428,7 @@ main.is-drag-over::after {
 }
 
 @media (max-width: 340px) {
-    .midi-tracker {
-        --midi-tracker-header-clearance: 12rem;
+    .midi-piano-roll {
+        --midi-piano-roll-header-clearance: 12rem;
     }
 }

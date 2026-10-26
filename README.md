@@ -28,7 +28,7 @@ Live demo: [https://440lab.com/](https://440lab.com/)
     - Choose an included file, attach a local file, or drag and drop it anywhere in the active MIDI view
     - Drop an SF2 or SF3 SoundFont into a MIDI or rhythm sheet view to use it for the current session
     - View synchronized multi-track sheet music or a color-coded scrolling piano roll
-    - Follow tempo and time-signature changes in the piano-roll tracker; sheet music currently requires a single meter
+    - Follow tempo and time-signature changes in the piano roll; sheet music currently requires a single meter
     - Seek through playback and mute individual tracks
 - Practice identifying flat vs. sharp pitch
 - Identify chromatic notes by name without a reference
@@ -64,7 +64,7 @@ Use the global A4 reference to change the tuning standard used throughout the ap
 
 The Tuning tab can play a selected reference note, detect live pitches through the microphone, or do both at the same time. Pitch Memory microphone responses have the same permission and secure-context requirements as the tuner.
 
-The MIDI tab includes a selection of MIDI files and parses local files in the browser. It can display them as multi-track sheet music or as a scrolling piano-roll tracker. The tracker follows tempo and time-signature changes; sheet music currently supports files with a single meter. Dropped SF2 and SF3 SoundFonts can also be used for the current session, including when the site is opened through `file://`. MIDI and SoundFont files are not uploaded.
+The MIDI tab includes a selection of MIDI files and parses local files in the browser. It can display them as multi-track sheet music or as a scrolling piano roll. The piano roll follows tempo and time-signature changes; sheet music currently supports files with a single meter. Dropped SF2 and SF3 SoundFonts can also be used for the current session, including when the site is opened through `file://`. MIDI and SoundFont files are not uploaded.
 
 ## Files
 

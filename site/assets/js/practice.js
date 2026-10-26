@@ -4,7 +4,7 @@ function newTrial() {
     switch (`${activeSection}/${activeView}`) {
         case 'rhythm/sheet':
             newRhythmPhrase();
-            startRhythm();
+            playRhythm();
             break;
         case 'pitch/placement':
             newPitchPlacementTrial(true);

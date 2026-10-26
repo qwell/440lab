@@ -87,6 +87,17 @@
     grid-column: 1;
 }
 
+.practice > .practice-buttons [data-action$='-rewind'] {
+    grid-column: 1;
+}
+
+.practice
+    > .practice-buttons
+    [data-action$='-rewind']
+    + [data-action$='-play'] {
+    grid-column: 2;
+}
+
 .practice > .practice-buttons [data-action$='-stop'] {
     grid-column: 2;
 }

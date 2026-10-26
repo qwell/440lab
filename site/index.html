@@ -182,7 +182,7 @@
                         "@type": "WebPageElement",
                         "@id": "https://440lab.com/#midi",
                         "name": "MIDI",
-                        "description": "Included and local Standard MIDI File selection and drag-and-drop playback with bundled or dropped SF2 and SF3 SoundFonts, synchronized multi-track sheet music, seeking and track muting, and a color-coded scrolling piano-roll tracker that follows tempo and time signature changes.",
+                        "description": "Included and local Standard MIDI File selection and drag-and-drop playback with bundled or dropped SF2 and SF3 SoundFonts, synchronized multi-track sheet music, seeking and track muting, and a color-coded scrolling piano roll that follows tempo and time signature changes.",
                         "isPartOf": {
                             "@id": "https://440lab.com/#webpage"
                         }
@@ -739,9 +739,9 @@
                             <button
                                 type="button"
                                 data-nav-section="midi"
-                                data-nav-mode="tracker"
+                                data-nav-mode="piano-roll"
                             >
-                                Tracker
+                                Piano Roll
                             </button>
                         </li>
                     </ul>
@@ -1404,35 +1404,45 @@
                         playback.
                     </h3>
                     <div class="practice">
-                        <div class="practice-content-column-4">
-                            <div
-                                id="rhythm-sheet-score"
-                                class="sheet-score"
-                                role="group"
-                                aria-disabled="true"
-                                aria-label="Perform through your microphone, or hold each note using Space or the pointer"
-                                aria-describedby="rhythm-sheet-description"
-                            ></div>
+                        <div class="field">
+                            <label for="rhythm-sheet-soundfont">
+                                SoundFont
+                            </label>
+                            <div class="control-row">
+                                <select
+                                    id="rhythm-sheet-soundfont"
+                                    data-control="shared-soundfont"
+                                    title="Choose a SoundFont, or drop an SF2 or SF3 file in this view"
+                                ></select>
+                            </div>
                         </div>
+                        <p
+                            class="soundfont-status practice-content-column-3"
+                            data-output="soundfont-status"
+                            role="status"
+                            hidden
+                        ></p>
                         <div class="practice-buttons">
                             <button
                                 class="icon-button"
-                                data-action="rhythm-sheet-play"
+                                data-action="rhythm-sheet-rewind"
                                 type="button"
-                                aria-label="Play sheet music"
-                                title="Play"
+                                aria-label="Rewind"
+                                title="Rewind"
+                                disabled
                             >
-                                <span aria-hidden="true">▶</span>
+                                <span aria-hidden="true">⏮</span>
                             </button>
 
                             <button
                                 class="icon-button"
-                                data-action="global-audio-stop"
+                                data-action="rhythm-sheet-play"
                                 type="button"
-                                aria-label="Stop sheet music"
-                                title="Stop"
+                                aria-label="Play"
+                                title="Play"
+                                aria-pressed="false"
                             >
-                                <span aria-hidden="true">■</span>
+                                <span aria-hidden="true">⏯</span>
                             </button>
 
                             <button
@@ -1444,6 +1454,16 @@
                             >
                                 <span aria-hidden="true">↻</span>
                             </button>
+                        </div>
+                        <div class="practice-content-column-4">
+                            <div
+                                id="rhythm-sheet-score"
+                                class="sheet-score"
+                                role="group"
+                                aria-disabled="true"
+                                aria-label="Perform through your microphone, or hold each note using Space or the pointer"
+                                aria-describedby="rhythm-sheet-description"
+                            ></div>
                         </div>
                         <div class="practice-responses practice-content-column">
                             <button
@@ -1627,24 +1647,6 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="field">
-                            <label for="rhythm-sheet-soundfont">
-                                SoundFont
-                            </label>
-                            <div class="control-row">
-                                <select
-                                    id="rhythm-sheet-soundfont"
-                                    data-control="shared-soundfont"
-                                    title="Choose a SoundFont, or drop an SF2 or SF3 file in this view"
-                                ></select>
-                            </div>
-                            <p
-                                class="soundfont-status"
-                                data-output="soundfont-status"
-                                role="status"
-                                hidden
-                            ></p>
-                        </div>
                     </div>
 
                     <details class="practice-guide">
@@ -1710,7 +1712,8 @@
                         it to visualize it as sheet music. You can also drag &
                         drop an SF2 or SF3 SoundFont into this view to use its
                         instruments for playback. This view supports files with
-                        a single time signature; use Tracker for meter changes.
+                        a single time signature; use Piano Roll for meter
+                        changes.
                     </h3>
                     <p class="practice-note">
                         This module is a work in progress and is likely to have
@@ -1782,34 +1785,34 @@
                         <div class="practice-buttons">
                             <button
                                 class="icon-button"
+                                data-action="midi-sheet-rewind"
+                                type="button"
+                                aria-label="Rewind"
+                                title="Rewind"
+                                disabled
+                            >
+                                <span aria-hidden="true">⏮</span>
+                            </button>
+
+                            <button
+                                class="icon-button"
                                 data-action="midi-sheet-play"
                                 type="button"
-                                aria-label="Play MIDI"
+                                aria-label="Play"
                                 title="Play"
                                 aria-pressed="false"
                                 disabled
                             >
                                 <span aria-hidden="true">⏯</span>
                             </button>
-
-                            <button
-                                class="icon-button"
-                                data-action="midi-sheet-stop"
-                                type="button"
-                                aria-label="Stop MIDI"
-                                title="Stop"
-                                disabled
-                            >
-                                <span aria-hidden="true">■</span>
-                            </button>
                         </div>
                         <div
-                            class="midi-visualize-time-row practice-content-column-4"
+                            class="midi-player-time-row practice-content-column-4"
                             hidden
                         >
                             <span data-output="midi-current-time">0:00</span>
                             <input
-                                class="midi-visualize-seek"
+                                class="midi-player-seek"
                                 data-control="shared-midi-seek"
                                 type="range"
                                 min="0"
@@ -1822,18 +1825,18 @@
                             <span data-output="midi-total-time">0:00</span>
                         </div>
                         <div
-                            id="midi-visualize-tracks"
-                            class="midi-visualize-tracks practice-content-column-4"
+                            id="midi-player-tracks"
+                            class="midi-player-tracks practice-content-column-4"
                             hidden
                         ></div>
                     </div>
                 </div>
-                <div data-mode-panel="tracker" hidden>
+                <div data-mode-panel="piano-roll" hidden>
                     <h3 class="blurb">
                         Choose an included MIDI file, attach one, or drag & drop
-                        it to visualize it in a piano-roll tracker whose measure
-                        lines follow time signature changes. You can also drag &
-                        drop an SF2 or SF3 SoundFont into this view to use its
+                        it to visualize it in a piano roll whose measure lines
+                        follow time signature changes. You can also drag & drop
+                        an SF2 or SF3 SoundFont into this view to use its
                         instruments for playback.
                     </h3>
                     <p class="practice-note">
@@ -1848,25 +1851,27 @@
                     </p>
                     <div class="practice">
                         <div class="field">
-                            <label for="midi-tracker-library">MIDI file</label>
+                            <label for="midi-piano-roll-library"
+                                >MIDI file</label
+                            >
                             <div class="control-row midi-file-controls">
                                 <button
                                     class="icon-button"
-                                    data-action="midi-tracker-attach"
+                                    data-action="midi-piano-roll-attach"
                                     type="button"
-                                    aria-controls="midi-tracker-file"
+                                    aria-controls="midi-piano-roll-file"
                                     aria-label="Choose local MIDI file"
                                     title="Choose local MIDI file"
                                 >
                                     <span aria-hidden="true">📎</span>
                                 </button>
                                 <select
-                                    id="midi-tracker-library"
+                                    id="midi-piano-roll-library"
                                     data-control="shared-midi-library"
                                 ></select>
                             </div>
                             <input
-                                id="midi-tracker-file"
+                                id="midi-piano-roll-file"
                                 class="sr-only"
                                 data-control="midi-file"
                                 type="file"
@@ -1875,12 +1880,12 @@
                             />
                         </div>
                         <div class="field">
-                            <label for="midi-tracker-soundfont">
+                            <label for="midi-piano-roll-soundfont">
                                 SoundFont
                             </label>
                             <div class="control-row">
                                 <select
-                                    id="midi-tracker-soundfont"
+                                    id="midi-piano-roll-soundfont"
                                     data-control="shared-soundfont"
                                     title="Choose a SoundFont, or drop an SF2 or SF3 file in this view"
                                 ></select>
@@ -1906,34 +1911,34 @@
                         <div class="practice-buttons">
                             <button
                                 class="icon-button"
-                                data-action="midi-tracker-play"
+                                data-action="midi-piano-roll-rewind"
                                 type="button"
-                                aria-label="Play MIDI"
+                                aria-label="Rewind"
+                                title="Rewind"
+                                disabled
+                            >
+                                <span aria-hidden="true">⏮</span>
+                            </button>
+
+                            <button
+                                class="icon-button"
+                                data-action="midi-piano-roll-play"
+                                type="button"
+                                aria-label="Play"
                                 title="Play"
                                 aria-pressed="false"
                                 disabled
                             >
                                 <span aria-hidden="true">⏯</span>
                             </button>
-
-                            <button
-                                class="icon-button"
-                                data-action="midi-tracker-stop"
-                                type="button"
-                                aria-label="Stop MIDI"
-                                title="Stop"
-                                disabled
-                            >
-                                <span aria-hidden="true">■</span>
-                            </button>
                         </div>
                         <div
-                            class="midi-visualize-time-row practice-content-column-4"
+                            class="midi-player-time-row practice-content-column-4"
                             hidden
                         >
                             <span data-output="midi-current-time">0:00</span>
                             <input
-                                class="midi-visualize-seek"
+                                class="midi-player-seek"
                                 data-control="shared-midi-seek"
                                 type="range"
                                 min="0"
@@ -1946,8 +1951,8 @@
                             <span data-output="midi-total-time">0:00</span>
                         </div>
                         <div
-                            id="midi-tracker"
-                            class="midi-tracker practice-content-column-4"
+                            id="midi-piano-roll"
+                            class="midi-piano-roll practice-content-column-4"
                             hidden
                         ></div>
                     </div>
@@ -3593,10 +3598,10 @@
                         Choose an included Standard MIDI File, attach one, or
                         drop one into the view to play it with a selectable
                         SoundFont, follow synchronized multi-track sheet music,
-                        or watch a color-coded piano-roll tracker that follows
-                        tempo and time signature changes. Drop an SF2 or SF3
-                        SoundFont into a MIDI or rhythm sheet view to use it for
-                        the current session. Seek through the song or mute
+                        or watch a color-coded piano roll that follows tempo and
+                        time signature changes. Drop an SF2 or SF3 SoundFont
+                        into a MIDI or rhythm sheet view to use it for the
+                        current session. Seek through the song or mute
                         individual tracks while it plays. Sheet music currently
                         supports files with a single meter. MIDI and SoundFont
                         files are processed locally in your browser and are not
