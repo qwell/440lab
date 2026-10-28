@@ -18,10 +18,10 @@ function newTrial() {
         case 'match/identification':
             newMatchIdentificationTrial(true);
             break;
-        case 'intervals/recognition':
+        case 'interval/recognition':
             newIntervalRecognitionTrial(true);
             break;
-        case 'intervals/construction':
+        case 'interval/construction':
             newIntervalConstructionTrial(true);
             break;
     }
@@ -35,10 +35,10 @@ function cancelAdvance() {
         case 'match':
             cancelMatchAdvance();
             break;
-        case 'intervals':
+        case 'interval':
             cancelIntervalAdvance();
             break;
-        case 'chords':
+        case 'chord':
             cancelChordAdvance();
             break;
     }
@@ -59,24 +59,30 @@ function clearStats() {
         case 'match':
             clearMatchStats();
             break;
-        case 'intervals':
+        case 'interval':
             clearIntervalStats();
             break;
-        case 'chords':
+        case 'chord':
             clearChordStats();
             break;
     }
 }
 
-function updatePracticeMode() {
+function updateSectionMode() {
     switch (activeSection) {
+        case 'rhythm':
+            updateRhythmMode();
+            break;
+        case 'midi':
+            updateMidiMode();
+            break;
         case 'pitch':
             updatePitchMode();
             break;
         case 'match':
             updateMatchMode();
             break;
-        case 'intervals':
+        case 'interval':
             updateIntervalMode();
             break;
     }
@@ -138,7 +144,7 @@ function savePitchStats() {
 
 musicEngine.stats.pitch = loadPitchStats();
 
-const pitch = {
+const pitchPlacement = {
     trial: null,
     adaptiveResults: [],
 };
@@ -398,7 +404,7 @@ function newPitchPlacementTrial(playImmediately = false) {
     cancelPitchAdvance();
     stopAllAudio();
 
-    pitch.trial = createPitchPlacementTrial();
+    pitchPlacement.trial = createPitchPlacementTrial();
 
     setPitchPlacementAnswerState({
         disabled: true,
@@ -414,19 +420,20 @@ function newPitchPlacementTrial(playImmediately = false) {
 function playPitchPlacementTrial() {
     cancelPitchAdvance();
 
-    if (!pitch.trial) {
+    if (!pitchPlacement.trial) {
         newPitchPlacementTrial();
     }
 
     stopAllAudio();
 
-    if (!pitch.trial.committed) {
+    if (!pitchPlacement.trial.committed) {
         setPitchPlacementAnswerState({
             disabled: false,
         });
     }
 
-    const { rootFrequency, correctTargetFrequency, mistuneCents } = pitch.trial;
+    const { rootFrequency, correctTargetFrequency, mistuneCents } =
+        pitchPlacement.trial;
 
     const waveform = musicEngine.getWaveform('pitch-placement').value;
 
@@ -452,7 +459,7 @@ function playPitchPlacementTrial() {
 }
 
 function commitPitchPlacement(answer) {
-    const trial = pitch.trial;
+    const trial = pitchPlacement.trial;
 
     if (!trial || trial.committed) {
         return;
@@ -942,7 +949,7 @@ function playNovelPitchMemoryMelody(random, startingFrequency) {
 }
 
 function setPitchMemoryReplayEnabled(enabled) {
-    musicEngine.getAction('pitch-memory-start').disabled = !enabled;
+    musicEngine.getAction('pitch-memory-play').disabled = !enabled;
 }
 
 function playPitchMemoryStimulus() {
@@ -1074,13 +1081,13 @@ function cancelPitchMemoryTrial(showStatus = true) {
 
     pitchMemory.trial = null;
 
-    const startButton = musicEngine.getAction('pitch-memory-start');
+    const playButton = musicEngine.getAction('pitch-memory-play');
 
-    if (!startButton) {
+    if (!playButton) {
         return;
     }
 
-    startButton.disabled = true;
+    playButton.disabled = true;
     musicEngine.getAction('pitch-memory-stop').disabled = true;
     hidePitchMemoryResponses();
 
@@ -1236,10 +1243,7 @@ function updatePitchMemoryControls() {
 
 function updatePitchMode() {
     const mode = sectionView('pitch');
-
-    for (const panel of musicEngine.getModePanels('pitch')) {
-        panel.hidden = panel.dataset.modePanel !== mode;
-    }
+    updateModePanels('pitch');
 
     stopAllAudio();
     cancelPitchAdvance();
@@ -1358,12 +1362,6 @@ function newMatchTrial(playImmediately = false) {
     }
 }
 
-function playMatchTrial() {
-    if (sectionView('match') === 'identification') {
-        playMatchIdentificationTrial();
-    }
-}
-
 const matchAdvance = musicEngine.createAutoAdvance(
     musicEngine.getModuleActions('match', 'new'),
     () => newMatchTrial(true)
@@ -1399,10 +1397,7 @@ function clearMatchStats() {
 
 function updateMatchMode() {
     const mode = sectionView('match');
-
-    for (const panel of musicEngine.getModePanels('match')) {
-        panel.hidden = panel.dataset.modePanel !== mode;
-    }
+    updateModePanels('match');
 
     stopAllAudio();
     cancelMatchAdvance();
@@ -1959,7 +1954,7 @@ const interval = {
 };
 
 function getIntervalExercise() {
-    return `interval-${sectionView('intervals')}`;
+    return `interval-${sectionView('interval')}`;
 }
 
 const intervalAdvance = musicEngine.createAutoAdvance(
@@ -1985,11 +1980,7 @@ function enabledIntervals() {
 }
 
 function updateIntervalMode() {
-    const mode = sectionView('intervals');
-
-    for (const panel of musicEngine.getModePanels('intervals')) {
-        panel.hidden = panel.dataset.modePanel !== mode;
-    }
+    updateModePanels('interval');
 
     renderAdaptiveProgress(getIntervalExercise());
     newIntervalTrial();
@@ -2052,7 +2043,7 @@ function renderIntervalAnswers(selected = null, enabled = false) {
     }
 
     document
-        .querySelector(`[data-interval-answers="${sectionView('intervals')}"]`)
+        .querySelector(`[data-interval-answers="${sectionView('interval')}"]`)
         .replaceChildren(...buttons);
 }
 
@@ -2063,7 +2054,7 @@ function clearIntervalResult() {
 // Intervals: recognition and construction
 
 function newIntervalTrial(playImmediately = false) {
-    if (sectionView('intervals') === 'construction') {
+    if (sectionView('interval') === 'construction') {
         newIntervalConstructionTrial(playImmediately);
     } else {
         newIntervalRecognitionTrial(playImmediately);
@@ -2140,7 +2131,7 @@ function playIntervalTrial() {
         0.7
     );
     const waveform = musicEngine.getWaveform(
-        `interval-${sectionView('intervals')}`
+        `interval-${sectionView('interval')}`
     ).value;
 
     musicEngine.audio.playTransient(
@@ -2164,7 +2155,7 @@ function playIntervalTrial() {
 }
 
 function renderIntervalStats() {
-    const mode = sectionView('intervals');
+    const mode = sectionView('interval');
     const { streak, trials, correct, best } = musicEngine.stats.interval[mode];
 
     const accuracy = trials > 0 ? (correct / trials) * 100 : 0;
@@ -2179,7 +2170,7 @@ function renderIntervalStats() {
 }
 
 function clearIntervalStats() {
-    const mode = sectionView('intervals');
+    const mode = sectionView('interval');
 
     musicEngine.stats.interval[mode] = defaultIntervalTypeStats();
     saveIntervalStats();
@@ -2295,10 +2286,6 @@ const chord = {
     playedNotes: [],
 };
 
-function newChordTrial(playImmediately = false) {
-    newChordQualityTrial(playImmediately);
-}
-
 const chordAdvance = musicEngine.createAutoAdvance(
     musicEngine.getModuleActions('chord', 'new'),
     () => newChordTrial(true)
@@ -2312,7 +2299,7 @@ function scheduleChordAdvance() {
     chordAdvance.schedule();
 }
 
-function renderChordQualityAnswers(selected = null, answersEnabled = false) {
+function renderChordAnswers(selected = null, answersEnabled = false) {
     const buttons = Object.keys(musicEngine.CHORD_QUALITIES).map((quality) => {
         const button = document.createElement('button');
 
@@ -2335,11 +2322,11 @@ function renderChordQualityAnswers(selected = null, answersEnabled = false) {
     document.querySelector('[data-chord-answers]').replaceChildren(...buttons);
 }
 
-function clearChordQualityResult() {
+function clearChordResult() {
     musicEngine.clearPracticeResult('chord-result');
 }
 
-function newChordQualityTrial(playImmediately = false) {
+function newChordTrial(playImmediately = false) {
     cancelChordAdvance();
     stopAllAudio();
 
@@ -2355,17 +2342,17 @@ function newChordQualityTrial(playImmediately = false) {
     chord.committed = false;
     chord.playedNotes = [];
 
-    clearChordQualityResult();
-    renderChordQualityAnswers();
+    clearChordResult();
+    renderChordAnswers();
 
     if (playImmediately) {
-        playChordQualityTrial();
+        playChordTrial();
     }
 }
 
-function playChordQualityTrial() {
+function playChordTrial() {
     if (!chord.quality) {
-        newChordQualityTrial();
+        newChordTrial();
 
         if (!chord.quality) {
             return;
@@ -2375,7 +2362,7 @@ function playChordQualityTrial() {
     cancelChordAdvance();
     stopAllAudio();
 
-    const waveform = musicEngine.getWaveform('chords').value;
+    const waveform = musicEngine.getWaveform('chord').value;
     const playback = musicEngine.getControl('chord-playback').value;
     const sequential = playback !== 'together';
     const intervals = [...musicEngine.CHORD_QUALITIES[chord.quality]];
@@ -2399,7 +2386,7 @@ function playChordQualityTrial() {
     });
 
     if (!chord.committed) {
-        renderChordQualityAnswers(null, true);
+        renderChordAnswers(null, true);
     }
 }
 
@@ -2453,7 +2440,7 @@ function commitChordQuality(quality) {
 
     saveChordStats();
     renderChordStats();
-    renderChordQualityAnswers(quality, true);
+    renderChordAnswers(quality, true);
 
     musicEngine.renderPracticeResult(
         'chord-result',

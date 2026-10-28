@@ -328,18 +328,18 @@ main.is-drag-over::after {
     font-size: 12px;
 }
 
-.midi-status {
+.midi-player-status {
     display: block;
 
     white-space: pre-line;
 }
 
-.midi-status.is-loading,
+.midi-player-status.is-loading,
 #rhythm-sheet-count-label.is-loading {
     color: var(--incorrect);
 }
 
-.midi-status + .soundfont-status {
+.midi-player-status + .soundfont-status {
     margin-top: 0;
 }
 
@@ -361,47 +361,47 @@ main.is-drag-over::after {
     width: var(--control-width);
 }
 
-.midi-player-tracks {
+.midi-sheet-tracks {
     --sheet-heading-gap: 2rem;
 
     display: grid;
     gap: 16px;
 }
 
-.midi-player-tracks .sheet-score-heading {
+.midi-sheet-tracks .sheet-score-heading {
     width: 5rem;
 }
 
-.midi-player-tracks[hidden],
+.midi-sheet-tracks[hidden],
 .midi-piano-roll[hidden] {
     display: none;
 }
 
-.midi-player-track {
+.midi-sheet-track {
     display: block;
 }
 
-.midi-player-track-body {
+.midi-sheet-track-body {
     min-height: 0;
 }
 
-.midi-player-track-body,
-.midi-player-track-header {
+.midi-sheet-track-body,
+.midi-sheet-track-header {
     display: grid;
     grid-template-columns: 1.25rem minmax(0, 1fr);
     column-gap: 0.3rem;
 }
 
-.midi-player-track .midi-player-track-body[hidden] {
+.midi-sheet-track .midi-sheet-track-body[hidden] {
     display: none;
 }
 
-.midi-player-track-heading,
-.midi-player-track-content {
+.midi-sheet-track-heading,
+.midi-sheet-track-content {
     grid-column: 2;
 }
 
-.midi-player-track-toggle {
+.midi-sheet-track-toggle {
     width: 100%;
     height: auto;
     min-height: 0;
@@ -417,21 +417,21 @@ main.is-drag-over::after {
     cursor: pointer;
 }
 
-.midi-player-track-toggle[aria-pressed='false'] {
+.midi-sheet-track-toggle[aria-pressed='false'] {
     background: var(--incorrect);
 }
 
 @media (hover: hover) {
-    .midi-player-track-toggle:hover:not(:disabled) {
+    .midi-sheet-track-toggle:hover:not(:disabled) {
         background: var(--correct);
     }
 
-    .midi-player-track-toggle[aria-pressed='false']:hover:not(:disabled) {
+    .midi-sheet-track-toggle[aria-pressed='false']:hover:not(:disabled) {
         background: var(--incorrect);
     }
 }
 
-.midi-player-track-header {
+.midi-sheet-track-header {
     margin-bottom: 5px;
 
     align-items: center;
@@ -484,7 +484,7 @@ main.is-drag-over::after {
     padding: 0;
 }
 
-.midi-player-track-heading {
+.midi-sheet-track-heading {
     margin: 0;
 
     color: var(--muted);
@@ -493,7 +493,7 @@ main.is-drag-over::after {
     font-weight: 600;
 }
 
-.midi-player-track-minimize {
+.midi-sheet-track-minimize {
     width: 100%;
     height: 1.25rem;
     padding: 0;
@@ -502,34 +502,34 @@ main.is-drag-over::after {
     line-height: 1;
 }
 
-.midi-player-track-minimize > span {
+.midi-sheet-track-minimize > span {
     display: block;
 
     transform: translateY(-0.1rem);
 }
 
-.midi-player-track-scores {
+.midi-sheet-track-scores {
     display: grid;
     gap: 4px;
 }
 
-.midi-player-track-scores:empty {
+.midi-sheet-track-scores:empty {
     display: none;
 }
 
-.midi-player-track-scores[hidden] {
+.midi-sheet-track-scores[hidden] {
     display: none;
 }
 
-.midi-player-track-content[hidden] {
+.midi-sheet-track-content[hidden] {
     display: none;
 }
 
-.midi-player-track-content > .practice-note {
+.midi-sheet-track-content > .practice-note {
     margin-top: 0;
 }
 
-.midi-player-tracks .sheet-score {
+.midi-sheet-tracks .sheet-score {
     height: 8rem;
     margin-bottom: 4rem;
 }

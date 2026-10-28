@@ -59,10 +59,13 @@ function getControl(name, root = document) {
     return root.querySelector(`[data-control="${name}"]`);
 }
 
-function getControls(...names) {
-    const selector = names.map((name) => `[data-control="${name}"]`).join(', ');
+function getControls(names, root = document) {
+    const controlNames = Array.isArray(names) ? names : [names];
+    const selector = controlNames
+        .map((name) => `[data-control="${name}"]`)
+        .join(', ');
 
-    return document.querySelectorAll(selector);
+    return root.querySelectorAll(selector);
 }
 
 function getOutput(name, root = document) {
@@ -906,7 +909,7 @@ function deactivateActiveMicrophoneInput(reason) {
     activeMicrophoneInput?.deactivate(reason);
 }
 
-function stopMicrophone() {
+function pauseMicrophone() {
     void setMicrophoneState(MICROPHONE_STATES.PAUSED);
 }
 
@@ -987,7 +990,7 @@ const musicEngine = Object.freeze({
     setAnswerOptionState,
     setMicrophoneState,
     stats,
-    stopMicrophone,
+    pauseMicrophone,
     storage,
     synchronizeSharedControl,
     toggleVolume,

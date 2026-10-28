@@ -142,10 +142,10 @@
                                 "@id": "https://440lab.com/#match"
                             },
                             {
-                                "@id": "https://440lab.com/#intervals"
+                                "@id": "https://440lab.com/#interval"
                             },
                             {
-                                "@id": "https://440lab.com/#chords"
+                                "@id": "https://440lab.com/#chord"
                             },
                             {
                                 "@id": "https://440lab.com/#about"
@@ -207,7 +207,7 @@
                     },
                     {
                         "@type": "WebPageElement",
-                        "@id": "https://440lab.com/#intervals",
+                        "@id": "https://440lab.com/#interval",
                         "name": "Intervals",
                         "description": "Ear-training exercise for identifying melodic intervals by their pitch distance.",
                         "isPartOf": {
@@ -216,7 +216,7 @@
                     },
                     {
                         "@type": "WebPageElement",
-                        "@id": "https://440lab.com/#chords",
+                        "@id": "https://440lab.com/#chord",
                         "name": "Chords",
                         "description": "Ear-training exercise for identifying major, minor, diminished, and augmented triad qualities.",
                         "isPartOf": {
@@ -815,7 +815,7 @@
                     <button
                         id="interval-nav-item"
                         class="nav-item"
-                        data-section="intervals"
+                        data-section="interval"
                         type="button"
                         aria-controls="interval-panel"
                     >
@@ -825,7 +825,7 @@
                         <li>
                             <button
                                 type="button"
-                                data-nav-section="intervals"
+                                data-nav-section="interval"
                                 data-nav-mode="recognition"
                             >
                                 Recognition
@@ -834,7 +834,7 @@
                         <li>
                             <button
                                 type="button"
-                                data-nav-section="intervals"
+                                data-nav-section="interval"
                                 data-nav-mode="construction"
                             >
                                 Construction
@@ -847,7 +847,7 @@
                     <button
                         id="chord-nav-item"
                         class="nav-item"
-                        data-section="chords"
+                        data-section="chord"
                         type="button"
                         aria-controls="chord-panel"
                     >
@@ -1160,7 +1160,7 @@
 
                             <button
                                 class="icon-button"
-                                data-action="global-audio-stop"
+                                data-action="global-stop"
                                 type="button"
                                 aria-label="Stop rhythm"
                                 title="Stop"
@@ -1288,7 +1288,7 @@
 
                             <button
                                 class="icon-button"
-                                data-action="global-audio-stop"
+                                data-action="global-stop"
                                 type="button"
                                 aria-label="Stop rhythm"
                                 title="Stop"
@@ -1766,11 +1766,11 @@
                             </div>
                         </div>
                         <p
-                            class="practice-note practice-content-column-3 midi-status-group"
+                            class="practice-note practice-content-column-3 midi-player-status-group"
                         >
                             <span
-                                class="midi-status"
-                                data-output="midi-status"
+                                class="midi-player-status"
+                                data-output="midi-player-status"
                                 role="status"
                                 >Choose an included MIDI file, attach one, or
                                 drop one.</span
@@ -1810,7 +1810,9 @@
                             class="midi-player-time-row practice-content-column-4"
                             hidden
                         >
-                            <span data-output="midi-current-time">0:00</span>
+                            <span data-output="midi-player-current-time"
+                                >0:00</span
+                            >
                             <input
                                 class="midi-player-seek"
                                 data-control="shared-midi-seek"
@@ -1822,11 +1824,13 @@
                                 aria-label="MIDI playback position"
                                 disabled
                             />
-                            <span data-output="midi-total-time">0:00</span>
+                            <span data-output="midi-player-total-time"
+                                >0:00</span
+                            >
                         </div>
                         <div
-                            id="midi-player-tracks"
-                            class="midi-player-tracks practice-content-column-4"
+                            id="midi-sheet-tracks"
+                            class="midi-sheet-tracks practice-content-column-4"
                             hidden
                         ></div>
                     </div>
@@ -1892,11 +1896,11 @@
                             </div>
                         </div>
                         <p
-                            class="practice-note practice-content-column-3 midi-status-group"
+                            class="practice-note practice-content-column-3 midi-player-status-group"
                         >
                             <span
-                                class="midi-status"
-                                data-output="midi-status"
+                                class="midi-player-status"
+                                data-output="midi-player-status"
                                 role="status"
                                 >Choose an included MIDI file, attach one, or
                                 drag & drop one.</span
@@ -1936,7 +1940,9 @@
                             class="midi-player-time-row practice-content-column-4"
                             hidden
                         >
-                            <span data-output="midi-current-time">0:00</span>
+                            <span data-output="midi-player-current-time"
+                                >0:00</span
+                            >
                             <input
                                 class="midi-player-seek"
                                 data-control="shared-midi-seek"
@@ -1948,7 +1954,9 @@
                                 aria-label="MIDI playback position"
                                 disabled
                             />
-                            <span data-output="midi-total-time">0:00</span>
+                            <span data-output="midi-player-total-time"
+                                >0:00</span
+                            >
                         </div>
                         <div
                             id="midi-piano-roll"
@@ -1987,7 +1995,7 @@
 
                             <button
                                 class="icon-button"
-                                data-action="global-audio-stop"
+                                data-action="global-stop"
                                 type="button"
                                 aria-label="Stop all audio"
                                 title="Stop"
@@ -2315,7 +2323,7 @@
                         <div class="practice-buttons">
                             <button
                                 class="icon-button"
-                                data-action="pitch-memory-start"
+                                data-action="pitch-memory-play"
                                 type="button"
                                 aria-label="Replay pitch-memory stimulus"
                                 title="Replay stimulus"
@@ -2327,8 +2335,8 @@
                                 class="icon-button"
                                 data-action="pitch-memory-stop"
                                 type="button"
-                                aria-label="Pause pitch-memory trial"
-                                title="Pause trial"
+                                aria-label="Stop pitch-memory trial"
+                                title="Stop trial"
                                 disabled
                             >
                                 <span aria-hidden="true">■</span>
@@ -2337,8 +2345,8 @@
                                 class="icon-button auto-refresh"
                                 data-action="pitch-memory-new"
                                 type="button"
-                                aria-label="New pitch-memory trial and start"
-                                title="New trial and start"
+                                aria-label="New pitch-memory trial and play"
+                                title="New trial and play"
                             >
                                 <span aria-hidden="true">↻</span>
                             </button>
@@ -2514,7 +2522,7 @@
                         <div class="practice-buttons">
                             <button
                                 class="icon-button"
-                                data-action="global-audio-stop"
+                                data-action="global-stop"
                                 type="button"
                                 aria-label="Stop all audio"
                                 title="Stop"
@@ -2762,7 +2770,7 @@
 
                             <button
                                 class="icon-button"
-                                data-action="global-audio-stop"
+                                data-action="global-stop"
                                 type="button"
                                 aria-label="Stop note"
                                 title="Stop"
@@ -2893,7 +2901,7 @@
             <section
                 id="interval-panel"
                 class="section-panel"
-                data-panel="intervals"
+                data-panel="interval"
                 hidden
             >
                 <h2 class="sr-only">Intervals</h2>
@@ -2915,7 +2923,7 @@
                             </button>
                             <button
                                 class="icon-button"
-                                data-action="global-audio-stop"
+                                data-action="global-stop"
                                 type="button"
                                 aria-label="Stop interval"
                                 title="Stop"
@@ -3124,7 +3132,7 @@
                             </button>
                             <button
                                 class="icon-button"
-                                data-action="global-audio-stop"
+                                data-action="global-stop"
                                 type="button"
                                 aria-label="Stop interval"
                                 title="Stop"
@@ -3414,7 +3422,7 @@
             <section
                 id="chord-panel"
                 class="section-panel"
-                data-panel="chords"
+                data-panel="chord"
                 hidden
             >
                 <h2 class="sr-only">Chords</h2>
@@ -3436,7 +3444,7 @@
 
                         <button
                             class="icon-button"
-                            data-action="global-audio-stop"
+                            data-action="global-stop"
                             type="button"
                             aria-label="Stop chord"
                             title="Stop"
@@ -3516,7 +3524,7 @@
                             <select
                                 id="chord-waveform"
                                 data-control="shared-waveform"
-                                data-waveform="chords"
+                                data-waveform="chord"
                             >
                                 <option value="sine" selected>sine</option>
                                 <option value="triangle">triangle</option>
