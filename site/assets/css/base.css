@@ -82,10 +82,6 @@ body {
     color: var(--text);
 }
 
-.tabular-numbers {
-    font-variant-numeric: tabular-nums;
-}
-
 @media (max-width: 1060px) {
     :root {
         --field-width: calc(

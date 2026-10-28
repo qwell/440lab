@@ -4639,6 +4639,8 @@ async function loadDroppedFiles(dropZone, files) {
 
 // Rhythm
 
+const RHYTHM_TIMING_RESPONSE_LIMIT = 20;
+
 const rhythmPlayer = {
     playing: false,
     timer: null,
@@ -5795,7 +5797,9 @@ function recordRhythmTimingTap() {
     const error =
         now - (rhythmTiming.originMs + beat * rhythmTiming.interval * 1000);
     rhythmTiming.errors.push(error);
-    rhythmTiming.errors = rhythmTiming.errors.slice(-20);
+    rhythmTiming.errors = rhythmTiming.errors.slice(
+        -RHYTHM_TIMING_RESPONSE_LIMIT
+    );
     const signed = (value) => `${value > 0 ? '+' : ''}${Math.round(value)}`;
     const count = rhythmTiming.errors.length;
     const average =
@@ -5803,8 +5807,18 @@ function recordRhythmTimingTap() {
         count;
     const bias =
         rhythmTiming.errors.reduce((sum, value) => sum + value, 0) / count;
-    document.getElementById('rhythm-timing-result').textContent =
-        `${signed(error)} ms - ${Math.abs(error) <= 20 ? 'On beat' : error < 0 ? 'Early' : 'Late'} - ${count} tap${count === 1 ? '' : 's'} - Average error: ${Math.round(average)} ms - Bias: ${signed(bias)} ms`;
+    const status =
+        Math.abs(error) <= 20 ? 'on beat' : error < 0 ? 'early' : 'late';
+    const result = document.getElementById('rhythm-timing-result');
+    const latest = document.createElement('span');
+    const responseCount = document.createElement('span');
+    const averageError = document.createElement('span');
+    const averageBias = document.createElement('span');
+    latest.textContent = `${signed(error)} ms (${status})`;
+    responseCount.textContent = `Rolling samples: ${count}/${RHYTHM_TIMING_RESPONSE_LIMIT}`;
+    averageError.textContent = `Average error: +/- ${Math.round(average)} ms`;
+    averageBias.textContent = `Bias: ${signed(bias)} ms`;
+    result.replaceChildren(latest, responseCount, averageError, averageBias);
     const mark = document.getElementById('rhythm-timing-mark');
     const feedback = document.getElementById('rhythm-timing-feedback');
     mark.hidden = false;

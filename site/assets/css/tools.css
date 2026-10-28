@@ -220,6 +220,8 @@
 }
 
 .rhythm-timing-mark {
+    z-index: 1;
+
     top: auto;
     bottom: 0;
 
@@ -232,10 +234,14 @@
     content: attr(data-label);
 
     position: absolute;
+    z-index: 1;
 
     bottom: calc(100% + 2px);
     left: 50%;
 
+    padding-inline: 2px;
+
+    background: var(--surface);
     color: currentcolor;
 
     font-size: 10px;
@@ -275,6 +281,11 @@
 
 .rhythm-beat-labels > :last-child {
     text-align: right;
+}
+
+.rhythm-timing-result {
+    display: grid;
+    row-gap: 2px;
 }
 
 .rhythm-timing-tap {
