@@ -532,8 +532,8 @@ const pitchMemory = {
 };
 
 const pitchMemoryMicrophoneInput = musicEngine.createMicrophoneInput({
-    minimumMidi: musicEngine.MINIMUM_SUPPORTED_MIDI,
-    maximumMidi: musicEngine.MAXIMUM_SUPPORTED_MIDI,
+    minimumMidi: musicEngine.PITCH_MEMORY_MINIMUM_MIDI,
+    maximumMidi: musicEngine.PITCH_MEMORY_MAXIMUM_MIDI,
     sampleIntervalMs: musicEngine.TUNER_ANALYSIS_INTERVAL_MS,
     processFrame: processPitchMemoryMicrophoneFrame,
     onDeactivate: handlePitchMemoryMicrophoneDeactivation,
@@ -583,10 +583,10 @@ function seededRandom(seed) {
 
 function randomPitchMemoryFrequency(random = Math.random) {
     const minimumFrequency = musicEngine.frequencyFromMidi(
-        musicEngine.MINIMUM_SUPPORTED_MIDI
+        musicEngine.PITCH_MEMORY_MINIMUM_MIDI
     );
     const maximumFrequency = musicEngine.frequencyFromMidi(
-        musicEngine.MAXIMUM_SUPPORTED_MIDI
+        musicEngine.PITCH_MEMORY_MAXIMUM_MIDI
     );
 
     return minimumFrequency * (maximumFrequency / minimumFrequency) ** random();
@@ -596,7 +596,7 @@ function getPitchMemoryResponseFrequency() {
     const cents = Number(musicEngine.getControl('pitch-memory-pitch').value);
 
     return (
-        musicEngine.frequencyFromMidi(musicEngine.MINIMUM_SUPPORTED_MIDI) *
+        musicEngine.frequencyFromMidi(musicEngine.PITCH_MEMORY_MINIMUM_MIDI) *
         2 ** (cents / musicEngine.CENTS_PER_OCTAVE)
     );
 }
@@ -622,7 +622,7 @@ function pitchMemorySliderValueForFrequency(frequency) {
             Math.log2(
                 frequency /
                     musicEngine.frequencyFromMidi(
-                        musicEngine.MINIMUM_SUPPORTED_MIDI
+                        musicEngine.PITCH_MEMORY_MINIMUM_MIDI
                     )
             ),
         0,
@@ -672,10 +672,10 @@ function showPitchMemoryPitchMarkers(result) {
             ? result.scoredResponseFrequency
             : result.responseFrequency;
     const minimumFrequency = musicEngine.frequencyFromMidi(
-        musicEngine.MINIMUM_SUPPORTED_MIDI
+        musicEngine.PITCH_MEMORY_MINIMUM_MIDI
     );
     const maximumFrequency = musicEngine.frequencyFromMidi(
-        musicEngine.MAXIMUM_SUPPORTED_MIDI
+        musicEngine.PITCH_MEMORY_MAXIMUM_MIDI
     );
     const position = (frequency) =>
         musicEngine.clamp(
@@ -1276,10 +1276,10 @@ function updatePitchMode() {
 function restorePitchMemoryTrial() {
     const trial = pitchMemory.trial;
     const minimumFrequency = musicEngine.frequencyFromMidi(
-        musicEngine.MINIMUM_SUPPORTED_MIDI
+        musicEngine.PITCH_MEMORY_MINIMUM_MIDI
     );
     const maximumFrequency = musicEngine.frequencyFromMidi(
-        musicEngine.MAXIMUM_SUPPORTED_MIDI
+        musicEngine.PITCH_MEMORY_MAXIMUM_MIDI
     );
 
     if (
