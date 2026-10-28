@@ -339,7 +339,7 @@ function updateAdaptiveDifficulty(exercise, correct) {
 
 function getAdaptiveState(exercise) {
     return {
-        'pitch-placement': pitch,
+        'pitch-placement': pitchPlacement,
         'match-target': matchTarget,
         'interval-recognition': interval.recognition,
         'interval-construction': interval.construction,
