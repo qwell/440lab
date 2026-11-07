@@ -361,7 +361,7 @@ const audio = (() => {
         }
 
         if (context.state === 'suspended') {
-            void context.resume();
+            context.resume();
         }
 
         return context;

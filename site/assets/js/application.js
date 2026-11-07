@@ -43,7 +43,7 @@ function updateScreenWakeLock() {
                     !isScreenWakeLockNeeded() ||
                     document.visibilityState !== 'visible'
                 ) {
-                    void lock.release();
+                    lock.release();
                     return;
                 }
 
@@ -71,7 +71,7 @@ function updateScreenWakeLock() {
     if (screenWakeLock) {
         const lock = screenWakeLock;
         screenWakeLock = null;
-        void lock.release();
+        lock.release();
     }
 }
 
@@ -96,13 +96,11 @@ function toggleGlobalMicrophone() {
         musicEngine.microphoneRequestState ===
         musicEngine.MICROPHONE_STATES.LISTENING
     ) {
-        void musicEngine.setMicrophoneState(
-            musicEngine.MICROPHONE_STATES.PAUSED
-        );
+        musicEngine.setMicrophoneState(musicEngine.MICROPHONE_STATES.PAUSED);
         return;
     }
 
-    void activateCurrentPracticeMicrophone();
+    activateCurrentPracticeMicrophone();
 }
 
 let tunerTargetMidi = null;
@@ -266,7 +264,7 @@ function stopAllAudio() {
 
 function stopAllActivity() {
     stopAllAudio();
-    void musicEngine.setMicrophoneState(musicEngine.MICROPHONE_STATES.PAUSED);
+    musicEngine.setMicrophoneState(musicEngine.MICROPHONE_STATES.PAUSED);
     cancelAdvance();
 }
 
@@ -401,9 +399,9 @@ function activateSection(
     const pitchMemoryActive = isPitchMemoryActive(sectionName);
 
     if (sectionName === 'midi') {
-        void loadMidiAssets().catch(() => {});
+        loadMidiAssets().catch(() => {});
     } else if (sectionName === 'rhythm') {
-        void loadSoundFontCatalog().catch(() => {});
+        loadSoundFontCatalog().catch(() => {});
     }
 
     if (
@@ -435,20 +433,20 @@ function activateSection(
         musicEngine.microphoneRequestState ===
             musicEngine.MICROPHONE_STATES.LISTENING
     ) {
-        void activatePitchMemoryMicrophone();
+        activatePitchMemoryMicrophone();
     } else if (
         sectionName === 'tuner' &&
         musicEngine.microphoneRequestState ===
             musicEngine.MICROPHONE_STATES.LISTENING
     ) {
-        void activateTunerMicrophone();
+        activateTunerMicrophone();
     } else if (
         sectionName === 'rhythm' &&
         isRhythmSheetEnabled() &&
         musicEngine.microphoneRequestState ===
             musicEngine.MICROPHONE_STATES.LISTENING
     ) {
-        void activateRhythmSheetMicrophone();
+        activateRhythmSheetMicrophone();
     }
 
     if (updateUrl) {
@@ -1550,7 +1548,7 @@ function bindPlaybackTransport(
             if (isPlaying()) {
                 pause();
             } else {
-                void play();
+                play();
             }
         });
     }
@@ -2069,7 +2067,7 @@ async function startMidiPianoRollKey(midi, key) {
 
 function strikeMidiPianoRollKey(key) {
     const midi = Number(key.dataset.midiPianoRollKey);
-    void startMidiPianoRollKey(midi, key);
+    startMidiPianoRollKey(midi, key);
 }
 
 function initializeMidiPianoRollKeyboard(keyboard) {
@@ -2750,7 +2748,7 @@ function renderMidiPianoRoll() {
         select.className = 'midi-piano-roll-instrument-select';
         select.setAttribute('aria-label', `Instrument for ${track.name}`);
         select.addEventListener('change', () => {
-            void changeMidiTrackInstrument(track, select.value);
+            changeMidiTrackInstrument(track, select.value);
         });
         toggle.append(swatch);
         instrument.append(label, select);
@@ -4592,7 +4590,7 @@ async function loadMidiPlayer(file, included = false) {
         midiPlayer.buffer = buffer;
         midiPlayback.loadedBuffer = null;
         setMidiPlayer(parsed, file.name);
-        void prepareSoundFontPlayback().catch((error) => {
+        prepareSoundFontPlayback().catch((error) => {
             setMidiPlayerStatus(
                 error instanceof Error
                     ? error.message
@@ -5305,7 +5303,7 @@ function updateRhythmMode() {
         musicEngine.microphoneRequestState ===
         musicEngine.MICROPHONE_STATES.LISTENING
     ) {
-        void activateRhythmSheetMicrophone();
+        activateRhythmSheetMicrophone();
     }
     if (
         isRhythmSheetEnabled() &&
@@ -6381,7 +6379,7 @@ function initializeEvents() {
         fileInput.addEventListener('change', (event) => {
             const [file] = event.target.files;
             if (file) {
-                void loadMidiPlayer(file);
+                loadMidiPlayer(file);
             }
         });
     }
@@ -6389,9 +6387,9 @@ function initializeEvents() {
         select.addEventListener('change', () => {
             const file = localMidiFiles.get(select.value);
             if (file) {
-                void loadMidiPlayer(file);
+                loadMidiPlayer(file);
             } else if (select.value) {
-                void loadIncludedMidi(select.value);
+                loadIncludedMidi(select.value);
             }
         });
     }
@@ -6459,7 +6457,7 @@ function initializeEvents() {
                 dropSurface.classList.remove('is-drag-over');
                 const files = [...event.dataTransfer.files];
                 if (files.length) {
-                    void loadDroppedFiles(panel, files);
+                    loadDroppedFiles(panel, files);
                 }
             },
             true
@@ -6470,7 +6468,7 @@ function initializeEvents() {
             for (const peer of musicEngine.getControls('shared-soundfont')) {
                 peer.setCustomValidity('');
             }
-            void changeSoundFont(control);
+            changeSoundFont(control);
         });
     }
     for (const seek of musicEngine.getControls('shared-midi-seek')) {
@@ -6640,7 +6638,7 @@ function initializeEvents() {
     );
     for (const button of musicEngine.getModuleActions('rhythm', 'play')) {
         if (button !== rhythmSheetPlay) {
-            button.addEventListener('click', () => void playRhythm());
+            button.addEventListener('click', () => playRhythm());
         }
     }
     for (const button of musicEngine.getModuleActions('rhythm', 'tempo-tap')) {
@@ -6977,7 +6975,7 @@ function initialize() {
     newChordTrial();
 
     renderChordStats();
-    void musicEngine.setMicrophoneState(musicEngine.MICROPHONE_STATES.PAUSED);
+    musicEngine.setMicrophoneState(musicEngine.MICROPHONE_STATES.PAUSED);
     restorePitchMemoryTrial();
     renderPitchMemoryResponsePitch();
 }

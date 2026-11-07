@@ -1046,7 +1046,7 @@ function playPitchMemoryStimulus() {
 
 function newPitchMemoryTrial() {
     cancelPitchAdvance();
-    void activatePitchMemoryMicrophone();
+    activatePitchMemoryMicrophone();
     cancelPitchMemoryTrial(false);
 
     const type = musicEngine.getControl('pitch-memory-type').value;
@@ -1279,7 +1279,7 @@ function updatePitchMode() {
             musicEngine.microphoneRequestState ===
                 musicEngine.MICROPHONE_STATES.LISTENING
         ) {
-            void activatePitchMemoryMicrophone();
+            activatePitchMemoryMicrophone();
         }
         return;
     }
