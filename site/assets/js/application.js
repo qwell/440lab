@@ -1,5 +1,80 @@
 'use strict';
 
+let screenWakeLock = null;
+let screenWakeLockRequest = null;
+let screenWakeLockUpdateQueued = false;
+
+function isScreenWakeLockNeeded() {
+    return (
+        musicEngine.audio.isPlaying() ||
+        midiPlayer.playing ||
+        rhythmPlayer.playing ||
+        playbackControlLoadingCount > 0 ||
+        isPitchMemoryDelayActive() ||
+        musicEngine.microphoneRequestState ===
+            musicEngine.MICROPHONE_STATES.LISTENING
+    );
+}
+
+function updateScreenWakeLock() {
+    const shouldHold =
+        isScreenWakeLockNeeded() && document.visibilityState === 'visible';
+
+    if (!shouldHold) {
+        screenWakeLockUpdateQueued = false;
+    }
+
+    if (shouldHold && navigator.wakeLock?.request) {
+        if (screenWakeLock) {
+            return;
+        }
+        if (screenWakeLockRequest) {
+            screenWakeLockUpdateQueued = true;
+            return;
+        }
+
+        screenWakeLockRequest = navigator.wakeLock
+            .request('screen')
+            .then((lock) => {
+                screenWakeLockRequest = null;
+                screenWakeLockUpdateQueued = false;
+
+                if (
+                    !isScreenWakeLockNeeded() ||
+                    document.visibilityState !== 'visible'
+                ) {
+                    void lock.release();
+                    return;
+                }
+
+                screenWakeLock = lock;
+                lock.addEventListener('release', () => {
+                    if (screenWakeLock === lock) {
+                        screenWakeLock = null;
+                        updateScreenWakeLock();
+                    }
+                });
+            })
+            .catch(() => {
+                const updateQueued = screenWakeLockUpdateQueued;
+                screenWakeLockRequest = null;
+                screenWakeLockUpdateQueued = false;
+
+                if (updateQueued) {
+                    updateScreenWakeLock();
+                }
+            });
+
+        return;
+    }
+
+    if (screenWakeLock) {
+        const lock = screenWakeLock;
+        screenWakeLock = null;
+        void lock.release();
+    }
+}
+
 function tunerTargetNoteName() {
     const instrument =
         musicEngine.TUNER_INSTRUMENTS[
@@ -21,7 +96,9 @@ function toggleGlobalMicrophone() {
         musicEngine.microphoneRequestState ===
         musicEngine.MICROPHONE_STATES.LISTENING
     ) {
-        musicEngine.pauseMicrophone();
+        void musicEngine.setMicrophoneState(
+            musicEngine.MICROPHONE_STATES.PAUSED
+        );
         return;
     }
 
@@ -189,7 +266,7 @@ function stopAllAudio() {
 
 function stopAllActivity() {
     stopAllAudio();
-    musicEngine.pauseMicrophone();
+    void musicEngine.setMicrophoneState(musicEngine.MICROPHONE_STATES.PAUSED);
     cancelAdvance();
 }
 
@@ -3687,6 +3764,7 @@ function updateMidiPlayerTransport() {
 
 function beginPlaybackControlLoading() {
     playbackControlLoadingCount += 1;
+    updateScreenWakeLock();
     updatePlaybackControls();
     let loading = true;
 
@@ -3699,6 +3777,7 @@ function beginPlaybackControlLoading() {
             0,
             playbackControlLoadingCount - 1
         );
+        updateScreenWakeLock();
         updatePlaybackControls();
     };
 }
@@ -4417,6 +4496,7 @@ async function playMidi() {
             sequencer.play();
         }
         midiPlayer.playing = true;
+        updateScreenWakeLock();
         setMidiPlayerStatus(midiPlayer.summary);
         drawMidiPlayer();
     } catch (error) {
@@ -4463,6 +4543,7 @@ function stopMidi(preservePosition = false) {
         }
     }
     midiPlayer.playing = false;
+    updateScreenWakeLock();
     midiPlayer.leadInStartedAt = null;
     cancelAnimationFrame(midiPlayer.frame);
     midiPlayer.frame = null;
@@ -6112,6 +6193,10 @@ async function playRhythm() {
         }
     }
 
+    const sheetEnabled = isRhythmSheetEnabled();
+    const timingEnabled = isRhythmTimingEnabled();
+    const metronomeEnabled = isRhythmMetronomeEnabled();
+
     rhythmPlayer.bpm = musicEngine.clamp(
         musicEngine.readNumber(musicEngine.getControl('shared-bpm'), 100),
         30,
@@ -6122,6 +6207,7 @@ async function playRhythm() {
     ).value;
     rhythmPlayer.playing = true;
     rhythmSheet.starting = false;
+    updateScreenWakeLock();
     updateRhythmSheetTransport();
     rhythmPlayer.beatIndex = 0;
     const now = musicEngine.audio.currentTime();
@@ -6141,10 +6227,10 @@ async function playRhythm() {
             ((nextBeatPosition % pattern.length) + pattern.length) %
             pattern.length;
     } else {
-        const leadIn = isRhythmSheetEnabled()
+        const leadIn = sheetEnabled
             ? rhythmClickInterval(rhythmPlayer.signature, rhythmPlayer.bpm) *
               musicEngine.RHYTHM_SHEET_COUNT_IN_LEAD_UNITS
-            : isRhythmTimingEnabled()
+            : timingEnabled
               ? 1
               : 0.05;
         rhythmPlayer.nextBeatTime = now + leadIn;
@@ -6155,20 +6241,19 @@ async function playRhythm() {
     rhythmTiming.lastBeat = -1;
     rhythmTiming.errors = [];
     clearRhythmTimingMark();
-    if (isRhythmTimingEnabled()) {
+    if (timingEnabled) {
         document.getElementById('rhythm-timing-result').textContent = '';
     }
-    document.getElementById('rhythm-timing-tap').disabled =
-        !isRhythmTimingEnabled();
+    document.getElementById('rhythm-timing-tap').disabled = !timingEnabled;
 
-    if (isRhythmSheetEnabled()) {
+    if (sheetEnabled) {
         playRhythmSheet(resumePosition);
     }
     scheduleRhythm();
-    if (isRhythmTimingEnabled()) {
+    if (timingEnabled) {
         drawRhythmTiming();
         document.getElementById('rhythm-timing-tap').focus();
-    } else if (isRhythmMetronomeEnabled()) {
+    } else if (metronomeEnabled) {
         drawRhythmMetronome();
     }
 
@@ -6189,6 +6274,7 @@ function stopRhythm(preserveSheetPosition = false) {
     document.getElementById('rhythm-timing-tap').disabled = true;
     rhythmPlayer.playing = false;
     rhythmSheet.starting = false;
+    updateScreenWakeLock();
     rhythmPlayer.beatIndex = 0;
 
     if (rhythmPlayer.timer !== null) {
@@ -6259,6 +6345,10 @@ function resetForReferenceChange() {
 }
 
 function initializeEvents() {
+    musicEngine.audio.addPlaybackStateListener(updateScreenWakeLock);
+    musicEngine.addMicrophoneStateListener(updateScreenWakeLock);
+    addPitchMemoryDelayStateListener(updateScreenWakeLock);
+
     const syncChangedSharedControl = (event) => {
         musicEngine.syncSharedControl(event.target);
     };
@@ -6535,6 +6625,7 @@ function initializeEvents() {
         if (document.hidden && rhythmPlayer.playing) {
             stopAllAudio();
         }
+        updateScreenWakeLock();
     });
 
     const rhythmSheetRewind = musicEngine.getAction('rhythm-sheet-rewind');
@@ -6780,10 +6871,9 @@ function initializeEvents() {
         .getAction('pitch-memory-play')
         .addEventListener('click', playPitchMemoryStimulus);
 
-    musicEngine.getAction('pitch-memory-stop').addEventListener('click', () => {
-        stopPitchMemoryAudio();
-        musicEngine.pauseMicrophone();
-    });
+    musicEngine
+        .getAction('pitch-memory-stop')
+        .addEventListener('click', stopPitchMemoryAudio);
 
     musicEngine
         .getAction('pitch-memory-response-play')
@@ -6887,7 +6977,6 @@ function initialize() {
     newChordTrial();
 
     renderChordStats();
-    musicEngine.applyMicrophoneState(musicEngine.MICROPHONE_STATES.UNPROMPTED);
     void musicEngine.setMicrophoneState(musicEngine.MICROPHONE_STATES.PAUSED);
     restorePitchMemoryTrial();
     renderPitchMemoryResponsePitch();

@@ -530,6 +530,24 @@ const pitchMemory = {
     responseVoice: null,
     responseMethod: 'oscillator',
 };
+const pitchMemoryDelayStateListeners = new Set();
+
+function isPitchMemoryDelayActive() {
+    return pitchMemory.trial?.state === 'waiting';
+}
+
+function addPitchMemoryDelayStateListener(listener) {
+    pitchMemoryDelayStateListeners.add(listener);
+    listener(isPitchMemoryDelayActive());
+    return () => pitchMemoryDelayStateListeners.delete(listener);
+}
+
+function notifyPitchMemoryDelayStateChange() {
+    const active = isPitchMemoryDelayActive();
+    for (const listener of pitchMemoryDelayStateListeners) {
+        listener(active);
+    }
+}
 
 const pitchMemoryMicrophoneInput = musicEngine.createMicrophoneInput({
     minimumMidi: musicEngine.PITCH_MEMORY_MINIMUM_MIDI,
@@ -822,6 +840,7 @@ function showPitchMemoryResponse() {
     musicEngine.audio.stopTransient();
 
     pitchMemory.trial.state = 'responding';
+    notifyPitchMemoryDelayStateChange();
     pitchMemory.trial.responseStartedAt = Date.now();
 
     const response = document.getElementById('pitch-memory-response-actions');
@@ -971,6 +990,7 @@ function playPitchMemoryStimulus() {
     const sequenceSeconds = 1.45 + conditionValue * 0.18;
 
     pitchMemory.trial.state = 'waiting';
+    notifyPitchMemoryDelayStateChange();
     pitchMemory.trial.encodedAt = startedAt;
     pitchMemory.trial.encodingEndsAt =
         startedAt + (pitchMemory.trial.type === 'novel' ? 3000 : 1200);
@@ -1026,10 +1046,10 @@ function playPitchMemoryStimulus() {
 
 function newPitchMemoryTrial() {
     cancelPitchAdvance();
+    void activatePitchMemoryMicrophone();
     cancelPitchMemoryTrial(false);
 
     const type = musicEngine.getControl('pitch-memory-type').value;
-    void activatePitchMemoryMicrophone();
 
     const seed = randomSeed();
     const random = seededRandom(seed);
@@ -1057,6 +1077,7 @@ function newPitchMemoryTrial() {
         state: 'waiting',
         stimulusPlayed: false,
     };
+    notifyPitchMemoryDelayStateChange();
 
     hidePitchMemoryResponses();
     clearPitchMemoryPitchMarkers();
@@ -1080,6 +1101,7 @@ function cancelPitchMemoryTrial(showStatus = true) {
     musicEngine.audio.stopTransient();
 
     pitchMemory.trial = null;
+    notifyPitchMemoryDelayStateChange();
 
     const playButton = musicEngine.getAction('pitch-memory-play');
 
@@ -1111,6 +1133,7 @@ function stopPitchMemoryAudio() {
 
     if (pitchMemory.trial?.state !== 'complete') {
         pitchMemory.trial.state = 'stopped';
+        notifyPitchMemoryDelayStateChange();
         musicEngine.getAction('pitch-memory-stop').disabled = true;
         hidePitchMemoryResponses();
         setPitchMemoryStatus('Trial stopped.');
@@ -1222,6 +1245,7 @@ function submitPitchMemoryResponse() {
     ).disabled = true;
 
     pitchMemory.trial.state = 'complete';
+    notifyPitchMemoryDelayStateChange();
 
     setPitchMemoryReplayEnabled(true);
     musicEngine.getAction('pitch-memory-stop').disabled = false;
@@ -1291,6 +1315,7 @@ function restorePitchMemoryTrial() {
         trial.targetFrequency > maximumFrequency
     ) {
         pitchMemory.trial = null;
+        notifyPitchMemoryDelayStateChange();
         musicEngine.storage.remove(musicEngine.TRIAL_KEYS.pitchMemory);
         updatePitchMemoryControls();
         return;

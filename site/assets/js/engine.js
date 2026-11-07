@@ -308,7 +308,41 @@ const audio = (() => {
     let context = null;
     let masterGain = null;
 
+    const continuousVoices = new Set();
     const transientVoices = new Set();
+    const playbackStateListeners = new Set();
+
+    function isPlaying() {
+        return continuousVoices.size > 0 || transientVoices.size > 0;
+    }
+
+    function notifyPlaybackStateChange(wasPlaying) {
+        const playing = isPlaying();
+        if (playing === wasPlaying) {
+            return;
+        }
+        for (const listener of playbackStateListeners) {
+            listener(playing);
+        }
+    }
+
+    function addPlaybackVoice(voices, voice) {
+        const wasPlaying = isPlaying();
+        voices.add(voice);
+        notifyPlaybackStateChange(wasPlaying);
+    }
+
+    function removePlaybackVoice(voices, voice) {
+        const wasPlaying = isPlaying();
+        if (voices.delete(voice)) {
+            notifyPlaybackStateChange(wasPlaying);
+        }
+    }
+
+    function addPlaybackStateListener(listener) {
+        playbackStateListeners.add(listener);
+        return () => playbackStateListeners.delete(listener);
+    }
 
     function ensureContext() {
         if (!context) {
@@ -413,7 +447,7 @@ const audio = (() => {
 
         let stopped = false;
 
-        return {
+        const voice = {
             setFrequency(frequency) {
                 if (stopped) {
                     return;
@@ -432,6 +466,7 @@ const audio = (() => {
                 }
 
                 stopped = true;
+                removePlaybackVoice(continuousVoices, voice);
 
                 fadeTo(gain.gain, 0);
 
@@ -454,6 +489,9 @@ const audio = (() => {
                 );
             },
         };
+
+        addPlaybackVoice(continuousVoices, voice);
+        return voice;
     }
 
     function playTransient(
@@ -501,6 +539,7 @@ const audio = (() => {
                 }
 
                 stopped = true;
+                removePlaybackVoice(transientVoices, voice);
 
                 const now = audioContext.currentTime;
 
@@ -510,12 +549,12 @@ const audio = (() => {
             },
         };
 
-        transientVoices.add(voice);
+        addPlaybackVoice(transientVoices, voice);
 
         oscillator.addEventListener(
             'ended',
             () => {
-                transientVoices.delete(voice);
+                removePlaybackVoice(transientVoices, voice);
 
                 oscillator.disconnect();
                 gain.disconnect();
@@ -533,8 +572,6 @@ const audio = (() => {
         for (const voice of transientVoices) {
             voice.stop();
         }
-
-        transientVoices.clear();
     }
 
     function createAnalyser(stream, sampleWindowSize = 2048) {
@@ -556,6 +593,8 @@ const audio = (() => {
 
     return {
         currentTime,
+        isPlaying,
+        addPlaybackStateListener,
         getContext,
         getDestination,
         playContinuous,
@@ -601,6 +640,26 @@ let microphoneConnection = null;
 let microphoneAnalysis = null;
 let microphoneAnalysisFrame = null;
 let microphoneInputRequestId = 0;
+const microphoneStateListeners = new Set();
+
+function notifyMicrophoneStateChange() {
+    for (const listener of microphoneStateListeners) {
+        listener();
+    }
+}
+
+function setMicrophoneRequestState(state) {
+    if (microphoneRequestState === state) {
+        return;
+    }
+    microphoneRequestState = state;
+    notifyMicrophoneStateChange();
+}
+
+function addMicrophoneStateListener(listener) {
+    microphoneStateListeners.add(listener);
+    return () => microphoneStateListeners.delete(listener);
+}
 
 function isMicrophoneStreamConnected() {
     return Boolean(
@@ -625,6 +684,7 @@ function microphoneErrorMessage(error) {
 }
 
 function applyMicrophoneState(state, failureMessage = null) {
+    const changed = microphoneState !== state;
     microphoneState = state;
     if (state === MICROPHONE_STATES.DENIED) {
         microphoneFailureMessage = failureMessage ?? MICROPHONE_MESSAGES.DENIED;
@@ -646,6 +706,10 @@ function applyMicrophoneState(state, failureMessage = null) {
         );
         button.setAttribute('aria-label', label);
         button.title = label;
+    }
+
+    if (changed) {
+        notifyMicrophoneStateChange();
     }
 }
 
@@ -697,7 +761,7 @@ async function setMicrophoneState(requestedState) {
         throw new TypeError(`Invalid microphone state: ${requestedState}`);
     }
 
-    microphoneRequestState = requestedState;
+    setMicrophoneRequestState(requestedState);
 
     if (requestedState === MICROPHONE_STATES.PAUSED) {
         deactivateActiveMicrophoneInput('microphone-paused');
@@ -732,7 +796,7 @@ async function setMicrophoneState(requestedState) {
         await requestMicrophoneStream();
     } catch (error) {
         if (microphoneRequestState === MICROPHONE_STATES.LISTENING) {
-            microphoneRequestState = MICROPHONE_STATES.PAUSED;
+            setMicrophoneRequestState(MICROPHONE_STATES.PAUSED);
         }
         applyMicrophoneState(
             MICROPHONE_STATES.DENIED,
@@ -909,10 +973,6 @@ function deactivateActiveMicrophoneInput(reason) {
     activeMicrophoneInput?.deactivate(reason);
 }
 
-function pauseMicrophone() {
-    void setMicrophoneState(MICROPHONE_STATES.PAUSED);
-}
-
 let masterVolume = DEFAULT_VOLUME;
 let volumeBeforeMute = DEFAULT_VOLUME;
 
@@ -962,6 +1022,7 @@ const musicEngine = Object.freeze({
     TRIAL_KEYS,
     answerStateClass,
     audio,
+    addMicrophoneStateListener,
     clearPracticeResult,
     createAutoAdvance,
     createMicrophoneInput,
@@ -982,7 +1043,6 @@ const musicEngine = Object.freeze({
     noteNameFromMidi,
     pitchClassFromMidi,
     pitchClassName,
-    applyMicrophoneState,
     renderPracticeResult,
     restorePreferences,
     savePreferences,
@@ -990,7 +1050,6 @@ const musicEngine = Object.freeze({
     setAnswerOptionState,
     setMicrophoneState,
     stats,
-    pauseMicrophone,
     storage,
     syncSharedControl,
     toggleVolume,
