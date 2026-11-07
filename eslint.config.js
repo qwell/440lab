@@ -12,7 +12,8 @@ export default defineConfig(
             '**/.pnp.cjs',
             '**/.pnp.loader.mjs',
             '**/vendor/',
-            '**/assets/midi/*.mid.js',
+            '**/assets/midi/**/*.js',
+            '**/assets/soundfonts/**/*.js',
         ],
     },
 

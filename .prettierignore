@@ -7,4 +7,5 @@
 **/vendor/
 
 # Generated files
-site/assets/midi/*.mid.js
+site/assets/midi/**/*.js
+site/assets/soundfonts/**/*.js

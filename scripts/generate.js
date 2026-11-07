@@ -16,7 +16,7 @@ await generateBrowserDataAssets({
     catalogDirectory: soundFontDirectory,
     catalogVariable: 'soundFontFiles',
     dataVariable: 'soundFontData',
-    patterns: soundFontPatterns('sf3'),
+    patterns: [`${soundFontDirectory}/**/*.sf3`],
 });
 
 const midiDirectory = 'site/assets/midi';
@@ -27,13 +27,6 @@ await generateBrowserDataAssets({
     dataVariable: 'midiData',
     patterns: [`${midiDirectory}/*.mid`],
 });
-
-function soundFontPatterns(extension) {
-    return [
-        `${soundFontDirectory}/*.${extension}`,
-        `${vendorDestination}/*/soundfonts/*.${extension}`,
-    ];
-}
 
 function siteRelativePath(file) {
     return path.relative('site', file).split(path.sep).join('/');
@@ -153,31 +146,29 @@ for (const [packageDirectory, assetGroups] of browserPackages()) {
     }
 }
 
-for (const pattern of soundFontPatterns('sf2')) {
-    for await (const soundFontFile of fs.glob(pattern)) {
-        const sf3File = soundFontFile.replace(/\.sf2$/u, '.sf3');
+for await (const soundFontFile of fs.glob(`${soundFontDirectory}/**/*.sf2`)) {
+    const sf3File = soundFontFile.replace(/\.sf2$/u, '.sf3');
 
-        try {
-            console.log(`Converting ${soundFontFile} to ${sf3File}...`);
-            await execFileAsync('sf3convert', [
-                '-z',
-                '-q',
-                '0.8',
-                '-a',
-                '-1',
-                soundFontFile,
-                sf3File,
-            ]);
-        } catch (error) {
-            if (error.code === 'ENOENT') {
-                throw new Error(
-                    'sf3convert is required to generate SF3 files from SF2 files.',
-                    { cause: error }
-                );
-            }
-
-            throw error;
+    try {
+        console.log(`Converting ${soundFontFile} to ${sf3File}...`);
+        await execFileAsync('sf3convert', [
+            '-z',
+            '-q',
+            '0.8',
+            '-a',
+            '-1',
+            soundFontFile,
+            sf3File,
+        ]);
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            throw new Error(
+                'sf3convert is required to generate SF3 files from SF2 files.',
+                { cause: error }
+            );
         }
+
+        throw error;
     }
 }
 

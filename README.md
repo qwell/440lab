@@ -84,6 +84,7 @@ The MIDI tab includes a selection of MIDI files and parses local files in the br
 - `site/assets/js/practice.js` - ear-training exercises and practice statistics
 - `site/assets/js/engine.js` - shared audio, microphone, preference, and music utilities
 - `site/assets/midi/` - included MIDI files and their generated `file://` data wrappers
+- `site/assets/soundfonts/` - included SoundFonts and their generated `file://` data wrappers
 - `site/assets/vendor/` - checked-in third-party files organized by package and asset type
 
 ## Technologies
@@ -124,8 +125,8 @@ git lfs pull
 
 Generated browser assets are committed with the site. Run `yarn generate`
 after changing MIDI files in `site/assets/midi/`, SoundFonts in
-`site/assets/soundfonts/` or `site/assets/vendor/*/soundfonts/`, the
-vendored browser dependencies, or the HTML import map.
+`site/assets/soundfonts/`, the vendored browser dependencies, or the HTML
+import map.
 
 For MIDI and SoundFont assets, the generator creates base64 JavaScript wrappers
 for `file://` use and rebuilds the corresponding `files.js` dropdown catalogs.

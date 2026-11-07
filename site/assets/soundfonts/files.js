@@ -1,5 +1,5 @@
 globalThis.soundFontFiles = [
-    'assets/vendor/generaluser-gs/soundfonts/GeneralUser-GS.sf3',
-    'assets/vendor/korg-m1-general-midi/soundfonts/Korg-M1-General-Midi.sf3',
-    'assets/vendor/live-natural-soundfont-gm/soundfonts/Live-HQ-Natural-SoundFont-GM.sf3',
+    "assets/soundfonts/generaluser-gs/GeneralUser-GS.sf3",
+    "assets/soundfonts/korg-m1-general-midi/Korg-M1-General-Midi.sf3",
+    "assets/soundfonts/live-natural-soundfont-gm/Live-HQ-Natural-SoundFont-GM.sf3"
 ];
