@@ -2,7 +2,7 @@
 
 ## Reporting a Vulnerability
 
-Please report security issues privately by emailing north@ntbox.com.
+Please report security issues privately by emailing security@jeltz.org.
 
 Do not open a public issue for security vulnerabilities.
 
