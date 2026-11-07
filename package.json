@@ -59,8 +59,7 @@
         "lint:check": "eslint --cache --cache-strategy metadata --cache-location ./.cache/eslint .",
         "format": "prettier --cache --cache-strategy metadata --cache-location ./.cache/prettier --write .",
         "format:check": "prettier --cache --cache-strategy metadata --cache-location ./.cache/prettier --check .",
-        "hygiene": "yarn format && yarn lint",
-        "release": "echo 'TODO'"
+        "hygiene": "yarn format && yarn lint"
     },
     "dependencies": {
         "express": "^5.3.0"

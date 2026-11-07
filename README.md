@@ -42,7 +42,7 @@ Live demo: [https://440lab.com/](https://440lab.com/)
 - Adjustable waveform, duration, interval, range, and candidate count
 - Streak and error statistics for ear-training exercises
 - Direct links to individual tools using URL fragments
-- No dependencies or build step
+- No client-side installation or build step
 
 ## Usage
 
@@ -78,7 +78,10 @@ The MIDI tab includes a selection of MIDI files and parses local files in the br
 - `site/assets/css/tools.css` - tool-specific tuner, rhythm, MIDI, pitch, and interval displays
 - `site/assets/css/layout.css` - page and panel layout
 - `site/assets/css/practice.css` - practice-tool styles
-- `site/assets/js/index.js` - audio, MIDI playback and visualization, microphone pitch detection, exercises, and application logic
+- `site/assets/js/index.js` - service worker registration
+- `site/assets/js/application.js` - interface, MIDI playback and visualization, microphone pitch detection, and application logic
+- `site/assets/js/practice.js` - ear-training exercises and practice statistics
+- `site/assets/js/engine.js` - shared audio, microphone, preference, and music utilities
 - `site/assets/midi/` - included MIDI files and their generated `file://` data wrappers
 - `site/assets/vendor/` - checked-in third-party files organized by package and asset type
 
