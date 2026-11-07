@@ -223,7 +223,7 @@ function setPitchPlacementAnswerState({
     }
 }
 
-function writeNumberIfChanged(input, value) {
+function setNumberIfChanged(input, value) {
     const rawValue = input.value.trim();
     const currentValue = rawValue === '' ? NaN : Number(rawValue);
 
@@ -235,7 +235,7 @@ function writeNumberIfChanged(input, value) {
 function normalizeNumberInput(input, fallback) {
     const value = musicEngine.readNumber(input, fallback);
 
-    writeNumberIfChanged(input, value);
+    setNumberIfChanged(input, value);
 
     return value;
 }
@@ -248,8 +248,8 @@ function readRange(minimumInput, maximumInput, defaultMinimum, defaultMaximum) {
         [minimum, maximum] = [maximum, minimum];
     }
 
-    writeNumberIfChanged(minimumInput, minimum);
-    writeNumberIfChanged(maximumInput, maximum);
+    setNumberIfChanged(minimumInput, minimum);
+    setNumberIfChanged(maximumInput, maximum);
 
     return {
         minimum,
@@ -306,7 +306,7 @@ function updateAdaptiveDifficulty(exercise, correct) {
             0,
             level.options.length - 1
         );
-        musicEngine.synchronizeSharedControl(level);
+        musicEngine.syncSharedControl(level);
         for (const intervalExercise of [
             'interval-recognition',
             'interval-construction',
@@ -328,8 +328,8 @@ function updateAdaptiveDifficulty(exercise, correct) {
             Number(maximumInput.max)
         );
 
-        writeNumberIfChanged(minimumInput, minimum);
-        writeNumberIfChanged(maximumInput, maximum);
+        setNumberIfChanged(minimumInput, minimum);
+        setNumberIfChanged(maximumInput, maximum);
 
         result = `${minimum} - ${maximum}¢`;
     }
@@ -772,7 +772,7 @@ function processPitchMemoryMicrophoneFrame({
 
 async function activatePitchMemoryMicrophone() {
     const refreshButton = getPitchMemoryRefreshButton();
-    const active = pitchMemoryMicrophoneInput.active();
+    const active = pitchMemoryMicrophoneInput.isActive();
 
     refreshButton.disabled = false;
     if (!active) {

@@ -651,13 +651,13 @@ function clamp(value, minimum, maximum) {
     return Math.min(maximum, Math.max(minimum, value));
 }
 
-function sheetPositionsEqual(left, right) {
+function isSameSheetPosition(left, right) {
     const magnitude = Math.max(1, Math.abs(left), Math.abs(right));
     return Math.abs(left - right) <= Number.EPSILON * magnitude;
 }
 
 function compareSheetPositions(left, right) {
-    if (sheetPositionsEqual(left, right)) {
+    if (isSameSheetPosition(left, right)) {
         return 0;
     }
     return left < right ? -1 : 1;
@@ -666,7 +666,7 @@ function compareSheetPositions(left, right) {
 function sheetPositionFloor(position, unit = 1) {
     const quotient = position / unit;
     const nearest = Math.round(quotient);
-    return sheetPositionsEqual(quotient, nearest)
+    return isSameSheetPosition(quotient, nearest)
         ? nearest
         : Math.floor(quotient);
 }
@@ -822,7 +822,7 @@ const music = Object.freeze({
     PITCH_MEMORY_MAXIMUM_MIDI,
     PITCH_MEMORY_RANGE_CENTS,
     clamp,
-    sheetPositionsEqual,
+    isSameSheetPosition,
     compareSheetPositions,
     sheetPositionFloor,
     readNumber,
