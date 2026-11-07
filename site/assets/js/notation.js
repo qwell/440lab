@@ -285,14 +285,14 @@ function sheetNoteValue(note, meter) {
     for (const noteValue of musicEngine.NOTE_VALUES) {
         const { value } = noteValue;
         const duration = denominator / value;
-        if (musicEngine.sheetPositionsEqual(note.duration, duration)) {
+        if (musicEngine.isSameSheetPosition(note.duration, duration)) {
             return {
                 ...noteValue,
                 dotted: false,
             };
         }
         if (
-            musicEngine.sheetPositionsEqual(
+            musicEngine.isSameSheetPosition(
                 note.duration,
                 duration * musicEngine.SHEET_DOT_MULTIPLIER
             )
@@ -369,7 +369,7 @@ function createSheetLayout(score) {
 
         if (
             position > 0 &&
-            musicEngine.sheetPositionsEqual(withinBar, 0) &&
+            musicEngine.isSameSheetPosition(withinBar, 0) &&
             boundarySide === 'end'
         ) {
             return bar * barWidth - musicEngine.SHEET_BAR_PADDING_REM;
@@ -455,7 +455,7 @@ function sheetBeamGroups(writtenNotes, meter, separateVoices = true) {
         let event = events.at(-1);
         if (
             !event ||
-            !musicEngine.sheetPositionsEqual(
+            !musicEngine.isSameSheetPosition(
                 event.segment.beat,
                 writtenNote.segment.beat
             )
@@ -503,7 +503,7 @@ function sheetBeamGroups(writtenNotes, meter, separateVoices = true) {
         const previous = group.at(-1);
         const followsPrevious =
             previous &&
-            musicEngine.sheetPositionsEqual(
+            musicEngine.isSameSheetPosition(
                 previous.segment.beat + previous.segment.duration,
                 segment.beat
             );

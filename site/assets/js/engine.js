@@ -98,7 +98,7 @@ function getWaveform(name) {
     return document.querySelector(`[data-waveform="${name}"]`);
 }
 
-function synchronizeSharedControl(control) {
+function syncSharedControl(control) {
     const name = control?.dataset?.control;
 
     if (!name?.startsWith('shared-')) {
@@ -602,7 +602,7 @@ let microphoneAnalysis = null;
 let microphoneAnalysisFrame = null;
 let microphoneInputRequestId = 0;
 
-function microphoneStreamConnected() {
+function isMicrophoneStreamConnected() {
     return Boolean(
         microphoneStream
             ?.getAudioTracks()
@@ -624,7 +624,7 @@ function microphoneErrorMessage(error) {
     return MICROPHONE_MESSAGES.FAILED;
 }
 
-function renderMicrophoneState(state, failureMessage = null) {
+function applyMicrophoneState(state, failureMessage = null) {
     microphoneState = state;
     if (state === MICROPHONE_STATES.DENIED) {
         microphoneFailureMessage = failureMessage ?? MICROPHONE_MESSAGES.DENIED;
@@ -669,7 +669,7 @@ async function microphonePermissionState() {
 }
 
 async function requestMicrophoneStream() {
-    if (microphoneStreamConnected()) {
+    if (isMicrophoneStreamConnected()) {
         return microphoneStream;
     }
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -703,8 +703,8 @@ async function setMicrophoneState(requestedState) {
         deactivateActiveMicrophoneInput('microphone-paused');
         setMicrophoneTracksEnabled(false);
 
-        if (microphoneStreamConnected()) {
-            renderMicrophoneState(MICROPHONE_STATES.PAUSED);
+        if (isMicrophoneStreamConnected()) {
+            applyMicrophoneState(MICROPHONE_STATES.PAUSED);
             return microphoneState;
         }
 
@@ -715,7 +715,7 @@ async function setMicrophoneState(requestedState) {
         }
 
         if (permission === 'denied') {
-            renderMicrophoneState(
+            applyMicrophoneState(
                 MICROPHONE_STATES.DENIED,
                 MICROPHONE_MESSAGES.DENIED
             );
@@ -723,7 +723,7 @@ async function setMicrophoneState(requestedState) {
         }
 
         if (permission !== 'granted') {
-            renderMicrophoneState(MICROPHONE_STATES.UNPROMPTED);
+            applyMicrophoneState(MICROPHONE_STATES.UNPROMPTED);
             return microphoneState;
         }
     }
@@ -734,7 +734,7 @@ async function setMicrophoneState(requestedState) {
         if (microphoneRequestState === MICROPHONE_STATES.LISTENING) {
             microphoneRequestState = MICROPHONE_STATES.PAUSED;
         }
-        renderMicrophoneState(
+        applyMicrophoneState(
             MICROPHONE_STATES.DENIED,
             microphoneErrorMessage(error)
         );
@@ -743,7 +743,7 @@ async function setMicrophoneState(requestedState) {
 
     const listening = microphoneRequestState === MICROPHONE_STATES.LISTENING;
     setMicrophoneTracksEnabled(listening);
-    renderMicrophoneState(
+    applyMicrophoneState(
         listening ? MICROPHONE_STATES.LISTENING : MICROPHONE_STATES.PAUSED
     );
 
@@ -769,7 +769,7 @@ function createMicrophoneInput({
 
     return Object.assign(input, {
         activate: () => activateMicrophoneInput(input),
-        active: () => activeMicrophoneInput === input,
+        isActive: () => activeMicrophoneInput === input,
         deactivate: (reason) => deactivateMicrophoneInput(input, reason),
     });
 }
@@ -982,7 +982,7 @@ const musicEngine = Object.freeze({
     noteNameFromMidi,
     pitchClassFromMidi,
     pitchClassName,
-    renderMicrophoneState,
+    applyMicrophoneState,
     renderPracticeResult,
     restorePreferences,
     savePreferences,
@@ -992,7 +992,7 @@ const musicEngine = Object.freeze({
     stats,
     pauseMicrophone,
     storage,
-    synchronizeSharedControl,
+    syncSharedControl,
     toggleVolume,
     updateVolume,
     get microphoneFailureMessage() {
