@@ -1,5 +1,60 @@
 'use strict';
 
+let screenWakeLock = null;
+let screenWakeLockRequest = null;
+
+function isScreenWakeLockNeeded() {
+    return (
+        tunerVoice !== null ||
+        rhythmPlayer.playing ||
+        musicEngine.microphoneRequestState ===
+            musicEngine.MICROPHONE_STATES.LISTENING
+    );
+}
+
+function updateScreenWakeLock() {
+    const shouldHold =
+        isScreenWakeLockNeeded() && document.visibilityState === 'visible';
+
+    if (shouldHold && navigator.wakeLock?.request) {
+        if (screenWakeLock || screenWakeLockRequest) {
+            return;
+        }
+
+        screenWakeLockRequest = navigator.wakeLock
+            .request('screen')
+            .then((lock) => {
+                screenWakeLockRequest = null;
+
+                if (
+                    !isScreenWakeLockNeeded() ||
+                    document.visibilityState !== 'visible'
+                ) {
+                    void lock.release();
+                    return;
+                }
+
+                screenWakeLock = lock;
+                lock.addEventListener('release', () => {
+                    if (screenWakeLock === lock) {
+                        screenWakeLock = null;
+                    }
+                });
+            })
+            .catch(() => {
+                screenWakeLockRequest = null;
+            });
+
+        return;
+    }
+
+    if (screenWakeLock) {
+        const lock = screenWakeLock;
+        screenWakeLock = null;
+        void lock.release();
+    }
+}
+
 function tunerTargetNoteName() {
     const instrument =
         musicEngine.TUNER_INSTRUMENTS[
@@ -22,10 +77,11 @@ function toggleGlobalMicrophone() {
         musicEngine.MICROPHONE_STATES.LISTENING
     ) {
         musicEngine.pauseMicrophone();
+        updateScreenWakeLock();
         return;
     }
 
-    void activateCurrentPracticeMicrophone();
+    void activateCurrentPracticeMicrophone().finally(updateScreenWakeLock);
 }
 
 let tunerTargetMidi = null;
@@ -122,6 +178,7 @@ function updateTunerStrings() {
                 musicEngine.frequencyFromMidi(midi),
                 musicEngine.getWaveform('tuner').value
             );
+            updateScreenWakeLock();
             button.classList.add('is-playing');
             resetTunerTracking(true);
             tunerMicrophoneInput.lastValidTime = 0;
@@ -151,6 +208,7 @@ function playTuner() {
         selectedNoteFrequency(musicEngine.getNoteControl('tuner')),
         musicEngine.getWaveform('tuner').value
     );
+    updateScreenWakeLock();
 }
 
 function stopTuner() {
@@ -160,6 +218,7 @@ function stopTuner() {
 
     tunerVoice.stop();
     tunerVoice = null;
+    updateScreenWakeLock();
 
     for (const button of musicEngine.getOutput('tuner-strings').children) {
         button.classList.remove('is-playing');
@@ -6122,6 +6181,7 @@ async function playRhythm() {
     ).value;
     rhythmPlayer.playing = true;
     rhythmSheet.starting = false;
+    updateScreenWakeLock();
     updateRhythmSheetTransport();
     rhythmPlayer.beatIndex = 0;
     const now = musicEngine.audio.currentTime();
@@ -6189,6 +6249,7 @@ function stopRhythm(preserveSheetPosition = false) {
     document.getElementById('rhythm-timing-tap').disabled = true;
     rhythmPlayer.playing = false;
     rhythmSheet.starting = false;
+    updateScreenWakeLock();
     rhythmPlayer.beatIndex = 0;
 
     if (rhythmPlayer.timer !== null) {
@@ -6535,6 +6596,7 @@ function initializeEvents() {
         if (document.hidden && rhythmPlayer.playing) {
             stopAllAudio();
         }
+        updateScreenWakeLock();
     });
 
     const rhythmSheetRewind = musicEngine.getAction('rhythm-sheet-rewind');
@@ -6783,6 +6845,7 @@ function initializeEvents() {
     musicEngine.getAction('pitch-memory-stop').addEventListener('click', () => {
         stopPitchMemoryAudio();
         musicEngine.pauseMicrophone();
+        updateScreenWakeLock();
     });
 
     musicEngine

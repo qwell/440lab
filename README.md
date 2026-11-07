@@ -42,6 +42,7 @@ Live demo: [https://440lab.com/](https://440lab.com/)
 - Adjustable waveform, duration, interval, range, and candidate count
 - Streak and error statistics for ear-training exercises
 - Direct links to individual tools using URL fragments
+- Keeps the screen awake during tuner, microphone, and rhythm activity when supported
 - No client-side installation or build step
 
 ## Usage
@@ -91,6 +92,7 @@ HTML, CSS, and JavaScript using browser APIs including:
 
 - Web Audio API
 - MediaDevices / `getUserMedia()`
+- Screen Wake Lock API
 - `requestAnimationFrame()`
 - Local storage for practice statistics
 - SpessaSynth for MIDI and SoundFont playback
