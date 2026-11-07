@@ -5910,6 +5910,11 @@ function recordRhythmTimingTap() {
 
 // Rhythm: playback
 
+function newRhythmTrial() {
+    newRhythmPhrase();
+    playRhythm();
+}
+
 function restartRhythm() {
     if (rhythmPlayer.playing) {
         stopAllAudio();
