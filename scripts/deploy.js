@@ -19,9 +19,6 @@ const localhostPrivateKey = path.join(
 const scriptFile = fileURLToPath(import.meta.url);
 const projectDirectory = path.dirname(path.dirname(scriptFile));
 
-let noHttps = false;
-let noWww = false;
-
 function usage(stream = process.stdout) {
     stream.write(`Usage: yarn deploy [--no-https] [--no-www] [-d ALIAS]... HOST
 
@@ -73,6 +70,8 @@ function parseArguments(arguments_) {
     }
 
     const hostAliases = [];
+    let httpOnly = false;
+    let noWww = false;
     const hostArgument = arguments_.at(-1);
     if (!hostArgument || hostArgument.startsWith('-')) {
         throw new Error("missing required argument 'HOST'");
@@ -83,7 +82,7 @@ function parseArguments(arguments_) {
         const argument = arguments_[index];
         switch (argument) {
             case '--no-https':
-                noHttps = true;
+                httpOnly = true;
                 break;
             case '--no-www':
                 noWww = true;
@@ -94,7 +93,7 @@ function parseArguments(arguments_) {
                     index + 1 >= arguments_.length - 1 ||
                     alias.startsWith('-')
                 ) {
-                    throw new Error('A alias is required after -d.');
+                    throw new Error('An alias is required after -d.');
                 }
 
                 const normalizedAlias = normalizeHost(alias);
@@ -120,7 +119,7 @@ function parseArguments(arguments_) {
     // isIP() is poorly named, it isn't a bool.
     // It returns 0 for non-IPs, and 4 or 6 for their respective IP versions.
     const isIpAddress = !!isIP(host);
-    noHttps ||= isIpAddress;
+    httpOnly ||= isIpAddress;
     noWww ||= isIpAddress || host === 'localhost' || host.startsWith('www.');
 
     return {
@@ -129,12 +128,12 @@ function parseArguments(arguments_) {
         ],
         host,
         help: false,
-        httpOnly: noHttps,
+        httpOnly,
         noWww,
     };
 }
 
-function deploymentHosts(host, hostAliases) {
+function deploymentHosts(host, hostAliases, noWww) {
     return [
         ...new Set([host, ...(noWww ? [] : [`www.${host}`]), ...hostAliases]),
     ];
@@ -191,8 +190,8 @@ function enableRedirectServer(template, name, hosts) {
     return `${enabled.slice(0, contentStart)}${content}${enabled.slice(end)}`;
 }
 
-function renderConfiguration(template, host, hostAliases, httpOnly) {
-    const hosts = deploymentHosts(host, hostAliases);
+function renderConfiguration(template, host, hostAliases, httpOnly, noWww) {
+    const hosts = deploymentHosts(host, hostAliases, noWww);
     const aliases = hosts.slice(1);
     const certificateHosts = hosts.map((host) => `-d ${host}`).join(' ');
 
@@ -270,7 +269,7 @@ function configurationRoot(configuration) {
     return root;
 }
 
-function runAsRoot(host, hostAliases, httpOnly) {
+function runAsRoot(host, hostAliases, httpOnly, noWww) {
     const arguments_ = [process.execPath, scriptFile];
 
     if (httpOnly) {
@@ -466,10 +465,10 @@ async function main() {
         return 0;
     }
 
-    const { hostAliases, host, httpOnly } = options;
+    const { hostAliases, host, httpOnly, noWww } = options;
 
     if (process.getuid?.() !== 0) {
-        return runAsRoot(host, hostAliases, httpOnly);
+        return runAsRoot(host, hostAliases, httpOnly, noWww);
     }
 
     const templateFile = path.join(projectDirectory, 'nginx.conf.example');
@@ -483,7 +482,8 @@ async function main() {
         template,
         host,
         hostAliases,
-        httpOnly
+        httpOnly,
+        noWww
     );
     const root = configurationRoot(configuration);
     const generatedLocalhostCertificate =
@@ -535,7 +535,7 @@ importing the public server certificate separately as a trusted authority.`);
 
     console.log('\nNext, obtain the TLS certificate:');
 
-    const hostArguments = deploymentHosts(host, hostAliases)
+    const hostArguments = deploymentHosts(host, hostAliases, noWww)
         .map((alias) => `-d ${alias}`)
         .join(' ');
 
