@@ -81,6 +81,7 @@ The MIDI tab includes a selection of MIDI files and parses local files in the br
 - `site/assets/css/practice.css` - practice-tool styles
 - `site/assets/js/index.js` - service worker registration
 - `site/assets/js/application.js` - interface, MIDI playback and visualization, microphone pitch detection, and application logic
+- `site/assets/js/render.js` - application rendering and display updates
 - `site/assets/js/practice.js` - ear-training exercises and practice statistics
 - `site/assets/js/engine.js` - shared audio, microphone, preference, and music utilities
 - `site/assets/midi/` - included MIDI files and their generated `file://` data wrappers
