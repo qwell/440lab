@@ -358,20 +358,6 @@ main.is-drag-over::after {
     margin-top: 0;
 }
 
-.midi-file-controls {
-    width: var(--control-width);
-    max-width: 100%;
-
-    display: grid;
-    grid-template-columns: 32px minmax(0, 1fr);
-    gap: var(--button-gap);
-}
-
-.midi-file-controls select {
-    width: 100%;
-    min-width: 0;
-}
-
 .control-row select[data-control='shared-soundfont'] {
     width: var(--control-width);
 }

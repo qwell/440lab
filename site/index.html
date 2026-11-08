@@ -556,9 +556,9 @@
                         >)
                     </label>
 
-                    <div class="global-volume-controls">
+                    <div class="input-button-row">
                         <button
-                            class="global-volume-button"
+                            class="icon-button icon-button-small"
                             data-action="global-volume-toggle"
                             type="button"
                             aria-label="Mute volume"
@@ -582,7 +582,7 @@
                         />
 
                         <button
-                            class="global-mic-button"
+                            class="icon-button icon-button-small global-mic-button"
                             data-action="global-microphone-toggle"
                             type="button"
                             aria-label="Enable microphone"
@@ -631,7 +631,7 @@
                             ⓘ
                         </span>
                     </label>
-                    <div class="global-reference-controls">
+                    <div class="input-button-row">
                         <input
                             id="global-a4"
                             data-control="global-reference-a4"
@@ -1726,43 +1726,47 @@
                         >.
                     </p>
                     <div class="practice">
-                        <div class="field">
-                            <label for="midi-sheet-library">MIDI file</label>
-                            <div class="control-row midi-file-controls">
-                                <button
-                                    class="icon-button"
-                                    data-action="midi-sheet-attach"
-                                    type="button"
-                                    aria-controls="midi-sheet-file"
-                                    aria-label="Choose local MIDI file"
-                                    title="Choose local MIDI file"
+                        <div class="practice-content-column-2">
+                            <div class="field">
+                                <label for="midi-sheet-library"
+                                    >MIDI file</label
                                 >
-                                    <span aria-hidden="true">📎</span>
-                                </button>
-                                <select
-                                    id="midi-sheet-library"
-                                    data-control="shared-midi-library"
-                                ></select>
+                                <div class="control-row input-button-row">
+                                    <button
+                                        class="icon-button"
+                                        data-action="midi-sheet-attach"
+                                        type="button"
+                                        aria-controls="midi-sheet-file"
+                                        aria-label="Choose local MIDI file"
+                                        title="Choose local MIDI file"
+                                    >
+                                        <span aria-hidden="true">📎</span>
+                                    </button>
+                                    <select
+                                        id="midi-sheet-library"
+                                        data-control="shared-midi-library"
+                                    ></select>
+                                </div>
+                                <input
+                                    id="midi-sheet-file"
+                                    class="sr-only"
+                                    data-control="midi-file"
+                                    type="file"
+                                    accept=".mid,.midi,audio/midi,audio/x-midi"
+                                    tabindex="-1"
+                                />
                             </div>
-                            <input
-                                id="midi-sheet-file"
-                                class="sr-only"
-                                data-control="midi-file"
-                                type="file"
-                                accept=".mid,.midi,audio/midi,audio/x-midi"
-                                tabindex="-1"
-                            />
-                        </div>
-                        <div class="field">
-                            <label for="midi-sheet-soundfont">
-                                SoundFont
-                            </label>
-                            <div class="control-row">
-                                <select
-                                    id="midi-sheet-soundfont"
-                                    data-control="shared-soundfont"
-                                    title="Choose a SoundFont, or drop an SF2 or SF3 file in this view"
-                                ></select>
+                            <div class="field">
+                                <label for="midi-sheet-soundfont">
+                                    SoundFont
+                                </label>
+                                <div class="control-row">
+                                    <select
+                                        id="midi-sheet-soundfont"
+                                        data-control="shared-soundfont"
+                                        title="Choose a SoundFont, or drop an SF2 or SF3 file in this view"
+                                    ></select>
+                                </div>
                             </div>
                         </div>
                         <p
@@ -1844,45 +1848,47 @@
                         instruments for playback.
                     </h3>
                     <div class="practice">
-                        <div class="field">
-                            <label for="midi-piano-roll-library"
-                                >MIDI file</label
-                            >
-                            <div class="control-row midi-file-controls">
-                                <button
-                                    class="icon-button"
-                                    data-action="midi-piano-roll-attach"
-                                    type="button"
-                                    aria-controls="midi-piano-roll-file"
-                                    aria-label="Choose local MIDI file"
-                                    title="Choose local MIDI file"
+                        <div class="practice-content-column-2">
+                            <div class="field">
+                                <label for="midi-piano-roll-library"
+                                    >MIDI file</label
                                 >
-                                    <span aria-hidden="true">📎</span>
-                                </button>
-                                <select
-                                    id="midi-piano-roll-library"
-                                    data-control="shared-midi-library"
-                                ></select>
+                                <div class="control-row input-button-row">
+                                    <button
+                                        class="icon-button"
+                                        data-action="midi-piano-roll-attach"
+                                        type="button"
+                                        aria-controls="midi-piano-roll-file"
+                                        aria-label="Choose local MIDI file"
+                                        title="Choose local MIDI file"
+                                    >
+                                        <span aria-hidden="true">📎</span>
+                                    </button>
+                                    <select
+                                        id="midi-piano-roll-library"
+                                        data-control="shared-midi-library"
+                                    ></select>
+                                </div>
+                                <input
+                                    id="midi-piano-roll-file"
+                                    class="sr-only"
+                                    data-control="midi-file"
+                                    type="file"
+                                    accept=".mid,.midi,audio/midi,audio/x-midi"
+                                    tabindex="-1"
+                                />
                             </div>
-                            <input
-                                id="midi-piano-roll-file"
-                                class="sr-only"
-                                data-control="midi-file"
-                                type="file"
-                                accept=".mid,.midi,audio/midi,audio/x-midi"
-                                tabindex="-1"
-                            />
-                        </div>
-                        <div class="field">
-                            <label for="midi-piano-roll-soundfont">
-                                SoundFont
-                            </label>
-                            <div class="control-row">
-                                <select
-                                    id="midi-piano-roll-soundfont"
-                                    data-control="shared-soundfont"
-                                    title="Choose a SoundFont, or drop an SF2 or SF3 file in this view"
-                                ></select>
+                            <div class="field">
+                                <label for="midi-piano-roll-soundfont">
+                                    SoundFont
+                                </label>
+                                <div class="control-row">
+                                    <select
+                                        id="midi-piano-roll-soundfont"
+                                        data-control="shared-soundfont"
+                                        title="Choose a SoundFont, or drop an SF2 or SF3 file in this view"
+                                    ></select>
+                                </div>
                             </div>
                         </div>
                         <p

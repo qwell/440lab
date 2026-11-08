@@ -56,15 +56,37 @@
     );
 }
 
-.practice-content-column-2 input,
+:is(
+    .practice-content-column,
+    .practice-content-column-2,
+    .practice-content-column-3,
+    .practice-content-column-4
+):has(> .field) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--practice-row-gap) var(--column-gap);
+}
+
+:is(
+        .practice-content-column,
+        .practice-content-column-2,
+        .practice-content-column-3,
+        .practice-content-column-4
+    )
+    > .field {
+    width: var(--field-width);
+    max-width: 100%;
+}
+
+.practice-content-column-2 input:not(.sr-only),
 .practice-content-column-2 select,
 .practice-content-column-2 textarea,
 .practice-content-column-2 button,
-.practice-content-column-3 input,
+.practice-content-column-3 input:not(.sr-only),
 .practice-content-column-3 select,
 .practice-content-column-3 textarea,
 .practice-content-column-3 button,
-.practice-content-column-4 input,
+.practice-content-column-4 input:not(.sr-only),
 .practice-content-column-4 select,
 .practice-content-column-4 textarea,
 .practice-content-column-4 button {
