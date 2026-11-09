@@ -38,6 +38,7 @@
     --border: #444;
     --border-radius: 4px;
     --muted: #999;
+    --control-label: #bbb;
     --text: #eee;
     --mic-accent: crimson;
     --correct: #68d47d;
@@ -56,6 +57,10 @@
 
 * {
     box-sizing: border-box;
+}
+
+body [hidden] {
+    display: none;
 }
 
 html {

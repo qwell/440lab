@@ -7,10 +7,6 @@
     gap: var(--button-gap);
 }
 
-.tuner-strings[hidden] {
-    display: none;
-}
-
 .tuner-strings button {
     min-width: 0;
     padding-inline: 0;
@@ -91,7 +87,7 @@
     right: 0;
 }
 
-.tuner-track {
+.indicator-track {
     position: relative;
 
     height: 28px;
@@ -195,17 +191,6 @@
     font-family: 'Noto Music', serif;
 }
 
-.rhythm-beat-track {
-    position: relative;
-
-    height: 28px;
-
-    border: 1px solid var(--border);
-    border-radius: var(--border-radius);
-
-    background: var(--surface);
-}
-
 .rhythm-beat-target,
 .rhythm-timing-mark {
     position: absolute;
@@ -288,13 +273,7 @@
     row-gap: 2px;
 }
 
-.rhythm-timing-tap {
-    width: var(--control-width);
-    max-width: 100%;
-
-    touch-action: none;
-}
-
+.rhythm-timing-tap,
 .rhythm-sheet-hold {
     width: 100%;
 
@@ -373,11 +352,6 @@ main.is-drag-over::after {
     width: 5rem;
 }
 
-.midi-sheet-tracks[hidden],
-.midi-piano-roll[hidden] {
-    display: none;
-}
-
 .midi-sheet-track {
     display: block;
 }
@@ -391,10 +365,6 @@ main.is-drag-over::after {
     display: grid;
     grid-template-columns: 1.25rem minmax(0, 1fr);
     column-gap: 0.3rem;
-}
-
-.midi-sheet-track .midi-sheet-track-body[hidden] {
-    display: none;
 }
 
 .midi-sheet-track-heading,
@@ -464,10 +434,6 @@ main.is-drag-over::after {
     font-variant-numeric: tabular-nums;
 }
 
-.midi-player-time-row[hidden] {
-    display: none;
-}
-
 .midi-player-time-row > span {
     height: 16px;
 
@@ -515,14 +481,6 @@ main.is-drag-over::after {
 }
 
 .midi-sheet-track-scores:empty {
-    display: none;
-}
-
-.midi-sheet-track-scores[hidden] {
-    display: none;
-}
-
-.midi-sheet-track-content[hidden] {
     display: none;
 }
 

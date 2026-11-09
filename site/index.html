@@ -531,6 +531,20 @@
     </head>
 
     <body>
+        <svg class="svg-symbols" aria-hidden="true">
+            <symbol id="microphone-on-icon" viewBox="0 0 640 640">
+                <!-- !Font Awesome Free v7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc. -->
+                <path
+                    d="M320 64C267 64 224 107 224 160L224 288C224 341 267 384 320 384C373 384 416 341 416 288L416 160C416 107 373 64 320 64zM176 248C176 234.7 165.3 224 152 224C138.7 224 128 234.7 128 248L128 288C128 385.9 201.3 466.7 296 478.5L296 528L248 528C234.7 528 224 538.7 224 552C224 565.3 234.7 576 248 576L392 576C405.3 576 416 565.3 416 552C416 538.7 405.3 528 392 528L344 528L344 478.5C438.7 466.7 512 385.9 512 288L512 248C512 234.7 501.3 224 488 224C474.7 224 464 234.7 464 248L464 288C464 367.5 399.5 432 320 432C240.5 432 176 367.5 176 288L176 248z"
+                />
+            </symbol>
+            <symbol id="microphone-off-icon" viewBox="0 0 640 640">
+                <path
+                    d="M73 39.1C63.6 29.7 48.4 29.7 39.1 39.1C29.8 48.5 29.7 63.7 39 73.1L567 601.1C576.4 610.5 591.6 610.5 600.9 601.1C610.2 591.7 610.3 576.5 600.9 567.2L456.7 422.8C490.9 388.2 512 340.6 512 288L512 248C512 234.7 501.3 224 488 224C474.7 224 464 234.7 464 248L464 288C464 327.3 448.3 362.9 422.7 388.9L388.8 355C405.6 337.7 416 314 416 288L416 160C416 107 373 64 320 64C267 64 224 107 224 160L224 190.2L73 39.2zM371.3 473.1L329.9 431.7C326.6 431.9 323.4 432 320.1 432C240.6 432 176.1 367.5 176.1 288L176.1 277.8L132.5 234.2C129.7 238.1 128.1 242.9 128.1 248L128.1 288C128.1 385.9 201.4 466.7 296.1 478.5L296.1 528L248.1 528C234.8 528 224.1 538.7 224.1 552C224.1 565.3 234.8 576 248.1 576L392.1 576C405.4 576 416.1 565.3 416.1 552C416.1 538.7 405.4 528 392.1 528L344.1 528L344.1 478.5C353.4 477.3 362.5 475.5 371.4 473.1z"
+                />
+            </symbol>
+        </svg>
+
         <header class="site-header">
             <div class="page-width site-header-inner">
                 <button
@@ -549,14 +563,14 @@
                     </a>
                 </h1>
 
-                <div class="global-volume">
+                <div class="global-volume field">
                     <label for="global-volume">
                         Volume (<span data-output="global-volume-percent"
                             >80%</span
                         >)
                     </label>
 
-                    <div class="input-button-row">
+                    <div class="control-group">
                         <button
                             class="icon-button icon-button-small"
                             data-action="global-volume-toggle"
@@ -582,7 +596,7 @@
                         />
 
                         <button
-                            class="icon-button icon-button-small global-mic-button"
+                            class="icon-button icon-button-small microphone-button"
                             data-action="global-microphone-toggle"
                             type="button"
                             aria-label="Enable microphone"
@@ -590,35 +604,23 @@
                             title="Enable microphone"
                         >
                             <svg
-                                class="global-mic-icon global-mic-icon-on"
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 640 640"
-                                fill="currentColor"
+                                class="microphone-icon microphone-icon-on"
                                 aria-hidden="true"
                             >
-                                <!-- !Font Awesome Free v7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc. -->
-                                <path
-                                    d="M320 64C267 64 224 107 224 160L224 288C224 341 267 384 320 384C373 384 416 341 416 288L416 160C416 107 373 64 320 64zM176 248C176 234.7 165.3 224 152 224C138.7 224 128 234.7 128 248L128 288C128 385.9 201.3 466.7 296 478.5L296 528L248 528C234.7 528 224 538.7 224 552C224 565.3 234.7 576 248 576L392 576C405.3 576 416 565.3 416 552C416 538.7 405.3 528 392 528L344 528L344 478.5C438.7 466.7 512 385.9 512 288L512 248C512 234.7 501.3 224 488 224C474.7 224 464 234.7 464 248L464 288C464 367.5 399.5 432 320 432C240.5 432 176 367.5 176 288L176 248z"
-                                />
+                                <use href="#microphone-on-icon"></use>
                             </svg>
 
                             <svg
-                                class="global-mic-icon global-mic-icon-off"
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 640 640"
-                                fill="currentColor"
+                                class="microphone-icon microphone-icon-off"
                                 aria-hidden="true"
                             >
-                                <!-- !Font Awesome Free v7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc. -->
-                                <path
-                                    d="M73 39.1C63.6 29.7 48.4 29.7 39.1 39.1C29.8 48.5 29.7 63.7 39 73.1L567 601.1C576.4 610.5 591.6 610.5 600.9 601.1C610.2 591.7 610.3 576.5 600.9 567.2L456.7 422.8C490.9 388.2 512 340.6 512 288L512 248C512 234.7 501.3 224 488 224C474.7 224 464 234.7 464 248L464 288C464 327.3 448.3 362.9 422.7 388.9L388.8 355C405.6 337.7 416 314 416 288L416 160C416 107 373 64 320 64C267 64 224 107 224 160L224 190.2L73 39.2zM371.3 473.1L329.9 431.7C326.6 431.9 323.4 432 320.1 432C240.6 432 176.1 367.5 176.1 288L176.1 277.8L132.5 234.2C129.7 238.1 128.1 242.9 128.1 248L128.1 288C128.1 385.9 201.4 466.7 296.1 478.5L296.1 528L248.1 528C234.8 528 224.1 538.7 224.1 552C224.1 565.3 234.8 576 248.1 576L392.1 576C405.4 576 416.1 565.3 416.1 552C416.1 538.7 405.4 528 392.1 528L344.1 528L344.1 478.5C353.4 477.3 362.5 475.5 371.4 473.1z"
-                                />
+                                <use href="#microphone-off-icon"></use>
                             </svg>
                         </button>
                     </div>
                 </div>
 
-                <div class="global-reference">
+                <div class="global-reference field">
                     <label for="global-a4">
                         A4 reference (Hz)
 
@@ -626,12 +628,11 @@
                             class="info-tip"
                             tabindex="0"
                             aria-label="Sets the tuning reference used to calculate every note frequency. 440 Hz is standard concert pitch."
-                            data-tooltip="Sets the tuning reference used to calculate every note frequency. 440 Hz is standard concert pitch."
                         >
                             ⓘ
                         </span>
                     </label>
-                    <div class="input-button-row">
+                    <div class="control-group">
                         <input
                             id="global-a4"
                             data-control="global-reference-a4"
@@ -909,7 +910,7 @@
                         </button>
 
                         <button
-                            class="icon-button global-mic-button"
+                            class="icon-button microphone-button"
                             data-action="global-microphone-toggle"
                             type="button"
                             aria-label="Enable microphone"
@@ -917,29 +918,17 @@
                             title="Enable microphone"
                         >
                             <svg
-                                class="global-mic-icon global-mic-icon-on"
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 640 640"
-                                fill="currentColor"
+                                class="microphone-icon microphone-icon-on"
                                 aria-hidden="true"
                             >
-                                <!-- !Font Awesome Free v7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc. -->
-                                <path
-                                    d="M320 64C267 64 224 107 224 160L224 288C224 341 267 384 320 384C373 384 416 341 416 288L416 160C416 107 373 64 320 64zM176 248C176 234.7 165.3 224 152 224C138.7 224 128 234.7 128 248L128 288C128 385.9 201.3 466.7 296 478.5L296 528L248 528C234.7 528 224 538.7 224 552C224 565.3 234.7 576 248 576L392 576C405.3 576 416 565.3 416 552C416 538.7 405.3 528 392 528L344 528L344 478.5C438.7 466.7 512 385.9 512 288L512 248C512 234.7 501.3 224 488 224C474.7 224 464 234.7 464 248L464 288C464 367.5 399.5 432 320 432C240.5 432 176 367.5 176 288L176 248z"
-                                />
+                                <use href="#microphone-on-icon"></use>
                             </svg>
 
                             <svg
-                                class="global-mic-icon global-mic-icon-off"
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 640 640"
-                                fill="currentColor"
+                                class="microphone-icon microphone-icon-off"
                                 aria-hidden="true"
                             >
-                                <!-- !Font Awesome Free v7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc. -->
-                                <path
-                                    d="M73 39.1C63.6 29.7 48.4 29.7 39.1 39.1C29.8 48.5 29.7 63.7 39 73.1L567 601.1C576.4 610.5 591.6 610.5 600.9 601.1C610.2 591.7 610.3 576.5 600.9 567.2L456.7 422.8C490.9 388.2 512 340.6 512 288L512 248C512 234.7 501.3 224 488 224C474.7 224 464 234.7 464 248L464 288C464 327.3 448.3 362.9 422.7 388.9L388.8 355C405.6 337.7 416 314 416 288L416 160C416 107 373 64 320 64C267 64 224 107 224 160L224 190.2L73 39.2zM371.3 473.1L329.9 431.7C326.6 431.9 323.4 432 320.1 432C240.6 432 176.1 367.5 176.1 288L176.1 277.8L132.5 234.2C129.7 238.1 128.1 242.9 128.1 248L128.1 288C128.1 385.9 201.4 466.7 296.1 478.5L296.1 528L248.1 528C234.8 528 224.1 538.7 224.1 552C224.1 565.3 234.8 576 248.1 576L392.1 576C405.4 576 416.1 565.3 416.1 552C416.1 538.7 405.4 528 392.1 528L344.1 528L344.1 478.5C353.4 477.3 362.5 475.5 371.4 473.1z"
-                                />
+                                <use href="#microphone-off-icon"></use>
                             </svg>
                         </button>
                     </div>
@@ -967,7 +956,7 @@
                                 <span class="tuner-scale-right">+50</span>
                             </div>
 
-                            <div class="tuner-track">
+                            <div class="tuner-track indicator-track">
                                 <span
                                     class="tuner-tick"
                                     style="left: 10%"
@@ -1053,7 +1042,7 @@
                         role="img"
                     ></canvas>
                 </div>
-                <div class="settings">
+                <div class="settings field-grid">
                     <h3 class="settings-heading">Settings</h3>
                     <div class="field">
                         <label for="tuner-note">
@@ -1080,7 +1069,6 @@
                                 class="info-tip"
                                 tabindex="0"
                                 aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
-                                data-tooltip="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
                             >
                                 ⓘ
                             </span>
@@ -1159,7 +1147,10 @@
                             </button>
                         </div>
                         <div class="practice-content-column-2">
-                            <div class="rhythm-beat-track" aria-hidden="true">
+                            <div
+                                class="rhythm-beat-track indicator-track"
+                                aria-hidden="true"
+                            >
                                 <span class="rhythm-beat-target"></span>
                                 <span
                                     id="rhythm-metronome-dot"
@@ -1168,7 +1159,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="settings">
+                    <div class="settings field-grid">
                         <h3 class="settings-heading">Settings</h3>
                         <div class="field">
                             <label for="rhythm-metronome-bpm">
@@ -1177,12 +1168,11 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Beats per minute. Higher numbers are faster. 60 BPM is one beat per second."
-                                    data-tooltip="Beats per minute. Higher numbers are faster. 60 BPM is one beat per second."
                                 >
                                     ⓘ
                                 </span>
                             </label>
-                            <div class="control-row input-button-row">
+                            <div class="control-row control-group">
                                 <input
                                     id="rhythm-metronome-bpm"
                                     data-control="shared-bpm"
@@ -1209,7 +1199,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="How beats are grouped. The first beat is accented. Compound meters such as 6/8 are grouped into sets of three."
-                                    data-tooltip="How beats are grouped. The first beat is accented. Compound meters such as 6/8 are grouped into sets of three."
                                 >
                                     ⓘ
                                 </span>
@@ -1275,7 +1264,7 @@
                                 class="practice-result"
                             >
                                 <div
-                                    class="rhythm-beat-track"
+                                    class="rhythm-beat-track indicator-track"
                                     aria-hidden="true"
                                 >
                                     <span class="rhythm-beat-target"></span>
@@ -1296,7 +1285,9 @@
                                 <span>Late +</span>
                             </div>
                         </div>
-                        <div class="practice-responses">
+                        <div
+                            class="practice-responses practice-content-column-2"
+                        >
                             <button
                                 id="rhythm-timing-tap"
                                 class="rhythm-timing-tap"
@@ -1312,7 +1303,7 @@
                             role="status"
                         ></p>
                     </div>
-                    <div class="settings">
+                    <div class="settings field-grid">
                         <h3 class="settings-heading">Settings</h3>
                         <div class="field">
                             <label for="rhythm-timing-bpm">
@@ -1321,12 +1312,11 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Beats per minute. Higher numbers are faster. 60 BPM is one beat per second."
-                                    data-tooltip="Beats per minute. Higher numbers are faster. 60 BPM is one beat per second."
                                 >
                                     ⓘ
                                 </span>
                             </label>
-                            <div class="control-row input-button-row">
+                            <div class="control-row control-group">
                                 <input
                                     id="rhythm-timing-bpm"
                                     data-control="shared-bpm"
@@ -1353,7 +1343,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="How beats are grouped. The first beat is accented. Compound meters such as 6/8 are grouped into sets of three."
-                                    data-tooltip="How beats are grouped. The first beat is accented. Compound meters such as 6/8 are grouped into sets of three."
                                 >
                                     ⓘ
                                 </span>
@@ -1465,7 +1454,9 @@
                                 aria-describedby="rhythm-sheet-description"
                             ></div>
                         </div>
-                        <div class="practice-responses practice-content-column">
+                        <div
+                            class="practice-responses practice-content-column-4"
+                        >
                             <button
                                 id="rhythm-sheet-hold"
                                 class="rhythm-sheet-hold"
@@ -1505,7 +1496,7 @@
                         </div>
                         <p id="rhythm-sheet-description" class="sr-only"></p>
                     </div>
-                    <div class="settings">
+                    <div class="settings field-grid">
                         <h3 class="settings-heading">Settings</h3>
                         <div class="field">
                             <label for="rhythm-sheet-bpm">
@@ -1515,13 +1506,12 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Beats per minute. Higher numbers are faster. 60 BPM is one beat per second."
-                                    data-tooltip="Beats per minute. Higher numbers are faster. 60 BPM is one beat per second."
                                 >
                                     ⓘ
                                 </span>
                             </label>
 
-                            <div class="control-row input-button-row">
+                            <div class="control-row control-group">
                                 <input
                                     id="rhythm-sheet-bpm"
                                     data-control="shared-bpm"
@@ -1550,7 +1540,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="How beats are grouped. The first beat is accented. Compound meters such as 6/8 are grouped into sets of three."
-                                    data-tooltip="How beats are grouped. The first beat is accented. Compound meters such as 6/8 are grouped into sets of three."
                                 >
                                     ⓘ
                                 </span>
@@ -1586,7 +1575,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="All uses whole, half, quarter, eighth, and sixteenth notes and rests. All + dotted may also use dotted quarter and half values. A dot adds half the note's duration."
-                                    data-tooltip="All uses whole, half, quarter, eighth, and sixteenth notes and rests. All + dotted may also use dotted quarter and half values. A dot adds half the note's duration."
                                 >
                                     ⓘ
                                 </span>
@@ -1726,12 +1714,12 @@
                         >.
                     </p>
                     <div class="practice">
-                        <div class="practice-content-column-2">
+                        <div class="practice-content-column-2 field-grid">
                             <div class="field">
                                 <label for="midi-sheet-library"
                                     >MIDI file</label
                                 >
-                                <div class="control-row input-button-row">
+                                <div class="control-row control-group">
                                     <button
                                         class="icon-button"
                                         data-action="midi-sheet-attach"
@@ -1848,12 +1836,12 @@
                         instruments for playback.
                     </h3>
                     <div class="practice">
-                        <div class="practice-content-column-2">
+                        <div class="practice-content-column-2 field-grid">
                             <div class="field">
                                 <label for="midi-piano-roll-library"
                                     >MIDI file</label
                                 >
-                                <div class="control-row input-button-row">
+                                <div class="control-row control-group">
                                     <button
                                         class="icon-button"
                                         data-action="midi-piano-roll-attach"
@@ -2084,7 +2072,7 @@
                             </div>
                         </dl>
                     </div>
-                    <div class="settings">
+                    <div class="settings field-grid">
                         <h3 class="settings-heading">Settings</h3>
                         <div class="field">
                             <label for="pitch-placement-note">
@@ -2111,7 +2099,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
-                                    data-tooltip="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
                                 >
                                     ⓘ
                                 </span>
@@ -2138,7 +2125,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Minimum and maximum mistuning. Each trial is randomly flat or sharp within this range."
-                                    data-tooltip="Minimum and maximum mistuning. Each trial is randomly flat or sharp within this range."
                                 >
                                     ⓘ
                                 </span>
@@ -2197,7 +2183,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Equal-tempered distance from the reference note to the correctly tuned target before mistuning is applied."
-                                    data-tooltip="Equal-tempered distance from the reference note to the correctly tuned target before mistuning is applied."
                                 >
                                     ⓘ
                                 </span>
@@ -2235,7 +2220,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="After every five answers, the cents range narrows when four or more are correct and widens when two or fewer are correct."
-                                    data-tooltip="After every five answers, the cents range narrows when four or more are correct and widens when two or fewer are correct."
                                     >ⓘ</span
                                 >
                             </label>
@@ -2317,7 +2301,6 @@
                                         class="info-tip"
                                         tabindex="0"
                                         aria-label="Sing, hum, or play a pitch to move the control, then fine-tune it manually if needed. The control adjusts continuously without snapping to musical notes."
-                                        data-tooltip="Sing, hum, or play a pitch to move the control, then fine-tune it manually if needed. The control adjusts continuously without snapping to musical notes."
                                     >
                                         ⓘ
                                     </span>
@@ -2415,7 +2398,7 @@
                             </div>
                         </dl>
                     </div>
-                    <div class="settings">
+                    <div class="settings field-grid">
                         <h3 class="settings-heading">Settings</h3>
                         <div class="field">
                             <label for="pitch-memory-type">
@@ -2424,7 +2407,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Novel melody tests recall of an unfamiliar melody's opening pitch after a delay. Interference tests recall of a single target after unrelated tones."
-                                    data-tooltip="Novel melody tests recall of an unfamiliar melody's opening pitch after a delay. Interference tests recall of a single target after unrelated tones."
                                 >
                                     ⓘ
                                 </span>
@@ -2449,7 +2431,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Sets the delay after the generated melody finishes. Delayed trials are saved in this browser."
-                                    data-tooltip="Sets the delay after the generated melody finishes. Delayed trials are saved in this browser."
                                 >
                                     ⓘ
                                 </span>
@@ -2479,7 +2460,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Sets how many unrelated tones play between the target and your response. More tones create stronger interference."
-                                    data-tooltip="Sets how many unrelated tones play between the target and your response. More tones create stronger interference."
                                 >
                                     ⓘ
                                 </span>
@@ -2581,7 +2561,7 @@
                             </div>
                         </dl>
                     </div>
-                    <div class="settings">
+                    <div class="settings field-grid">
                         <h3 class="settings-heading">Settings</h3>
                         <div class="field">
                             <label for="match-target-note">
@@ -2608,7 +2588,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
-                                    data-tooltip="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
                                 >
                                     ⓘ
                                 </span>
@@ -2635,7 +2614,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Minimum and maximum distance from the target to answer tones."
-                                    data-tooltip="Minimum and maximum distance from the target to answer tones."
                                 >
                                     ⓘ
                                 </span>
@@ -2694,7 +2672,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Number of choices. Exactly one answer is the selected target note."
-                                    data-tooltip="Number of choices. Exactly one answer is the selected target note."
                                 >
                                     ⓘ
                                 </span>
@@ -2728,7 +2705,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="After every five answers, the cents range narrows when four or more are correct and widens when two or fewer are correct."
-                                    data-tooltip="After every five answers, the cents range narrows when four or more are correct and widens when two or fewer are correct."
                                     >ⓘ</span
                                 >
                             </label>
@@ -2832,7 +2808,7 @@
                             </div>
                         </dl>
                     </div>
-                    <div class="settings">
+                    <div class="settings field-grid">
                         <h3 class="settings-heading">Settings</h3>
                         <div class="field">
                             <label for="match-identification-octave"
@@ -2857,7 +2833,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
-                                    data-tooltip="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
                                     >ⓘ</span
                                 >
                             </label>
@@ -2991,7 +2966,7 @@
                         </dl>
                     </div>
 
-                    <div class="settings">
+                    <div class="settings field-grid">
                         <h3 class="settings-heading">Settings</h3>
                         <div class="field">
                             <label for="interval-recognition-level">
@@ -3001,7 +2976,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Controls which intervals can be requested and which recognition choices are shown."
-                                    data-tooltip="Controls which intervals can be requested and which recognition choices are shown."
                                 >
                                     ⓘ
                                 </span>
@@ -3048,7 +3022,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="After every five answers, the interval set moves up when four or more are correct and down when two or fewer are correct."
-                                    data-tooltip="After every five answers, the interval set moves up when four or more are correct and down when two or fewer are correct."
                                     >ⓘ</span
                                 >
                             </label>
@@ -3072,7 +3045,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
-                                    data-tooltip="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
                                 >
                                     ⓘ
                                 </span>
@@ -3206,7 +3178,7 @@
                         </dl>
                     </div>
 
-                    <div class="settings">
+                    <div class="settings field-grid">
                         <h3 class="settings-heading">Settings</h3>
                         <div class="field">
                             <label for="interval-construction-level">
@@ -3216,7 +3188,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Controls which intervals can be requested. Construction always shows 13 destination notes."
-                                    data-tooltip="Controls which intervals can be requested. Construction always shows 13 destination notes."
                                 >
                                     ⓘ
                                 </span>
@@ -3263,7 +3234,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="After every five answers, the interval set moves up when four or more are correct and down when two or fewer are correct."
-                                    data-tooltip="After every five answers, the interval set moves up when four or more are correct and down when two or fewer are correct."
                                     >ⓘ</span
                                 >
                             </label>
@@ -3287,7 +3257,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
-                                    data-tooltip="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
                                 >
                                     ⓘ
                                 </span>
@@ -3499,7 +3468,7 @@
                         </div>
                     </dl>
                 </div>
-                <div class="settings">
+                <div class="settings field-grid">
                     <h3 class="settings-heading">Settings</h3>
                     <div class="field">
                         <label for="chord-waveform">
@@ -3509,7 +3478,6 @@
                                 class="info-tip"
                                 tabindex="0"
                                 aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
-                                data-tooltip="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
                             >
                                 ⓘ
                             </span>
@@ -3535,7 +3503,6 @@
                                 class="info-tip"
                                 tabindex="0"
                                 aria-label="Together plays all chord tones at once. Ascending plays them one at a time from lowest to highest; descending plays them from highest to lowest."
-                                data-tooltip="Together plays all chord tones at once. Ascending plays them one at a time from lowest to highest; descending plays them from highest to lowest."
                             >
                                 ⓘ
                             </span>

@@ -1326,8 +1326,10 @@ const midiPlayer = {
     pianoRollPosition: 0,
     pianoRollSegments: [],
     pianoRollSegmentElements: new Map(),
+    pianoRollKeyElements: new Map(),
     pianoRollMarkers: [],
     pianoRollMarkerElements: new Map(),
+    pianoRollTrackElements: new Map(),
     pianoRollMaximumNote: 0,
     pianoRollSegmentPrefixEnds: [],
     pianoRollResizeObserver: null,
@@ -3957,22 +3959,7 @@ async function loadMidiPlayer(file, included = false) {
         const tracksElement = document.getElementById('midi-sheet-tracks');
         tracksElement.replaceChildren();
         tracksElement.hidden = true;
-        const pianoRoll = document.getElementById('midi-piano-roll');
-        midiPlayer.pianoRollResizeObserver?.disconnect();
-        midiPlayer.pianoRollResizeObserver = null;
-        midiPlayer.pianoRollLegendResizeObserver?.disconnect();
-        midiPlayer.pianoRollLegendResizeObserver = null;
-        midiPlayer.pianoRollSegments = [];
-        midiPlayer.pianoRollSegmentElements = new Map();
-        midiPlayer.pianoRollMarkers = [];
-        midiPlayer.pianoRollMarkerElements = new Map();
-        midiPlayer.pianoRollSegmentPrefixEnds = [];
-        midiPlayer.pianoRollTimeline = null;
-        midiPlayer.pianoRollVisibleDuration = 0;
-        midiPlayer.pianoRollWindowEnd = -Infinity;
-        midiPlayer.pianoRollWindowStart = Infinity;
-        pianoRoll.replaceChildren();
-        pianoRoll.hidden = true;
+        clearMidiPianoRoll();
         midiPlayer.position = 0;
         midiPlayer.total = 0;
         midiPlayer.pianoRollPosition = 0;
@@ -4102,6 +4089,8 @@ const rhythmSheet = {
     extra: 0,
     holdSpans: [],
     currentHold: null,
+    countMarkerElements: [],
+    noteElements: [],
     starting: false,
     soundFontReady: false,
     soundFontRequest: 0,

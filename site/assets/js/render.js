@@ -2,10 +2,17 @@
 
 // Tuning
 
-function renderTunerString() {
-    musicEngine.getOutput('tuner-closest').textContent = tunerTargetNoteName();
+function renderTunerTarget(noteName, frequency) {
+    musicEngine.getOutput('tuner-closest').textContent = noteName;
     musicEngine.getOutput('tuner-target').textContent =
-        `${musicEngine.frequencyFromMidi(tunerTargetMidi).toFixed(3)} Hz`;
+        `${frequency.toFixed(3)} Hz`;
+}
+
+function renderTunerString() {
+    renderTunerTarget(
+        tunerTargetNoteName(),
+        musicEngine.frequencyFromMidi(tunerTargetMidi)
+    );
 }
 
 function renderTunerHistory(time = performance.now()) {
@@ -133,10 +140,7 @@ function renderTunerDetection({ cents, frequency, nearest }) {
 
     const percent = limitedCents + 50;
 
-    musicEngine.getOutput('tuner-closest').textContent = nearest.noteName;
-
-    musicEngine.getOutput('tuner-target').textContent =
-        `${nearest.targetFrequency.toFixed(3)} Hz`;
+    renderTunerTarget(nearest.noteName, nearest.targetFrequency);
 
     const detectedNote =
         tunerTargetMidi === null
@@ -352,8 +356,7 @@ function updateMidiPianoRoll(
             attackedPitches.add(segment.midi);
         }
     }
-    for (const key of document.querySelectorAll('[data-midi-piano-roll-key]')) {
-        const midi = Number(key.dataset.midiPianoRollKey);
+    for (const [midi, key] of midiPlayer.pianoRollKeyElements) {
         key.classList.toggle('is-active', activePitches.has(midi));
         if (attackedPitches.has(midi)) {
             key.classList.remove('is-struck');
@@ -361,10 +364,7 @@ function updateMidiPianoRoll(
             key.classList.add('is-struck');
         }
     }
-    for (const item of document.querySelectorAll(
-        '[data-midi-piano-roll-track-index]'
-    )) {
-        const trackIndex = Number(item.dataset.midiPianoRollTrackIndex);
+    for (const [trackIndex, item] of midiPlayer.pianoRollTrackElements) {
         const activeState = (activeTrackStates.get(trackIndex) ?? [])
             .sort((left, right) => left - right)
             .join(',');
@@ -443,7 +443,7 @@ function balanceMidiPianoRollLegend(legend) {
     }
 }
 
-function renderMidiPianoRoll() {
+function clearMidiPianoRoll() {
     const pianoRoll = document.getElementById('midi-piano-roll');
     midiPlayer.pianoRollResizeObserver?.disconnect();
     midiPlayer.pianoRollResizeObserver = null;
@@ -451,63 +451,21 @@ function renderMidiPianoRoll() {
     midiPlayer.pianoRollLegendResizeObserver = null;
     midiPlayer.pianoRollSegments = [];
     midiPlayer.pianoRollSegmentElements = new Map();
+    midiPlayer.pianoRollKeyElements = new Map();
     midiPlayer.pianoRollMarkers = [];
     midiPlayer.pianoRollMarkerElements = new Map();
+    midiPlayer.pianoRollTrackElements = new Map();
     midiPlayer.pianoRollSegmentPrefixEnds = [];
     midiPlayer.pianoRollTimeline = null;
     midiPlayer.pianoRollVisibleDuration = 0;
     midiPlayer.pianoRollWindowEnd = -Infinity;
     midiPlayer.pianoRollWindowStart = Infinity;
     pianoRoll.replaceChildren();
-    if (!midiPlayer.notes.length) {
-        pianoRoll.hidden = true;
-        return;
-    }
-    pianoRoll.hidden = false;
+    pianoRoll.hidden = true;
+}
 
-    const minimumNote = Math.min(...midiPlayer.notes.map((note) => note.midi));
-    const maximumNote = Math.max(...midiPlayer.notes.map((note) => note.midi));
-    const pitchCount = maximumNote - minimumNote + 1;
-    const height = pitchCount * musicEngine.MIDI_PIANO_ROLL_ROW_HEIGHT_REM;
-    const stage = document.createElement('div');
-    const keyboard = document.createElement('div');
-    const viewport = document.createElement('div');
-    const rows = document.createElement('div');
-    const timeline = document.createElement('div');
-    const legend = document.createElement('ul');
-    const segments = midiPianoRollSegments(midiPlayer.notes);
+function createMidiPianoRollMarkers() {
     const markers = [];
-    midiPlayer.pianoRollSegments = segments;
-    midiPlayer.pianoRollMaximumNote = maximumNote;
-    let maximumSegmentEnd = -Infinity;
-    midiPlayer.pianoRollSegmentPrefixEnds = segments.map((segment) => {
-        maximumSegmentEnd = Math.max(
-            maximumSegmentEnd,
-            segment.start + segment.duration
-        );
-        return maximumSegmentEnd;
-    });
-    stage.className = 'midi-piano-roll-stage';
-    stage.setAttribute('role', 'group');
-    stage.setAttribute(
-        'aria-label',
-        'Interactive piano roll with notes moving from right to left'
-    );
-    keyboard.className = 'midi-piano-roll-keyboard';
-    keyboard.style.height = `${height}rem`;
-    viewport.className = 'midi-piano-roll-viewport';
-    viewport.style.height = `${height}rem`;
-    rows.className = 'midi-piano-roll-rows';
-    timeline.className = 'midi-piano-roll-timeline';
-    timeline.style.height = `${height}rem`;
-    timeline.style.width = `calc(100% + ${(midiPlayer.total / midiPlayer.unitsPerQuarter) * musicEngine.MIDI_PIANO_ROLL_REM_PER_QUARTER}rem)`;
-    timeline.style.setProperty(
-        '--midi-piano-roll-quarter-width',
-        `${musicEngine.MIDI_PIANO_ROLL_REM_PER_QUARTER}rem`
-    );
-    legend.className = 'midi-piano-roll-legend';
-    legend.setAttribute('aria-label', 'Instrument colors');
-
     let barlineCount = 0;
     for (let index = 0; index < midiPlayer.signatureMap.length; index += 1) {
         const signature = midiPlayer.signatureMap[index];
@@ -536,23 +494,32 @@ function renderMidiPianoRoll() {
             textContent: `${signature.numerator}/${signature.denominator}`,
         });
     }
-    markers.sort(
+    return markers.sort(
         (left, right) =>
             left.position - right.position ||
             left.className.localeCompare(right.className)
     );
-    midiPlayer.pianoRollMarkers = markers;
+}
 
+function createMidiPianoRollKeyboard(minimumNote, maximumNote, height) {
+    const keyboard = document.createElement('div');
+    const rows = document.createElement('div');
     const blackPitchClasses = new Set([1, 3, 6, 8, 10]);
+    keyboard.className = 'midi-piano-roll-keyboard';
+    keyboard.style.height = `${height}rem`;
+    rows.className = 'midi-piano-roll-rows';
+
     for (let midi = maximumNote; midi >= minimumNote; midi -= 1) {
         const rowIndex = maximumNote - midi;
         const top = rowIndex * musicEngine.MIDI_PIANO_ROLL_ROW_HEIGHT_REM;
         const pitchClass = musicEngine.pitchClassFromMidi(midi);
+        const isBlack = blackPitchClasses.has(pitchClass);
         const key = document.createElement('button');
         const row = document.createElement('span');
         key.type = 'button';
-        key.className = `midi-piano-roll-key${blackPitchClasses.has(pitchClass) ? ' is-black' : ''}`;
+        key.className = `midi-piano-roll-key${isBlack ? ' is-black' : ''}`;
         key.dataset.midiPianoRollKey = String(midi);
+        midiPlayer.pianoRollKeyElements.set(midi, key);
         key.style.top = `${top}rem`;
         key.title = musicEngine.noteNameFromMidi(midi, 'sharp');
         key.setAttribute('aria-label', `Play ${key.title}`);
@@ -577,12 +544,19 @@ function renderMidiPianoRoll() {
         if (pitchClass === 0) {
             key.textContent = musicEngine.noteNameFromMidi(midi);
         }
-        row.className = `midi-piano-roll-row${blackPitchClasses.has(pitchClass) ? ' is-black' : ''}`;
+        row.className = `midi-piano-roll-row${isBlack ? ' is-black' : ''}`;
         row.style.top = `${top}rem`;
         keyboard.append(key);
         rows.append(row);
     }
     initializeMidiPianoRollKeyboard(keyboard);
+    return { keyboard, rows };
+}
+
+function createMidiPianoRollLegend() {
+    const legend = document.createElement('ul');
+    legend.className = 'midi-piano-roll-legend';
+    legend.setAttribute('aria-label', 'Instrument colors');
 
     for (const track of midiPlayer.tracks) {
         const item = document.createElement('li');
@@ -592,6 +566,7 @@ function renderMidiPianoRoll() {
         const label = document.createElement('span');
         const select = document.createElement('select');
         item.dataset.midiPianoRollTrackIndex = String(track.trackIndex);
+        midiPlayer.pianoRollTrackElements.set(track.trackIndex, item);
         item.dataset.midiPianoRollActiveState = '';
         toggle.type = 'button';
         toggle.className = 'midi-piano-roll-legend-toggle';
@@ -625,6 +600,57 @@ function renderMidiPianoRoll() {
         item.append(toggle, instrument);
         legend.append(item);
     }
+    return legend;
+}
+
+function renderMidiPianoRoll() {
+    const pianoRoll = document.getElementById('midi-piano-roll');
+    clearMidiPianoRoll();
+    if (!midiPlayer.notes.length) {
+        return;
+    }
+    pianoRoll.hidden = false;
+
+    const minimumNote = Math.min(...midiPlayer.notes.map((note) => note.midi));
+    const maximumNote = Math.max(...midiPlayer.notes.map((note) => note.midi));
+    const pitchCount = maximumNote - minimumNote + 1;
+    const height = pitchCount * musicEngine.MIDI_PIANO_ROLL_ROW_HEIGHT_REM;
+    const stage = document.createElement('div');
+    const viewport = document.createElement('div');
+    const timeline = document.createElement('div');
+    const segments = midiPianoRollSegments(midiPlayer.notes);
+    const { keyboard, rows } = createMidiPianoRollKeyboard(
+        minimumNote,
+        maximumNote,
+        height
+    );
+    const legend = createMidiPianoRollLegend();
+    midiPlayer.pianoRollSegments = segments;
+    midiPlayer.pianoRollMaximumNote = maximumNote;
+    let maximumSegmentEnd = -Infinity;
+    midiPlayer.pianoRollSegmentPrefixEnds = segments.map((segment) => {
+        maximumSegmentEnd = Math.max(
+            maximumSegmentEnd,
+            segment.start + segment.duration
+        );
+        return maximumSegmentEnd;
+    });
+    stage.className = 'midi-piano-roll-stage';
+    stage.setAttribute('role', 'group');
+    stage.setAttribute(
+        'aria-label',
+        'Interactive piano roll with notes moving from right to left'
+    );
+    viewport.className = 'midi-piano-roll-viewport';
+    viewport.style.height = `${height}rem`;
+    timeline.className = 'midi-piano-roll-timeline';
+    timeline.style.height = `${height}rem`;
+    timeline.style.width = `calc(100% + ${(midiPlayer.total / midiPlayer.unitsPerQuarter) * musicEngine.MIDI_PIANO_ROLL_REM_PER_QUARTER}rem)`;
+    timeline.style.setProperty(
+        '--midi-piano-roll-quarter-width',
+        `${musicEngine.MIDI_PIANO_ROLL_REM_PER_QUARTER}rem`
+    );
+    midiPlayer.pianoRollMarkers = createMidiPianoRollMarkers();
 
     viewport.append(rows, timeline);
     stage.append(keyboard, viewport, legend);
@@ -655,32 +681,38 @@ function renderMidiPianoRoll() {
     updateMidiPianoRoll();
 }
 
-function renderMidiPlayer(position) {
+function applyToMidiSheetScores(callback) {
     for (const track of midiPlayer.tracks) {
         for (const score of track.scores) {
-            musicEngine.positionSheetLane(score, score.selector, position);
-            updateMidiSheetHighlights(score, position);
+            callback(score);
         }
     }
+}
+
+function renderMidiPlayer(position) {
+    applyToMidiSheetScores((score) => {
+        musicEngine.positionSheetLane(score, score.selector, position);
+        updateMidiSheetHighlights(score, position);
+    });
     updateMidiPianoRoll(position, true);
 }
 
 function renderMidiPlayerLeadIn(position) {
-    for (const track of midiPlayer.tracks) {
-        for (const score of track.scores) {
-            musicEngine.positionSheetLane(score, score.selector, position);
-        }
-    }
+    applyToMidiSheetScores((score) => {
+        musicEngine.positionSheetLane(score, score.selector, position);
+    });
 }
 
 // Rhythm
 
-function clearRhythmFeedback() {
-    const lane = document.querySelector(
+function rhythmSheetLane() {
+    return document.querySelector(
         `${musicEngine.RHYTHM_SHEET_SCORE_SELECTOR} .sheet-lane`
     );
+}
 
-    for (const element of lane.querySelectorAll(
+function clearRhythmFeedback() {
+    for (const element of rhythmSheetLane().querySelectorAll(
         '.rhythm-sheet-feedback-section'
     )) {
         element.remove();
@@ -705,6 +737,16 @@ function renderRhythmSheet() {
     );
     document.getElementById('rhythm-sheet-description').textContent =
         musicEngine.describeSheetScore(rhythmSheet);
+    rhythmSheet.countMarkerElements = [
+        ...document.querySelectorAll(
+            `${musicEngine.RHYTHM_SHEET_SCORE_SELECTOR} [data-sheet-count-index]`
+        ),
+    ];
+    rhythmSheet.noteElements = rhythmSheet.phrase.map((_, index) => [
+        ...document.querySelectorAll(
+            `${musicEngine.RHYTHM_SHEET_SCORE_SELECTOR} [data-sheet-note-index="${index}"]`
+        ),
+    ]);
     const { units, denominator, compound } = rhythmSheet.meter;
     document.getElementById('rhythm-sheet-meter-help').textContent = compound
         ? `${rhythmSheet.signature}: BPM counts dotted-quarter beats; each beat has three eighth-note subdivisions (1 & a). A dotted quarter lasts three subdivisions, a quarter two, and an eighth one.`
@@ -740,9 +782,7 @@ function renderRhythmSheetPitch(frequency = null) {
 }
 
 function renderRhythmFeedback(position) {
-    const lane = document.querySelector(
-        `${musicEngine.RHYTHM_SHEET_SCORE_SELECTOR} .sheet-lane`
-    );
+    const lane = rhythmSheetLane();
     const layout = musicEngine.createSheetLayout(rhythmSheet);
     clearRhythmFeedback();
 
@@ -831,9 +871,7 @@ function renderRhythmSheetPosition(position) {
         position >= -units && position < 0
             ? Math.floor(position + units)
             : null;
-    for (const marker of document.querySelectorAll(
-        `${musicEngine.RHYTHM_SHEET_SCORE_SELECTOR} [data-sheet-count-index]`
-    )) {
+    for (const marker of rhythmSheet.countMarkerElements) {
         marker.classList.toggle(
             'is-current',
             Number(marker.dataset.sheetCountIndex) === activeCount
@@ -843,20 +881,20 @@ function renderRhythmSheetPosition(position) {
     rhythmSheet.phrase.forEach((note, index) => {
         const active =
             position >= note.beat && position < note.beat + note.duration;
-        for (const element of document.querySelectorAll(
-            `${musicEngine.RHYTHM_SHEET_SCORE_SELECTOR} [data-sheet-note-index="${index}"]`
-        )) {
+        for (const element of rhythmSheet.noteElements[index]) {
             element.classList.toggle('is-current', active);
         }
     });
 }
 
+function renderProgressDot(id, position) {
+    document.getElementById(id).style.left = `${position * 100}%`;
+}
+
 function renderRhythmMetronome(position) {
-    document.getElementById('rhythm-metronome-dot').style.left =
-        `${position * 100}%`;
+    renderProgressDot('rhythm-metronome-dot', position);
 }
 
 function renderRhythmTiming(position) {
-    document.getElementById('rhythm-timing-dot').style.left =
-        `${position * 100}%`;
+    renderProgressDot('rhythm-timing-dot', position);
 }
