@@ -5534,7 +5534,7 @@ function initializeEvents() {
             fileInput.click();
         });
     }
-    for (const fileInput of musicEngine.getControls('midi-file')) {
+    for (const fileInput of musicEngine.getControls('midi-file-input')) {
         fileInput.addEventListener('change', (event) => {
             const [file] = event.target.files;
             if (file) {
@@ -5952,9 +5952,9 @@ function initializeEvents() {
             }
         });
 
-    for (const button of musicEngine.getActions('pitch-placement-play')) {
-        button.addEventListener('click', playPitchPlacementTrial);
-    }
+    musicEngine
+        .getAction('pitch-placement-play')
+        .addEventListener('click', playPitchPlacementTrial);
 
     musicEngine
         .getAction('match-identification-play')
@@ -6044,9 +6044,9 @@ function initializeEvents() {
         .getControl('pitch-memory-pitch')
         .addEventListener('input', updatePitchMemoryResponseTone);
 
-    for (const button of musicEngine.getActions('pitch-memory-submit')) {
-        button.addEventListener('click', submitPitchMemoryResponse);
-    }
+    musicEngine
+        .getAction('pitch-memory-submit')
+        .addEventListener('click', submitPitchMemoryResponse);
 
     for (const button of document.querySelectorAll(
         '[data-pitch-placement-answers] [data-answer]'

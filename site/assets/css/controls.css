@@ -76,7 +76,8 @@ select {
     margin-top: 28px;
 }
 
-.field {
+.field,
+.control-row {
     min-width: 0;
 }
 
@@ -93,10 +94,6 @@ select {
 
     font-size: 12px;
     line-height: 1.2;
-}
-
-.control-row {
-    min-width: 0;
 }
 
 .control-group {
