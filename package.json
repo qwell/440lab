@@ -55,6 +55,7 @@
         "serve": "node scripts/serve.js",
         "generate": "node scripts/generate.js && yarn hygiene",
         "deploy": "node scripts/deploy.js",
+        "release": "bash scripts/release.sh",
         "lint": "eslint --cache --cache-strategy metadata --cache-location ./.cache/eslint . --fix",
         "lint:check": "eslint --cache --cache-strategy metadata --cache-location ./.cache/eslint .",
         "format": "prettier --cache --cache-strategy metadata --cache-location ./.cache/prettier --write .",
