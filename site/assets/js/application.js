@@ -311,7 +311,7 @@ let activeSection =
     document.querySelector('.nav-item.is-active')?.dataset.section ?? 'about';
 
 const sectionViewOptions = {
-    rhythm: ['metronome', 'timing', 'sheet'],
+    rhythm: ['metronome', 'sheet'],
     midi: ['sheet', 'piano-roll'],
     pitch: ['placement', 'memory'],
     match: ['target', 'identification'],
@@ -3111,8 +3111,8 @@ function updateMidiPlayerTransport() {
         seek.disabled = !hasFile || loading;
     }
     setPlaybackTransportState(
-        musicEngine.getModuleActions('midi', 'rewind'),
-        musicEngine.getModuleActions('midi', 'play'),
+        musicEngine.getActions('midi-rewind'),
+        musicEngine.getActions('midi-play'),
         midiPlayer.playing,
         !hasFile ||
             loading ||
@@ -4055,20 +4055,19 @@ async function loadDroppedFiles(dropZone, files) {
 
 // Rhythm
 
-const RHYTHM_TIMING_RESPONSE_LIMIT = 20;
+const RHYTHM_METRONOME_RESPONSE_LIMIT = 20;
 
 const rhythmPlayer = {
     playing: false,
     timer: null,
-    frame: null,
+    clickInterval: 0.6,
     nextBeatTime: 0,
     beatIndex: 0,
     tapTimes: [],
 };
 
-const rhythmTiming = {
+const rhythmMetronome = {
     originMs: 0,
-    interval: 0.6,
     frame: null,
     lastBeat: -1,
     markBeat: null,
@@ -4396,7 +4395,7 @@ function addRhythmTie() {
 function newRhythmPhrase() {
     stopAllAudio();
     rhythmSheet.signature = musicEngine.getControl(
-        'shared-time-signature'
+        'shared-rhythm-time-signature'
     ).value;
     rhythmSheet.meter = musicEngine.sheetMeter(rhythmSheet.signature);
     const { units, denominator } = rhythmSheet.meter;
@@ -4475,7 +4474,7 @@ function showRhythmSheetReport() {
     document.getElementById('rhythm-sheet-results').hidden = false;
 }
 
-function playRhythmInputSound() {
+function playMetronomeTapSound() {
     // A rounded tone distinct from the metronome, with enough duration to hear.
     musicEngine.audio.playTransient(520, 'triangle', 0.055, 0.5);
 }
@@ -4596,7 +4595,7 @@ function updateRhythmMode() {
         isRhythmSheetEnabled() &&
         (!rhythmSheet.phrase.length ||
             rhythmSheet.signature !==
-                musicEngine.getControl('shared-time-signature').value)
+                musicEngine.getControl('shared-rhythm-time-signature').value)
     ) {
         newRhythmPhrase();
     }
@@ -4974,21 +4973,17 @@ function stopRhythmSheet(preservePosition = false) {
     document.getElementById('rhythm-sheet-hold').classList.remove('is-held');
 }
 
-// Rhythm: timing
-
-function isRhythmTimingEnabled() {
-    return sectionView('rhythm') === 'timing';
-}
+// Rhythm: metronome
 
 function isRhythmMetronomeEnabled() {
     return sectionView('rhythm') === 'metronome';
 }
 
-function rhythmVisualPosition() {
+function rhythmMetronomeVisualPosition() {
     const phase = Math.max(
         -0.5,
-        (performance.now() - rhythmTiming.originMs) /
-            (rhythmTiming.interval * 1000)
+        (performance.now() - rhythmMetronome.originMs) /
+            (rhythmPlayer.clickInterval * 1000)
     );
 
     return {
@@ -4998,79 +4993,76 @@ function rhythmVisualPosition() {
 }
 
 function drawRhythmMetronome() {
-    const { position } = rhythmVisualPosition();
+    const { phase, position } = rhythmMetronomeVisualPosition();
     renderRhythmMetronome(position);
-    rhythmPlayer.frame = requestAnimationFrame(drawRhythmMetronome);
-}
-
-function drawRhythmTiming() {
-    const { phase, position } = rhythmVisualPosition();
-    renderRhythmTiming(position);
     if (
-        rhythmTiming.markBeat !== null &&
-        phase >= rhythmTiming.markBeat + 0.5
+        rhythmMetronome.markBeat !== null &&
+        phase >= rhythmMetronome.markBeat + 0.5
     ) {
-        clearRhythmTimingMark();
+        clearRhythmMetronomeMark();
     }
-    rhythmTiming.frame = requestAnimationFrame(drawRhythmTiming);
+    rhythmMetronome.frame = requestAnimationFrame(drawRhythmMetronome);
 }
 
-function clearRhythmTimingMark() {
-    const mark = document.getElementById('rhythm-timing-mark');
+function clearRhythmMetronomeMark() {
+    const mark = document.getElementById('rhythm-metronome-mark');
     document
-        .getElementById('rhythm-timing-feedback')
+        .getElementById('rhythm-metronome-feedback')
         .classList.remove('is-correct', 'is-incorrect');
     mark.hidden = true;
     delete mark.dataset.label;
-    rhythmTiming.markBeat = null;
+    rhythmMetronome.markBeat = null;
 }
 
-function recordRhythmTimingTap() {
-    if (!rhythmPlayer.playing || !isRhythmTimingEnabled()) {
+function recordRhythmMetronomeTap() {
+    if (!rhythmPlayer.playing || !isRhythmMetronomeEnabled()) {
         return;
     }
     const now = performance.now();
     const beat = Math.round(
-        (now - rhythmTiming.originMs) / (rhythmTiming.interval * 1000)
+        (now - rhythmMetronome.originMs) / (rhythmPlayer.clickInterval * 1000)
     );
-    if (beat < 0 || beat <= rhythmTiming.lastBeat) {
+    if (beat < 0 || beat <= rhythmMetronome.lastBeat) {
         return;
     }
-    rhythmTiming.lastBeat = beat;
-    playRhythmInputSound();
+    rhythmMetronome.lastBeat = beat;
+    playMetronomeTapSound();
     const error =
-        now - (rhythmTiming.originMs + beat * rhythmTiming.interval * 1000);
-    rhythmTiming.errors.push(error);
-    rhythmTiming.errors = rhythmTiming.errors.slice(
-        -RHYTHM_TIMING_RESPONSE_LIMIT
+        now -
+        (rhythmMetronome.originMs + beat * rhythmPlayer.clickInterval * 1000);
+    rhythmMetronome.errors.push(error);
+    rhythmMetronome.errors = rhythmMetronome.errors.slice(
+        -RHYTHM_METRONOME_RESPONSE_LIMIT
     );
     const signed = (value) => `${value > 0 ? '+' : ''}${Math.round(value)}`;
-    const count = rhythmTiming.errors.length;
+    const count = rhythmMetronome.errors.length;
     const average =
-        rhythmTiming.errors.reduce((sum, value) => sum + Math.abs(value), 0) /
-        count;
+        rhythmMetronome.errors.reduce(
+            (sum, value) => sum + Math.abs(value),
+            0
+        ) / count;
     const bias =
-        rhythmTiming.errors.reduce((sum, value) => sum + value, 0) / count;
+        rhythmMetronome.errors.reduce((sum, value) => sum + value, 0) / count;
     const status =
         Math.abs(error) <= 20 ? 'on beat' : error < 0 ? 'early' : 'late';
-    const result = document.getElementById('rhythm-timing-result');
+    const result = document.getElementById('rhythm-metronome-result');
     const latest = document.createElement('span');
     const responseCount = document.createElement('span');
     const averageError = document.createElement('span');
     const averageBias = document.createElement('span');
     latest.textContent = `${signed(error)} ms (${status})`;
-    responseCount.textContent = `Rolling samples: ${count}/${RHYTHM_TIMING_RESPONSE_LIMIT}`;
+    responseCount.textContent = `Rolling samples: ${count}/${RHYTHM_METRONOME_RESPONSE_LIMIT}`;
     averageError.textContent = `Average error: +/- ${Math.round(average)} ms`;
     averageBias.textContent = `Bias: ${signed(bias)} ms`;
     result.replaceChildren(latest, responseCount, averageError, averageBias);
-    const mark = document.getElementById('rhythm-timing-mark');
-    const feedback = document.getElementById('rhythm-timing-feedback');
+    const mark = document.getElementById('rhythm-metronome-mark');
+    const feedback = document.getElementById('rhythm-metronome-feedback');
     mark.hidden = false;
     mark.dataset.label = `${signed(error)} ms`;
     feedback.classList.toggle('is-correct', Math.abs(error) <= 20);
     feedback.classList.toggle('is-incorrect', Math.abs(error) > 20);
-    mark.style.left = `${50 + (error / (rhythmTiming.interval * 1000)) * 100}%`;
-    rhythmTiming.markBeat = beat;
+    mark.style.left = `${50 + (error / (rhythmPlayer.clickInterval * 1000)) * 100}%`;
+    rhythmMetronome.markBeat = beat;
 }
 
 // Rhythm: playback
@@ -5243,7 +5235,7 @@ function scheduleRhythm() {
 
     const secondsPerClick = rhythmClickInterval(signature, bpm);
 
-    rhythmTiming.interval = secondsPerClick;
+    rhythmPlayer.clickInterval = secondsPerClick;
     const now = musicEngine.audio.currentTime();
 
     scheduleRhythmSheetNoteCues(now);
@@ -5289,7 +5281,7 @@ async function playRhythm() {
         isRhythmSheetEnabled() &&
         (!rhythmSheet.phrase.length ||
             rhythmSheet.signature !==
-                musicEngine.getControl('shared-time-signature').value)
+                musicEngine.getControl('shared-rhythm-time-signature').value)
     ) {
         newRhythmPhrase();
     }
@@ -5362,16 +5354,18 @@ async function playRhythm() {
     }
 
     const sheetEnabled = isRhythmSheetEnabled();
-    const timingEnabled = isRhythmTimingEnabled();
     const metronomeEnabled = isRhythmMetronomeEnabled();
 
     rhythmPlayer.bpm = musicEngine.clamp(
-        musicEngine.readNumber(musicEngine.getControl('shared-bpm'), 100),
+        musicEngine.readNumber(
+            musicEngine.getControl('shared-rhythm-bpm'),
+            100
+        ),
         30,
         240
     );
     rhythmPlayer.signature = musicEngine.getControl(
-        'shared-time-signature'
+        'shared-rhythm-time-signature'
     ).value;
     rhythmPlayer.playing = true;
     rhythmSheet.starting = false;
@@ -5398,31 +5392,28 @@ async function playRhythm() {
         const leadIn = sheetEnabled
             ? rhythmClickInterval(rhythmPlayer.signature, rhythmPlayer.bpm) *
               musicEngine.RHYTHM_SHEET_COUNT_IN_LEAD_UNITS
-            : timingEnabled
-              ? 1
-              : 0.05;
+            : 1;
         rhythmPlayer.nextBeatTime = now + leadIn;
     }
-    rhythmTiming.originMs =
+    rhythmMetronome.originMs =
         performance.now() +
         (rhythmPlayer.nextBeatTime - musicEngine.audio.currentTime()) * 1000;
-    rhythmTiming.lastBeat = -1;
-    rhythmTiming.errors = [];
-    clearRhythmTimingMark();
-    if (timingEnabled) {
-        document.getElementById('rhythm-timing-result').textContent = '';
+    rhythmMetronome.lastBeat = -1;
+    rhythmMetronome.errors = [];
+    clearRhythmMetronomeMark();
+    if (metronomeEnabled) {
+        document.getElementById('rhythm-metronome-result').textContent = '';
     }
-    document.getElementById('rhythm-timing-tap').disabled = !timingEnabled;
+    document.getElementById('rhythm-metronome-tap').disabled =
+        !metronomeEnabled;
 
     if (sheetEnabled) {
         playRhythmSheet(resumePosition);
     }
     scheduleRhythm();
-    if (timingEnabled) {
-        drawRhythmTiming();
-        document.getElementById('rhythm-timing-tap').focus();
-    } else if (metronomeEnabled) {
+    if (metronomeEnabled) {
         drawRhythmMetronome();
+        document.getElementById('rhythm-metronome-tap').focus();
     }
 
     rhythmPlayer.timer = window.setInterval(
@@ -5435,11 +5426,9 @@ function stopRhythm(preserveSheetPosition = false) {
     stopRhythmSheet(preserveSheetPosition);
     stopRhythmSheetSoundFont();
     musicEngine.audio.stopTransient();
-    cancelAnimationFrame(rhythmPlayer.frame);
-    rhythmPlayer.frame = null;
-    cancelAnimationFrame(rhythmTiming.frame);
-    rhythmTiming.frame = null;
-    document.getElementById('rhythm-timing-tap').disabled = true;
+    cancelAnimationFrame(rhythmMetronome.frame);
+    rhythmMetronome.frame = null;
+    document.getElementById('rhythm-metronome-tap').disabled = true;
     rhythmPlayer.playing = false;
     rhythmSheet.starting = false;
     updateScreenWakeLock();
@@ -5479,7 +5468,7 @@ function tapTempo() {
         intervals.reduce((total, interval) => total + interval, 0) /
         intervals.length;
 
-    const bpmInput = musicEngine.getControl('shared-bpm');
+    const bpmInput = musicEngine.getControl('shared-rhythm-bpm');
 
     const bpm = musicEngine.clamp(
         Math.round(60000 / averageInterval),
@@ -5536,7 +5525,7 @@ function initializeEvents() {
     document.addEventListener('dragover', preventFileNavigation, true);
     document.addEventListener('drop', preventFileNavigation, true);
 
-    for (const button of musicEngine.getModuleActions('midi', 'attach')) {
+    for (const button of musicEngine.getActions('midi-attach')) {
         button.addEventListener('click', () => {
             const fileInput = document.getElementById(
                 button.getAttribute('aria-controls')
@@ -5645,8 +5634,8 @@ function initializeEvents() {
         seek.addEventListener('input', seekMidiPlayer);
     }
     bindPlaybackTransport(
-        musicEngine.getModuleActions('midi', 'rewind'),
-        musicEngine.getModuleActions('midi', 'play'),
+        musicEngine.getActions('midi-rewind'),
+        musicEngine.getActions('midi-play'),
         () => midiPlayer.playing,
         stopMidi,
         playMidi,
@@ -5674,7 +5663,7 @@ function initializeEvents() {
     }
 
     for (const control of musicEngine.getControls([
-        'shared-time-signature',
+        'shared-rhythm-time-signature',
         'rhythm-sheet-bars',
         'rhythm-sheet-note-values',
         'rhythm-sheet-clef',
@@ -5692,7 +5681,7 @@ function initializeEvents() {
             }
         });
     }
-    for (const control of musicEngine.getControls('shared-bpm')) {
+    for (const control of musicEngine.getControls('shared-rhythm-bpm')) {
         control.addEventListener('change', restartRhythm);
     }
     const rhythmHold = document.getElementById('rhythm-sheet-hold');
@@ -5757,36 +5746,36 @@ function initializeEvents() {
             stopAllAudio();
         }
     });
-    const rhythmTimingTap = document.getElementById('rhythm-timing-tap');
-    rhythmTimingTap.addEventListener('pointerdown', (event) => {
+    const rhythmMetronomeTap = document.getElementById('rhythm-metronome-tap');
+    rhythmMetronomeTap.addEventListener('pointerdown', (event) => {
         if (event.button !== 0 || !event.isPrimary) {
             return;
         }
         event.preventDefault();
-        recordRhythmTimingTap();
+        recordRhythmMetronomeTap();
     });
-    rhythmTimingTap.addEventListener('click', (event) => {
+    rhythmMetronomeTap.addEventListener('click', (event) => {
         if (event.detail === 0) {
-            recordRhythmTimingTap();
+            recordRhythmMetronomeTap();
         }
     });
     document.addEventListener('keydown', (event) => {
         if (
             event.code !== 'Space' ||
-            !isRhythmTimingEnabled() ||
+            !isRhythmMetronomeEnabled() ||
             !rhythmPlayer.playing ||
             document.getElementById('rhythm-panel').hidden ||
             event.target.closest(
                 'input, select, textarea, [contenteditable="true"]'
             ) ||
             (event.target.closest('button, a') &&
-                event.target !== rhythmTimingTap)
+                event.target !== rhythmMetronomeTap)
         ) {
             return;
         }
         event.preventDefault();
         if (!event.repeat) {
-            recordRhythmTimingTap();
+            recordRhythmMetronomeTap();
         }
     });
     document.addEventListener('visibilitychange', () => {
@@ -5811,7 +5800,7 @@ function initializeEvents() {
             button.addEventListener('click', () => playRhythm());
         }
     }
-    for (const button of musicEngine.getModuleActions('rhythm', 'tempo-tap')) {
+    for (const button of musicEngine.getActions('rhythm-tempo-tap')) {
         button.addEventListener('click', tapTempo);
     }
 

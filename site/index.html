@@ -173,7 +173,7 @@
                         "@type": "WebPageElement",
                         "@id": "https://440lab.com/#rhythm",
                         "name": "Rhythm",
-                        "description": "Metronome, timing practice, and generated sheet-music exercises that score rhythm and microphone pitch across treble, bass, alto, and tenor clefs.",
+                        "description": "Interactive metronome practice and generated sheet-music exercises that score rhythm and microphone pitch across treble, bass, alto, and tenor clefs.",
                         "isPartOf": {
                             "@id": "https://440lab.com/#webpage"
                         }
@@ -298,7 +298,7 @@
                         ],
                         "inLanguage": "en",
                         "applicationCategory": "EducationalApplication",
-                        "applicationSubCategory": "Music tuner, metronome, MIDI playback and visualization, sheet-music reading, timing practice, absolute-pitch identification, pitch and interval training, chord ear training, and pitch-memory testing",
+                        "applicationSubCategory": "Music tuner, interactive metronome, MIDI playback and visualization, sheet-music reading, absolute-pitch identification, pitch and interval training, chord ear training, and pitch-memory testing",
                         "learningResourceType": "Interactive music training application",
                         "teaches": [
                             "Pitch matching",
@@ -463,7 +463,7 @@
                         "featureList": [
                             "Music tuner with adjustable A4 reference pitch and live pitch history",
                             "Reference-tone playback",
-                            "Rhythm: metronome, timing practice, and generated sheet music with four clefs, microphone pitch detection, and timing feedback",
+                            "Rhythm: interactive metronome practice and generated sheet music with four clefs, microphone pitch detection, and timing feedback",
                             "Included and local Standard MIDI File selection and drag-and-drop playback with bundled or dropped SF2 and SF3 SoundFonts, synchronized multi-track sheet music for fixed meter, seeking, track muting, and a color-coded scrolling piano roll with tempo and time signature changes",
                             "Flat and sharp pitch ear training",
                             "Match: chromatic note identification without a reference",
@@ -693,15 +693,6 @@
                                 data-nav-mode="metronome"
                             >
                                 Metronome
-                            </button>
-                        </li>
-                        <li>
-                            <button
-                                type="button"
-                                data-nav-section="rhythm"
-                                data-nav-mode="timing"
-                            >
-                                Timing practice
                             </button>
                         </li>
                         <li>
@@ -956,7 +947,7 @@
                                 <span class="tuner-scale-right">+50</span>
                             </div>
 
-                            <div class="tuner-track indicator-track">
+                            <div class="indicator-track">
                                 <span
                                     class="tuner-tick"
                                     style="left: 10%"
@@ -1120,9 +1111,8 @@
                 <h2 class="sr-only">Rhythm</h2>
                 <div data-mode-panel="metronome">
                     <h3 class="blurb">
-                        Keep a steady beat while you practice. Tap tempo sets
-                        the BPM by feel; the first click in each group is
-                        accented.
+                        Match the moving beat with Space or a tap. See how early
+                        or late you respond and how consistent your timing is.
                     </h3>
                     <div class="practice">
                         <div class="practice-buttons">
@@ -1130,7 +1120,7 @@
                                 class="icon-button"
                                 data-action="rhythm-metronome-play"
                                 type="button"
-                                aria-label="Play rhythm"
+                                aria-label="Start metronome"
                                 title="Play"
                             >
                                 <span aria-hidden="true">▶</span>
@@ -1140,7 +1130,7 @@
                                 class="icon-button"
                                 data-action="global-stop"
                                 type="button"
-                                aria-label="Stop rhythm"
+                                aria-label="Stop metronome"
                                 title="Stop"
                             >
                                 <span aria-hidden="true">■</span>
@@ -1148,16 +1138,45 @@
                         </div>
                         <div class="practice-content-column-2">
                             <div
-                                class="rhythm-beat-track indicator-track"
-                                aria-hidden="true"
+                                id="rhythm-metronome-feedback"
+                                class="practice-result"
                             >
-                                <span class="rhythm-beat-target"></span>
-                                <span
-                                    id="rhythm-metronome-dot"
-                                    class="rhythm-beat-dot"
-                                ></span>
+                                <div class="indicator-track" aria-hidden="true">
+                                    <span class="rhythm-beat-target"></span>
+                                    <span
+                                        id="rhythm-metronome-dot"
+                                        class="rhythm-beat-dot"
+                                    ></span>
+                                    <span
+                                        id="rhythm-metronome-mark"
+                                        class="rhythm-metronome-mark"
+                                        hidden
+                                    ></span>
+                                </div>
+                            </div>
+                            <div class="rhythm-beat-labels" aria-hidden="true">
+                                <span>- Early</span>
+                                <span>On beat</span>
+                                <span>Late +</span>
                             </div>
                         </div>
+                        <div
+                            class="practice-responses practice-content-column-2"
+                        >
+                            <button
+                                id="rhythm-metronome-tap"
+                                class="rhythm-metronome-tap"
+                                type="button"
+                                disabled
+                            >
+                                Press
+                            </button>
+                        </div>
+                        <p
+                            id="rhythm-metronome-result"
+                            class="practice-result rhythm-metronome-result"
+                            role="status"
+                        ></p>
                     </div>
                     <div class="settings field-grid">
                         <h3 class="settings-heading">Settings</h3>
@@ -1175,7 +1194,7 @@
                             <div class="control-row control-group">
                                 <input
                                     id="rhythm-metronome-bpm"
-                                    data-control="shared-bpm"
+                                    data-control="shared-rhythm-bpm"
                                     type="number"
                                     min="30"
                                     max="240"
@@ -1183,7 +1202,7 @@
                                     value="100"
                                 />
                                 <button
-                                    data-action="rhythm-metronome-tempo-tap"
+                                    data-action="rhythm-tempo-tap"
                                     type="button"
                                     title="Tap tempo"
                                     aria-label="Tap tempo"
@@ -1207,151 +1226,7 @@
                                 <select
                                     id="rhythm-metronome-time-signature"
                                     class="rhythm-time-signature"
-                                    data-control="shared-time-signature"
-                                >
-                                    <option value="2/4">2/4 - 𝅘𝅥</option>
-                                    <option value="3/4">3/4 - 𝅘𝅥</option>
-                                    <option value="4/4" selected>
-                                        4/4 - 𝄴 (common)
-                                    </option>
-                                    <option value="2/2">
-                                        2/2 - 𝄵 (cut time)
-                                    </option>
-                                    <option value="3/8">3/8 - 𝅘𝅥𝅮</option>
-                                    <option value="6/8">6/8 - 𝅘𝅥.</option>
-                                    <option value="9/8">9/8 - 𝅘𝅥.</option>
-                                    <option value="12/8">12/8 - 𝅘𝅥.</option>
-                                    <option value="5/4">5/4 - 𝅘𝅥</option>
-                                    <option value="7/8">7/8 - 𝅘𝅥𝅮</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div data-mode-panel="timing" hidden>
-                    <h3 class="blurb">
-                        Match the moving beat with Space or a tap. See how early
-                        or late you respond and how consistent your timing is.
-                    </h3>
-                    <div class="practice">
-                        <div class="practice-buttons">
-                            <button
-                                class="icon-button"
-                                data-action="rhythm-timing-play"
-                                type="button"
-                                aria-label="Play rhythm"
-                                title="Play"
-                            >
-                                <span aria-hidden="true">▶</span>
-                            </button>
-
-                            <button
-                                class="icon-button"
-                                data-action="global-stop"
-                                type="button"
-                                aria-label="Stop rhythm"
-                                title="Stop"
-                            >
-                                <span aria-hidden="true">■</span>
-                            </button>
-                        </div>
-                        <div
-                            id="rhythm-timing-practice"
-                            class="practice-content-column-2"
-                        >
-                            <div
-                                id="rhythm-timing-feedback"
-                                class="practice-result"
-                            >
-                                <div
-                                    class="rhythm-beat-track indicator-track"
-                                    aria-hidden="true"
-                                >
-                                    <span class="rhythm-beat-target"></span>
-                                    <span
-                                        id="rhythm-timing-dot"
-                                        class="rhythm-beat-dot"
-                                    ></span>
-                                    <span
-                                        id="rhythm-timing-mark"
-                                        class="rhythm-timing-mark"
-                                        hidden
-                                    ></span>
-                                </div>
-                            </div>
-                            <div class="rhythm-beat-labels" aria-hidden="true">
-                                <span>- Early</span>
-                                <span>On beat</span>
-                                <span>Late +</span>
-                            </div>
-                        </div>
-                        <div
-                            class="practice-responses practice-content-column-2"
-                        >
-                            <button
-                                id="rhythm-timing-tap"
-                                class="rhythm-timing-tap"
-                                type="button"
-                                disabled
-                            >
-                                Press
-                            </button>
-                        </div>
-                        <p
-                            id="rhythm-timing-result"
-                            class="practice-result rhythm-timing-result"
-                            role="status"
-                        ></p>
-                    </div>
-                    <div class="settings field-grid">
-                        <h3 class="settings-heading">Settings</h3>
-                        <div class="field">
-                            <label for="rhythm-timing-bpm">
-                                BPM
-                                <span
-                                    class="info-tip"
-                                    tabindex="0"
-                                    aria-label="Beats per minute. Higher numbers are faster. 60 BPM is one beat per second."
-                                >
-                                    ⓘ
-                                </span>
-                            </label>
-                            <div class="control-row control-group">
-                                <input
-                                    id="rhythm-timing-bpm"
-                                    data-control="shared-bpm"
-                                    type="number"
-                                    min="30"
-                                    max="240"
-                                    step="1"
-                                    value="100"
-                                />
-                                <button
-                                    data-action="rhythm-timing-tempo-tap"
-                                    type="button"
-                                    title="Tap tempo"
-                                    aria-label="Tap tempo"
-                                >
-                                    Tap
-                                </button>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label for="rhythm-timing-time-signature">
-                                Time signature
-                                <span
-                                    class="info-tip"
-                                    tabindex="0"
-                                    aria-label="How beats are grouped. The first beat is accented. Compound meters such as 6/8 are grouped into sets of three."
-                                >
-                                    ⓘ
-                                </span>
-                            </label>
-                            <div class="control-row">
-                                <select
-                                    id="rhythm-timing-time-signature"
-                                    class="rhythm-time-signature"
-                                    data-control="shared-time-signature"
+                                    data-control="shared-rhythm-time-signature"
                                 >
                                     <option value="2/4">2/4 - 𝅘𝅥</option>
                                     <option value="3/4">3/4 - 𝅘𝅥</option>
@@ -1373,7 +1248,7 @@
                     </div>
 
                     <details class="practice-guide">
-                        <summary>How timing practice works</summary>
+                        <summary>How metronome practice works</summary>
                         <p>
                             Press Play, then press Space or tap as the dot
                             crosses the center line. Match every click,
@@ -1514,7 +1389,7 @@
                             <div class="control-row control-group">
                                 <input
                                     id="rhythm-sheet-bpm"
-                                    data-control="shared-bpm"
+                                    data-control="shared-rhythm-bpm"
                                     type="number"
                                     min="30"
                                     max="240"
@@ -1522,7 +1397,7 @@
                                     value="100"
                                 />
                                 <button
-                                    data-action="rhythm-sheet-tempo-tap"
+                                    data-action="rhythm-tempo-tap"
                                     type="button"
                                     title="Tap tempo"
                                     aria-label="Tap tempo"
@@ -1549,7 +1424,7 @@
                                 <select
                                     id="rhythm-sheet-time-signature"
                                     class="rhythm-time-signature"
-                                    data-control="shared-time-signature"
+                                    data-control="shared-rhythm-time-signature"
                                 >
                                     <option value="2/4">2/4 - 𝅘𝅥</option>
                                     <option value="3/4">3/4 - 𝅘𝅥</option>
@@ -1722,7 +1597,7 @@
                                 <div class="control-row control-group">
                                     <button
                                         class="icon-button"
-                                        data-action="midi-sheet-attach"
+                                        data-action="midi-attach"
                                         type="button"
                                         aria-controls="midi-sheet-file"
                                         aria-label="Choose local MIDI file"
@@ -1777,7 +1652,7 @@
                         <div class="practice-buttons">
                             <button
                                 class="icon-button"
-                                data-action="midi-sheet-rewind"
+                                data-action="midi-rewind"
                                 type="button"
                                 aria-label="Rewind"
                                 title="Rewind"
@@ -1788,7 +1663,7 @@
 
                             <button
                                 class="icon-button"
-                                data-action="midi-sheet-play"
+                                data-action="midi-play"
                                 type="button"
                                 aria-label="Play"
                                 title="Play"
@@ -1844,7 +1719,7 @@
                                 <div class="control-row control-group">
                                     <button
                                         class="icon-button"
-                                        data-action="midi-piano-roll-attach"
+                                        data-action="midi-attach"
                                         type="button"
                                         aria-controls="midi-piano-roll-file"
                                         aria-label="Choose local MIDI file"
@@ -1899,7 +1774,7 @@
                         <div class="practice-buttons">
                             <button
                                 class="icon-button"
-                                data-action="midi-piano-roll-rewind"
+                                data-action="midi-rewind"
                                 type="button"
                                 aria-label="Rewind"
                                 title="Rewind"
@@ -1910,7 +1785,7 @@
 
                             <button
                                 class="icon-button"
-                                data-action="midi-piano-roll-play"
+                                data-action="midi-play"
                                 type="button"
                                 aria-label="Play"
                                 title="Play"
@@ -3554,13 +3429,12 @@
 
                     <h4>Metronome and rhythm practice</h4>
                     <p>
-                        Use the metronome for a steady beat while practicing,
-                        choose from common simple, compound, and odd meters, or
-                        tap a tempo to set the BPM by feel. Timing practice
-                        measures early and late taps. Sheet-music practice
-                        generates pitched phrases in four clefs and scores the
-                        timing and intonation of notes performed through a
-                        microphone.
+                        Use the metronome to measure early and late taps while
+                        practicing, choose from common simple, compound, and odd
+                        meters, or tap a tempo to set the BPM by feel.
+                        Sheet-music practice generates pitched phrases in four
+                        clefs and scores the timing and intonation of notes
+                        performed through a microphone.
                     </p>
 
                     <h4>MIDI playback and visualization</h4>

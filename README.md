@@ -22,8 +22,12 @@ Live demo: [https://440lab.com/](https://440lab.com/)
     - Shows pitch deviation in cents on a tuning meter
     - Uses the adjustable A4 reference
 - Global output volume control
-- Metronome with adjustable BPM and time signature
-- Tap tempo
+- Interactive metronome practice with adjustable BPM and time signature
+    - Set the BPM by value or tap tempo
+    - Match the moving beat with Space or a tap and review early/late timing feedback
+- Generated sheet-music rhythm practice
+    - Practice in treble, bass, alto, or tenor clef using microphone input or press-and-hold responses
+    - Score note timing and microphone pitch against the generated phrase
 - Play Standard MIDI files with a selectable SoundFont
     - Choose an included file, attach a local file, or drag and drop it anywhere in the active MIDI view
     - Drop an SF2 or SF3 SoundFont into a MIDI or rhythm sheet view to use it for the current session
@@ -64,6 +68,8 @@ For an nginx deployment with HTTPS, run `yarn deploy <host>` or follow the deplo
 Use the global A4 reference to change the tuning standard used throughout the application. The global volume control adjusts generated audio output.
 
 The Tuning tab can play a selected reference note, detect live pitches through the microphone, or do both at the same time. Pitch Memory microphone responses have the same permission and secure-context requirements as the tuner.
+
+The Rhythm tab includes an interactive metronome that measures tap timing and generated sheet-music practice that scores note timing and pitch. Metronome tempo can be entered directly or set by tapping. Sheet-music phrases can be performed through the microphone or with Space and pointer input.
 
 The MIDI tab includes a selection of MIDI files and parses local files in the browser. It can display them as multi-track sheet music or as a scrolling piano roll. The piano roll follows tempo and time-signature changes; sheet music currently supports files with a single meter. Dropped SF2 and SF3 SoundFonts can also be used for the current session, including when the site is opened through `file://`. MIDI and SoundFont files are not uploaded.
 

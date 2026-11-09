@@ -192,7 +192,7 @@
 }
 
 .rhythm-beat-target,
-.rhythm-timing-mark {
+.rhythm-metronome-mark {
     position: absolute;
 
     top: 0;
@@ -204,7 +204,7 @@
     background: var(--target);
 }
 
-.rhythm-timing-mark {
+.rhythm-metronome-mark {
     z-index: 1;
 
     top: auto;
@@ -215,7 +215,7 @@
     background: currentcolor;
 }
 
-.rhythm-timing-mark::before {
+.rhythm-metronome-mark::before {
     content: attr(data-label);
 
     position: absolute;
@@ -268,12 +268,12 @@
     text-align: right;
 }
 
-.rhythm-timing-result {
+.rhythm-metronome-result {
     display: grid;
     row-gap: 2px;
 }
 
-.rhythm-timing-tap,
+.rhythm-metronome-tap,
 .rhythm-sheet-hold {
     width: 100%;
 

@@ -887,14 +887,7 @@ function renderRhythmSheetPosition(position) {
     });
 }
 
-function renderProgressDot(id, position) {
-    document.getElementById(id).style.left = `${position * 100}%`;
-}
-
 function renderRhythmMetronome(position) {
-    renderProgressDot('rhythm-metronome-dot', position);
-}
-
-function renderRhythmTiming(position) {
-    renderProgressDot('rhythm-timing-dot', position);
+    document.getElementById('rhythm-metronome-dot').style.left =
+        `${position * 100}%`;
 }
