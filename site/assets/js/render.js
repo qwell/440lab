@@ -3,8 +3,8 @@
 // Tuning
 
 function renderTunerTarget(noteName, frequency) {
-    musicEngine.getOutput('tuner-closest').textContent = noteName;
-    musicEngine.getOutput('tuner-target').textContent =
+    musicEngine.getOutput('tuner-tuning-closest').textContent = noteName;
+    musicEngine.getOutput('tuner-tuning-target').textContent =
         `${frequency.toFixed(3)} Hz`;
 }
 
@@ -16,7 +16,7 @@ function renderTunerString() {
 }
 
 function renderTunerHistory(time = performance.now()) {
-    const canvas = musicEngine.getOutput('tuner-history');
+    const canvas = musicEngine.getOutput('tuner-tuning-history');
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
 
@@ -146,15 +146,15 @@ function renderTunerDetection({ cents, frequency, nearest }) {
         tunerTargetMidi === null
             ? ''
             : `${nearestNoteFromFrequency(frequency).noteName} · `;
-    musicEngine.getOutput('tuner-detected').textContent =
+    musicEngine.getOutput('tuner-tuning-detected').textContent =
         `${detectedNote}${frequency.toFixed(3)} Hz detected`;
 
-    musicEngine.getOutput('tuner-cents').textContent =
+    musicEngine.getOutput('tuner-tuning-cents').textContent =
         `${musicEngine.signed(cents, 1)} cents`;
 
     const inTune = Math.abs(cents) <= 3;
 
-    const needle = musicEngine.getOutput('tuner-needle');
+    const needle = musicEngine.getOutput('tuner-tuning-needle');
     needle.style.left = `${percent}%`;
     needle.classList.add('is-visible');
     needle.classList.toggle('is-in-tune', inTune);

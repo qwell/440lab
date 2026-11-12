@@ -1,35 +1,35 @@
 /* Tuner */
 
-.tuner-strings {
+.tuner-tuning-strings {
     display: grid;
     grid-auto-flow: column;
     grid-auto-columns: minmax(0, 1fr);
     gap: var(--button-gap);
 }
 
-.tuner-strings button {
+.tuner-tuning-strings button {
     min-width: 0;
     padding-inline: 0;
 }
 
-.tuner-strings button.is-playing {
+.tuner-tuning-strings button.is-playing {
     border-color: var(--target);
     color: var(--target);
 }
 
-.tuner-header,
-.tuner-footer {
+.tuner-tuning-header,
+.tuner-tuning-footer {
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: left;
 }
 
-.tuner-header {
+.tuner-tuning-header {
     min-height: 58px;
 }
 
-.tuner-note {
+.tuner-tuning-note {
     font-size: 32px;
     font-weight: 700;
     line-height: 1;
@@ -37,8 +37,8 @@
     font-variant-numeric: tabular-nums;
 }
 
-.tuner-target-frequency,
-.tuner-detected-frequency {
+.tuner-tuning-target-frequency,
+.tuner-tuning-detected-frequency {
     margin-top: 6px;
 
     color: var(--muted);
@@ -47,12 +47,12 @@
     line-height: 1.2;
 }
 
-.tuner-gauge {
+.tuner-tuning-gauge {
     padding-top: 4px;
     padding-bottom: 8px;
 }
 
-.tuner-scale {
+.tuner-tuning-scale {
     position: relative;
 
     height: 16px;
@@ -67,23 +67,23 @@
     font-variant-numeric: tabular-nums;
 }
 
-.tuner-scale-left,
-.tuner-scale-center,
-.tuner-scale-right {
+.tuner-tuning-scale-left,
+.tuner-tuning-scale-center,
+.tuner-tuning-scale-right {
     position: absolute;
 }
 
-.tuner-scale-left {
+.tuner-tuning-scale-left {
     left: 0;
 }
 
-.tuner-scale-center {
+.tuner-tuning-scale-center {
     left: 50%;
 
     transform: translateX(-50%);
 }
 
-.tuner-scale-right {
+.tuner-tuning-scale-right {
     right: 0;
 }
 
@@ -111,7 +111,7 @@
  * 80% = +30
  * 90% = +40
  */
-.tuner-tick {
+.tuner-tuning-tick {
     position: absolute;
 
     top: 8px;
@@ -124,7 +124,7 @@
     transform: translateX(-50%);
 }
 
-.tuner-tick-center {
+.tuner-tuning-tick-center {
     top: 4px;
     bottom: 4px;
 
@@ -133,7 +133,7 @@
     background: #888;
 }
 
-.tuner-needle {
+.tuner-tuning-needle {
     position: absolute;
     z-index: 2;
 
@@ -155,19 +155,19 @@
         background-color 120ms linear;
 }
 
-.tuner-needle.is-visible {
+.tuner-tuning-needle.is-visible {
     opacity: 1;
 }
 
-.tuner-needle.is-in-tune {
+.tuner-tuning-needle.is-in-tune {
     background-color: var(--correct);
 }
 
-.tuner-footer {
+.tuner-tuning-footer {
     min-height: 40px;
 }
 
-.tuner-cents {
+.tuner-tuning-cents {
     font-size: 21px;
     font-weight: 600;
     line-height: 1;
@@ -175,7 +175,7 @@
     font-variant-numeric: tabular-nums;
 }
 
-.tuner-history {
+.tuner-tuning-history {
     height: 144px;
 
     display: block;
@@ -1377,11 +1377,11 @@ main.is-drag-over::after {
         --midi-piano-roll-keyboard-width: 4.75rem;
     }
 
-    .tuner-note {
+    .tuner-tuning-note {
         font-size: 28px;
     }
 
-    .tuner-cents {
+    .tuner-tuning-cents {
         font-size: 19px;
     }
 }

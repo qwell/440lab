@@ -1,16 +1,7 @@
 'use strict';
 const PREFERENCES_KEY = '440Lab.preferences.v1';
-
-const STATS_KEYS = {
-    pitch: '440Lab.pitchStats.v1',
-    match: '440Lab.matchStats.v1',
-    interval: '440Lab.intervalStats.v1',
-    chord: '440Lab.chordStats.v1',
-};
-
-const TRIAL_KEYS = {
-    pitchMemory: '440Lab.pitchMemoryTrial.v2',
-};
+const STATS_KEY = '440Lab.stats.v1';
+const STATE_KEY = '440Lab.state.v1';
 
 const TRIAL_ADVANCE_DELAY = 3000;
 function getReferenceFrequency() {
@@ -128,21 +119,7 @@ function getModePanels(name) {
 const storage = {
     load(key, fallback) {
         try {
-            let serialized = localStorage.getItem(key);
-
-            if (serialized === null) {
-                const suffix = key.slice(key.indexOf('.'));
-                const previousKey = Object.keys(localStorage).find(
-                    (candidate) =>
-                        candidate !== key && candidate.endsWith(suffix)
-                );
-
-                if (previousKey) {
-                    serialized = localStorage.getItem(previousKey);
-                    localStorage.setItem(key, serialized);
-                }
-            }
-
+            const serialized = localStorage.getItem(key);
             const value = JSON.parse(serialized || 'null');
 
             return value === null ? fallback : value;
@@ -161,13 +138,7 @@ const storage = {
 
     remove(key) {
         try {
-            const suffix = key.slice(key.indexOf('.'));
-
-            for (const candidate of Object.keys(localStorage)) {
-                if (candidate === key || candidate.endsWith(suffix)) {
-                    localStorage.removeItem(candidate);
-                }
-            }
+            localStorage.removeItem(key);
         } catch {
             // Storage is optional.
         }
@@ -205,26 +176,176 @@ function restorePreferences() {
     }
 }
 
-const stats = {};
+function defaultStats(module = null, mode = null, type = null) {
+    const base = {
+        streak: 0,
+        trials: 0,
+        correct: 0,
+    };
+    const path = [module, mode, type].filter(Boolean).join('/');
 
-function loadStats(name) {
-    return storage.load(STATS_KEYS[name], null);
+    switch (path) {
+        case '':
+            return {
+                chord: defaultStats('chord'),
+                interval: defaultStats('interval'),
+                match: defaultStats('match'),
+                pitch: defaultStats('pitch'),
+                rhythm: defaultStats('rhythm'),
+            };
+
+        case 'chord':
+            return { quality: defaultStats('chord', 'quality') };
+        case 'interval':
+            return {
+                recognition: defaultStats('interval', 'recognition'),
+                construction: defaultStats('interval', 'construction'),
+            };
+        case 'match':
+            return {
+                identification: defaultStats('match', 'identification'),
+                target: defaultStats('match', 'target'),
+            };
+        case 'pitch':
+            return {
+                placement: defaultStats('pitch', 'placement'),
+                memory: defaultStats('pitch', 'memory'),
+            };
+        case 'rhythm':
+            return { metronome: defaultStats('rhythm', 'metronome') };
+
+        case 'pitch/memory':
+            return {
+                novel: defaultStats('pitch', 'memory', 'novel'),
+                interference: defaultStats('pitch', 'memory', 'interference'),
+            };
+
+        case 'chord/quality':
+        case 'interval/construction':
+        case 'interval/recognition':
+        case 'match/identification':
+            return { ...base, bestStreak: null };
+
+        case 'pitch/memory/interference':
+        case 'pitch/memory/novel':
+        case 'pitch/placement':
+        case 'rhythm/metronome':
+            return { ...base, bestError: null, errorTotal: 0 };
+
+        case 'match/target':
+            return { ...base, bestStreak: null, errorTotal: 0 };
+
+        default:
+            throw new TypeError(`Invalid stats path: ${path}`);
+    }
 }
 
-function saveStats(name) {
-    const moduleStats = stats[name];
-
-    for (const typeStats of Object.values(moduleStats)) {
-        if (Number.isFinite(typeStats.errorTotal)) {
-            typeStats.errorTotal = Number(typeStats.errorTotal.toFixed(3));
-        }
-
-        if (Number.isFinite(typeStats.best)) {
-            typeStats.best = Number(typeStats.best.toFixed(3));
-        }
+function statsWithDefaults(defaults, stored) {
+    if (defaults === null || typeof defaults === 'number') {
+        return Number.isFinite(stored) ? stored : defaults;
     }
 
-    storage.save(STATS_KEYS[name], moduleStats);
+    return Object.fromEntries(
+        Object.entries(defaults).map(([key, value]) => [
+            key,
+            statsWithDefaults(value, stored?.[key]),
+        ])
+    );
+}
+
+function loadStats() {
+    return statsWithDefaults(defaultStats(), storage.load(STATS_KEY, {}));
+}
+
+const stats = loadStats();
+
+function saveStats() {
+    storage.save(STATS_KEY, stats);
+}
+
+function resetStats(module, mode, type = null) {
+    const parent = type === null ? stats[module] : stats[module][mode];
+    const key = type ?? mode;
+
+    parent[key] = defaultStats(module, mode, type);
+    saveStats();
+}
+
+function updateStats(stats, { correct, error = null, bestError = error }) {
+    stats.trials += 1;
+    stats.correct += correct ? 1 : 0;
+    stats.streak = correct ? stats.streak + 1 : 0;
+
+    if (error !== null) {
+        stats.errorTotal += error;
+    }
+
+    if ('bestError' in stats) {
+        if (
+            bestError !== null &&
+            (stats.bestError === null || bestError < stats.bestError)
+        ) {
+            stats.bestError = bestError;
+        }
+    } else if (
+        correct &&
+        (stats.bestStreak === null || stats.streak > stats.bestStreak)
+    ) {
+        stats.bestStreak = stats.streak;
+    }
+
+    saveStats();
+}
+
+function loadState() {
+    const stored = storage.load(STATE_KEY, {});
+
+    if (!stored || typeof stored !== 'object' || Array.isArray(stored)) {
+        return {};
+    }
+
+    return Object.fromEntries(
+        Object.entries(stored).filter(
+            ([, moduleState]) =>
+                moduleState &&
+                typeof moduleState === 'object' &&
+                !Array.isArray(moduleState)
+        )
+    );
+}
+
+const state = loadState();
+
+function getState(module) {
+    const moduleState = state[module];
+
+    if (
+        !moduleState ||
+        typeof moduleState !== 'object' ||
+        Array.isArray(moduleState)
+    ) {
+        state[module] = {};
+    }
+
+    return state[module];
+}
+
+function saveState() {
+    storage.save(STATE_KEY, state);
+}
+
+function removeState(module, name) {
+    delete state[module]?.[name];
+
+    if (
+        Object.values(state).every(
+            (moduleState) => Object.keys(moduleState).length === 0
+        )
+    ) {
+        storage.remove(STATE_KEY);
+    } else {
+        saveState();
+    }
 }
 
 function createAutoAdvance(elements, advance) {
@@ -1019,7 +1140,6 @@ const musicEngine = Object.freeze({
     ...musicNotation,
     MICROPHONE_MESSAGES,
     MICROPHONE_STATES,
-    TRIAL_KEYS,
     answerStateClass,
     audio,
     addMicrophoneStateListener,
@@ -1037,22 +1157,25 @@ const musicEngine = Object.freeze({
     getNoteControl,
     getOutput,
     getOutputs,
+    getState,
     getWaveform,
-    loadStats,
     midiFromFrequency,
     noteNameFromMidi,
     pitchClassFromMidi,
     pitchClassName,
+    removeState,
+    resetStats,
     renderPracticeResult,
     restorePreferences,
     savePreferences,
-    saveStats,
+    saveState,
     setAnswerOptionState,
     setMicrophoneState,
+    state,
     stats,
-    storage,
     syncSharedControl,
     toggleVolume,
+    updateStats,
     updateVolume,
     get microphoneFailureMessage() {
         return microphoneFailureMessage;

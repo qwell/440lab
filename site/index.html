@@ -668,7 +668,7 @@
                         class="nav-item"
                         data-section="tuner"
                         type="button"
-                        aria-controls="tuner-panel"
+                        aria-controls="tuner-tuning-panel"
                     >
                         Tuning
                     </button>
@@ -838,7 +838,7 @@
                         class="nav-item"
                         data-section="chord"
                         type="button"
-                        aria-controls="chord-panel"
+                        aria-controls="chord-quality-panel"
                     >
                         Chords
                     </button>
@@ -861,237 +861,252 @@
         <main class="page-width">
             <!-- Tuning -->
             <section
-                id="tuner-panel"
+                id="tuner-tuning-panel"
                 class="section-panel"
                 data-panel="tuner"
                 hidden
             >
                 <h2 class="sr-only">Tuning</h2>
-                <h3 class="blurb">
-                    Play a known note or string as a reference, or use the
-                    microphone to identify a live pitch and compare it with the
-                    selected string or nearest note. The history graph shows the
-                    detected pitch over the last eight seconds.
-                </h3>
+                <div data-mode-panel="tuning">
+                    <h3 class="blurb">
+                        Play a known note or string as a reference, or use the
+                        microphone to identify a live pitch and compare it with
+                        the selected string or nearest note. The history graph
+                        shows the detected pitch over the last eight seconds.
+                    </h3>
 
-                <div class="practice">
-                    <div class="practice-buttons">
-                        <button
-                            class="icon-button"
-                            data-action="tuner-play"
-                            type="button"
-                            aria-label="Play reference tone"
-                            title="Play"
-                        >
-                            <span aria-hidden="true">▶</span>
-                        </button>
-
-                        <button
-                            class="icon-button"
-                            data-action="tuner-stop"
-                            type="button"
-                            aria-label="Stop reference tone"
-                            title="Stop"
-                        >
-                            <span aria-hidden="true">■</span>
-                        </button>
-
-                        <button
-                            class="icon-button microphone-button"
-                            data-action="global-microphone-toggle"
-                            type="button"
-                            aria-label="Enable microphone"
-                            aria-pressed="false"
-                            title="Enable microphone"
-                        >
-                            <svg
-                                class="microphone-icon microphone-icon-on"
-                                aria-hidden="true"
+                    <div class="practice">
+                        <div class="practice-buttons">
+                            <button
+                                class="icon-button"
+                                data-action="tuner-tuning-play"
+                                type="button"
+                                aria-label="Play reference tone"
+                                title="Play"
                             >
-                                <use href="#microphone-on-icon"></use>
-                            </svg>
+                                <span aria-hidden="true">▶</span>
+                            </button>
 
-                            <svg
-                                class="microphone-icon microphone-icon-off"
-                                aria-hidden="true"
+                            <button
+                                class="icon-button"
+                                data-action="tuner-tuning-stop"
+                                type="button"
+                                aria-label="Stop reference tone"
+                                title="Stop"
                             >
-                                <use href="#microphone-off-icon"></use>
-                            </svg>
-                        </button>
-                    </div>
-                    <div class="practice-content-column-4">
-                        <div class="tuner-header">
-                            <strong
-                                class="tuner-note"
-                                data-output="tuner-closest"
-                            >
-                                --
-                            </strong>
+                                <span aria-hidden="true">■</span>
+                            </button>
 
-                            <span
-                                class="tuner-target-frequency"
-                                data-output="tuner-target"
+                            <button
+                                class="icon-button microphone-button"
+                                data-action="global-microphone-toggle"
+                                type="button"
+                                aria-label="Enable microphone"
+                                aria-pressed="false"
+                                title="Enable microphone"
                             >
-                                -- Hz
-                            </span>
+                                <svg
+                                    class="microphone-icon microphone-icon-on"
+                                    aria-hidden="true"
+                                >
+                                    <use href="#microphone-on-icon"></use>
+                                </svg>
+
+                                <svg
+                                    class="microphone-icon microphone-icon-off"
+                                    aria-hidden="true"
+                                >
+                                    <use href="#microphone-off-icon"></use>
+                                </svg>
+                            </button>
                         </div>
+                        <div class="practice-content-column-4">
+                            <div class="tuner-tuning-header">
+                                <strong
+                                    class="tuner-tuning-note"
+                                    data-output="tuner-tuning-closest"
+                                >
+                                    --
+                                </strong>
 
-                        <div class="tuner-gauge">
-                            <div class="tuner-scale" aria-hidden="true">
-                                <span class="tuner-scale-left">-50</span>
-                                <span class="tuner-scale-center">0 cents</span>
-                                <span class="tuner-scale-right">+50</span>
+                                <span
+                                    class="tuner-tuning-target-frequency"
+                                    data-output="tuner-tuning-target"
+                                >
+                                    -- Hz
+                                </span>
                             </div>
 
-                            <div class="indicator-track">
-                                <span
-                                    class="tuner-tick"
-                                    style="left: 10%"
-                                ></span>
-                                <span
-                                    class="tuner-tick"
-                                    style="left: 20%"
-                                ></span>
-                                <span
-                                    class="tuner-tick"
-                                    style="left: 30%"
-                                ></span>
-                                <span
-                                    class="tuner-tick"
-                                    style="left: 40%"
-                                ></span>
+                            <div class="tuner-tuning-gauge">
+                                <div
+                                    class="tuner-tuning-scale"
+                                    aria-hidden="true"
+                                >
+                                    <span class="tuner-tuning-scale-left"
+                                        >-50</span
+                                    >
+                                    <span class="tuner-tuning-scale-center"
+                                        >0 cents</span
+                                    >
+                                    <span class="tuner-tuning-scale-right"
+                                        >+50</span
+                                    >
+                                </div>
 
-                                <span
-                                    class="tuner-tick tuner-tick-center"
-                                    style="left: 50%"
-                                ></span>
+                                <div class="indicator-track">
+                                    <span
+                                        class="tuner-tuning-tick"
+                                        style="left: 10%"
+                                    ></span>
+                                    <span
+                                        class="tuner-tuning-tick"
+                                        style="left: 20%"
+                                    ></span>
+                                    <span
+                                        class="tuner-tuning-tick"
+                                        style="left: 30%"
+                                    ></span>
+                                    <span
+                                        class="tuner-tuning-tick"
+                                        style="left: 40%"
+                                    ></span>
 
-                                <span
-                                    class="tuner-tick"
-                                    style="left: 60%"
-                                ></span>
-                                <span
-                                    class="tuner-tick"
-                                    style="left: 70%"
-                                ></span>
-                                <span
-                                    class="tuner-tick"
-                                    style="left: 80%"
-                                ></span>
-                                <span
-                                    class="tuner-tick"
-                                    style="left: 90%"
-                                ></span>
+                                    <span
+                                        class="tuner-tuning-tick tuner-tuning-tick-center"
+                                        style="left: 50%"
+                                    ></span>
 
-                                <span
-                                    class="tuner-needle"
-                                    data-output="tuner-needle"
-                                ></span>
+                                    <span
+                                        class="tuner-tuning-tick"
+                                        style="left: 60%"
+                                    ></span>
+                                    <span
+                                        class="tuner-tuning-tick"
+                                        style="left: 70%"
+                                    ></span>
+                                    <span
+                                        class="tuner-tuning-tick"
+                                        style="left: 80%"
+                                    ></span>
+                                    <span
+                                        class="tuner-tuning-tick"
+                                        style="left: 90%"
+                                    ></span>
+
+                                    <span
+                                        class="tuner-tuning-needle"
+                                        data-output="tuner-tuning-needle"
+                                    ></span>
+                                </div>
                             </div>
-                        </div>
 
-                        <div class="tuner-footer">
-                            <strong
-                                class="tuner-cents"
-                                data-output="tuner-cents"
-                            >
-                                --
-                            </strong>
+                            <div class="tuner-tuning-footer">
+                                <strong
+                                    class="tuner-tuning-cents"
+                                    data-output="tuner-tuning-cents"
+                                >
+                                    --
+                                </strong>
 
-                            <span
-                                class="tuner-detected-frequency"
-                                data-output="tuner-detected"
+                                <span
+                                    class="tuner-tuning-detected-frequency"
+                                    data-output="tuner-tuning-detected"
+                                >
+                                    -- Hz detected
+                                </span>
+                            </div>
+
+                            <div
+                                class="sr-only"
+                                data-output="tuner-tuning-status"
+                                aria-live="polite"
                             >
-                                -- Hz detected
-                            </span>
+                                Microphone off
+                            </div>
                         </div>
 
                         <div
-                            class="sr-only"
-                            data-output="tuner-status"
-                            aria-live="polite"
-                        >
-                            Microphone off
-                        </div>
+                            class="practice-content-column-3 tuner-tuning-strings"
+                            data-output="tuner-tuning-strings"
+                            role="group"
+                            aria-label="String reference tones, highest string number first. Press a note to start or stop."
+                            hidden
+                        ></div>
+
+                        <canvas
+                            class="practice-content-column-4 tuner-tuning-history"
+                            data-output="tuner-tuning-history"
+                            role="img"
+                        ></canvas>
                     </div>
+                    <div class="settings field-grid">
+                        <h3 class="settings-heading">Settings</h3>
+                        <div class="field">
+                            <label for="tuner-tuning-note">
+                                Note (<span
+                                    data-output="tuner-tuning-note-frequency"
+                                ></span
+                                >)
+                            </label>
 
-                    <div
-                        class="practice-content-column-3 tuner-strings"
-                        data-output="tuner-strings"
-                        role="group"
-                        aria-label="String reference tones, highest string number first. Press a note to start or stop."
-                        hidden
-                    ></div>
-
-                    <canvas
-                        class="practice-content-column-4 tuner-history"
-                        data-output="tuner-history"
-                        role="img"
-                    ></canvas>
-                </div>
-                <div class="settings field-grid">
-                    <h3 class="settings-heading">Settings</h3>
-                    <div class="field">
-                        <label for="tuner-note">
-                            Note (<span
-                                data-output="tuner-note-frequency"
-                            ></span
-                            >)
-                        </label>
-
-                        <div class="control-row">
-                            <select
-                                id="tuner-note"
-                                data-control="shared-note"
-                                data-note="tuner"
-                            ></select>
+                            <div class="control-row">
+                                <select
+                                    id="tuner-tuning-note"
+                                    data-control="shared-note"
+                                    data-note="tuner-tuning"
+                                ></select>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="field">
-                        <label for="tuner-waveform">
-                            Wave type
+                        <div class="field">
+                            <label for="tuner-tuning-waveform">
+                                Wave type
 
-                            <span
-                                class="info-tip"
-                                tabindex="0"
-                                aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
+                                <span
+                                    class="info-tip"
+                                    tabindex="0"
+                                    aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
+                                >
+                                    ⓘ
+                                </span>
+                            </label>
+
+                            <div class="control-row">
+                                <select
+                                    id="tuner-tuning-waveform"
+                                    data-control="shared-waveform"
+                                    data-waveform="tuner-tuning"
+                                >
+                                    <option value="triangle">triangle</option>
+                                    <option value="sine" selected>sine</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label for="tuner-tuning-instrument"
+                                >Instrument</label
                             >
-                                ⓘ
-                            </span>
-                        </label>
-
-                        <div class="control-row">
-                            <select
-                                id="tuner-waveform"
-                                data-control="shared-waveform"
-                                data-waveform="tuner"
-                            >
-                                <option value="triangle">triangle</option>
-                                <option value="sine" selected>sine</option>
-                            </select>
+                            <div class="control-row">
+                                <select
+                                    id="tuner-tuning-instrument"
+                                    data-control="tuner-tuning-instrument"
+                                >
+                                    <option value=""></option>
+                                </select>
+                            </div>
                         </div>
-                    </div>
-
-                    <div class="field">
-                        <label for="tuner-instrument">Instrument</label>
-                        <div class="control-row">
-                            <select
-                                id="tuner-instrument"
-                                data-control="tuner-instrument"
+                        <div class="field">
+                            <label for="tuner-tuning-variation"
+                                >Tuning variation</label
                             >
-                                <option value=""></option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label for="tuner-variation">Tuning variation</label>
-                        <div class="control-row">
-                            <select
-                                id="tuner-variation"
-                                data-control="tuner-variation"
-                                disabled
-                            ></select>
+                            <div class="control-row">
+                                <select
+                                    id="tuner-tuning-variation"
+                                    data-control="tuner-tuning-variation"
+                                    disabled
+                                ></select>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1173,6 +1188,43 @@
                             class="practice-result rhythm-metronome-result"
                             role="status"
                         ></p>
+                        <dl class="practice-stats">
+                            <div class="stats-with-action">
+                                <dt>Streak</dt>
+                                <dd>
+                                    <strong
+                                        data-output="rhythm-metronome-streak"
+                                        >0</strong
+                                    >
+                                    <button
+                                        class="link-button"
+                                        data-action="rhythm-metronome-stats-clear"
+                                        type="button"
+                                        title="Clear metronome statistics"
+                                    >
+                                        Clear
+                                    </button>
+                                </dd>
+                            </div>
+                            <div>
+                                <dt>Mean error</dt>
+                                <dd
+                                    data-output="rhythm-metronome-mean-error"
+                                    data-unit="ms"
+                                >
+                                    --
+                                </dd>
+                            </div>
+                            <div>
+                                <dt>Best</dt>
+                                <dd
+                                    data-output="rhythm-metronome-best"
+                                    data-unit="ms"
+                                >
+                                    --
+                                </dd>
+                            </div>
+                        </dl>
                     </div>
                     <div class="settings field-grid">
                         <h3 class="settings-heading">Settings</h3>
@@ -1928,14 +1980,22 @@
 
                             <div>
                                 <dt>Mean error</dt>
-                                <dd data-output="pitch-placement-mean-error">
+                                <dd
+                                    data-output="pitch-placement-mean-error"
+                                    data-unit="cents"
+                                >
                                     0.0 cents
                                 </dd>
                             </div>
 
                             <div>
                                 <dt>Best</dt>
-                                <dd data-output="pitch-placement-best">--</dd>
+                                <dd
+                                    data-output="pitch-placement-best"
+                                    data-unit="cents"
+                                >
+                                    --
+                                </dd>
                             </div>
                         </dl>
                     </div>
@@ -2255,13 +2315,21 @@
                             </div>
                             <div>
                                 <dt>Mean error</dt>
-                                <dd data-output="pitch-memory-mean-error">
+                                <dd
+                                    data-output="pitch-memory-mean-error"
+                                    data-unit="cents"
+                                >
                                     --
                                 </dd>
                             </div>
                             <div>
                                 <dt>Best</dt>
-                                <dd data-output="pitch-memory-best">--</dd>
+                                <dd
+                                    data-output="pitch-memory-best"
+                                    data-unit="cents"
+                                >
+                                    --
+                                </dd>
                             </div>
                         </dl>
                     </div>
@@ -2418,13 +2486,21 @@
 
                             <div>
                                 <dt>Mean error</dt>
-                                <dd data-output="match-target-mean-error">
+                                <dd
+                                    data-output="match-target-mean-error"
+                                    data-unit="cents"
+                                >
                                     0.0 cents
                                 </dd>
                             </div>
                             <div>
                                 <dt>Best</dt>
-                                <dd data-output="match-target-best">--</dd>
+                                <dd
+                                    data-output="match-target-best"
+                                    data-unit="cents"
+                                >
+                                    --
+                                </dd>
                             </div>
                         </dl>
                     </div>
@@ -3251,141 +3327,147 @@
 
             <!-- Chords -->
             <section
-                id="chord-panel"
+                id="chord-quality-panel"
                 class="section-panel"
                 data-panel="chord"
                 hidden
             >
                 <h2 class="sr-only">Chords</h2>
-                <h3 class="blurb">
-                    Hear a triad and identify its chord quality.
-                </h3>
+                <div data-mode-panel="quality">
+                    <h3 class="blurb">
+                        Hear a triad and identify its chord quality.
+                    </h3>
 
-                <div class="practice">
-                    <div class="practice-buttons">
-                        <button
-                            class="icon-button"
-                            data-action="chord-play"
-                            type="button"
-                            aria-label="Play chord"
-                            title="Play"
-                        >
-                            <span aria-hidden="true">▶</span>
-                        </button>
+                    <div class="practice">
+                        <div class="practice-buttons">
+                            <button
+                                class="icon-button"
+                                data-action="chord-quality-play"
+                                type="button"
+                                aria-label="Play chord"
+                                title="Play"
+                            >
+                                <span aria-hidden="true">▶</span>
+                            </button>
 
-                        <button
-                            class="icon-button"
-                            data-action="global-stop"
-                            type="button"
-                            aria-label="Stop chord"
-                            title="Stop"
-                        >
-                            <span aria-hidden="true">■</span>
-                        </button>
+                            <button
+                                class="icon-button"
+                                data-action="global-stop"
+                                type="button"
+                                aria-label="Stop chord"
+                                title="Stop"
+                            >
+                                <span aria-hidden="true">■</span>
+                            </button>
 
-                        <button
-                            class="icon-button auto-refresh"
-                            data-action="chord-new"
-                            type="button"
-                            aria-label="New chord and play"
-                            title="New chord and play"
-                        >
-                            <span aria-hidden="true">↻</span>
-                        </button>
-                    </div>
+                            <button
+                                class="icon-button auto-refresh"
+                                data-action="chord-quality-new"
+                                type="button"
+                                aria-label="New chord and play"
+                                title="New chord and play"
+                            >
+                                <span aria-hidden="true">↻</span>
+                            </button>
+                        </div>
 
-                    <div class="practice-responses practice-content-column">
+                        <div class="practice-responses practice-content-column">
+                            <div
+                                class="answer-options answer-grid"
+                                data-chord-quality-answers
+                                role="group"
+                                aria-label="Chord quality"
+                            ></div>
+                        </div>
+
                         <div
-                            class="answer-options answer-grid"
-                            data-chord-answers
-                            role="group"
-                            aria-label="Chord quality"
+                            class="practice-result"
+                            data-output="chord-quality-result"
+                            aria-live="polite"
                         ></div>
+
+                        <dl class="practice-stats">
+                            <div class="stats-with-action">
+                                <dt>Streak</dt>
+                                <dd>
+                                    <strong data-output="chord-quality-streak"
+                                        >0</strong
+                                    >
+                                    <button
+                                        class="link-button"
+                                        data-action="chord-quality-stats-clear"
+                                        type="button"
+                                        title="Clear chord-quality statistics"
+                                    >
+                                        Clear
+                                    </button>
+                                </dd>
+                            </div>
+
+                            <div>
+                                <dt>Accuracy</dt>
+                                <dd data-output="chord-quality-accuracy">0%</dd>
+                            </div>
+                            <div>
+                                <dt>Best</dt>
+                                <dd data-output="chord-quality-best">--</dd>
+                            </div>
+                        </dl>
                     </div>
+                    <div class="settings field-grid">
+                        <h3 class="settings-heading">Settings</h3>
+                        <div class="field">
+                            <label for="chord-quality-waveform">
+                                Wave type
 
-                    <div
-                        class="practice-result"
-                        data-output="chord-result"
-                        aria-live="polite"
-                    ></div>
-
-                    <dl class="practice-stats">
-                        <div class="stats-with-action">
-                            <dt>Streak</dt>
-                            <dd>
-                                <strong data-output="chord-streak">0</strong>
-                                <button
-                                    class="link-button"
-                                    data-action="chord-stats-clear"
-                                    type="button"
-                                    title="Clear chord-quality statistics"
+                                <span
+                                    class="info-tip"
+                                    tabindex="0"
+                                    aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
                                 >
-                                    Clear
-                                </button>
-                            </dd>
+                                    ⓘ
+                                </span>
+                            </label>
+
+                            <div class="control-row">
+                                <select
+                                    id="chord-quality-waveform"
+                                    data-control="shared-waveform"
+                                    data-waveform="chord-quality"
+                                >
+                                    <option value="sine" selected>sine</option>
+                                    <option value="triangle">triangle</option>
+                                </select>
+                            </div>
                         </div>
 
-                        <div>
-                            <dt>Accuracy</dt>
-                            <dd data-output="chord-accuracy">0%</dd>
-                        </div>
-                        <div>
-                            <dt>Best</dt>
-                            <dd data-output="chord-best">--</dd>
-                        </div>
-                    </dl>
-                </div>
-                <div class="settings field-grid">
-                    <h3 class="settings-heading">Settings</h3>
-                    <div class="field">
-                        <label for="chord-waveform">
-                            Wave type
+                        <div class="field">
+                            <label for="chord-quality-playback">
+                                Playback
 
-                            <span
-                                class="info-tip"
-                                tabindex="0"
-                                aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
-                            >
-                                ⓘ
-                            </span>
-                        </label>
+                                <span
+                                    class="info-tip"
+                                    tabindex="0"
+                                    aria-label="Together plays all chord tones at once. Ascending plays them one at a time from lowest to highest; descending plays them from highest to lowest."
+                                >
+                                    ⓘ
+                                </span>
+                            </label>
 
-                        <div class="control-row">
-                            <select
-                                id="chord-waveform"
-                                data-control="shared-waveform"
-                                data-waveform="chord"
-                            >
-                                <option value="sine" selected>sine</option>
-                                <option value="triangle">triangle</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="field">
-                        <label for="chord-playback">
-                            Playback
-
-                            <span
-                                class="info-tip"
-                                tabindex="0"
-                                aria-label="Together plays all chord tones at once. Ascending plays them one at a time from lowest to highest; descending plays them from highest to lowest."
-                            >
-                                ⓘ
-                            </span>
-                        </label>
-
-                        <div class="control-row">
-                            <select
-                                id="chord-playback"
-                                data-control="chord-playback"
-                            >
-                                <option value="together" selected>
-                                    together
-                                </option>
-                                <option value="ascending">ascending</option>
-                                <option value="descending">descending</option>
-                            </select>
+                            <div class="control-row">
+                                <select
+                                    id="chord-quality-playback"
+                                    data-control="chord-quality-playback"
+                                >
+                                    <option value="together" selected>
+                                        together
+                                    </option>
+                                    <option value="ascending">ascending</option>
+                                    <option value="descending">
+                                        descending
+                                    </option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
