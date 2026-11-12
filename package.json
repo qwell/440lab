@@ -1,17 +1,23 @@
 {
-    "name": "440-lab",
+    "name": "440lab",
     "version": "1.1.8",
-    "repository": "git@github.com:qwell/440-lab.git",
+    "repository": "git@github.com:qwell/440lab.git",
     "author": "Jason Parker <north@ntbox.com>",
     "license": "GPL-3.0-or-later",
     "bugs": {
-        "url": "https://github.com/qwell/440-lab/issues",
+        "url": "https://github.com/qwell/440lab/issues",
         "email": "north@ntbox.com"
     },
     "funding": {
         "type": "patreon",
         "url": "https://www.patreon.com/northantara"
     },
+    "files": [
+        "site/",
+        "scripts/serve.js",
+        "!site/assets/soundfonts/**",
+        "site/assets/soundfonts/generaluser-gs/"
+    ],
     "keywords": [
         "music tuner",
         "instrument tuner",

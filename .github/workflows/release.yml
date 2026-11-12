@@ -43,14 +43,14 @@ jobs:
             - name: Create ZIP
               run: |
                   cd site
-                  zip -r "../440-lab-${RELEASE_TAG}.zip" .
+                  zip -r "../440lab-${RELEASE_TAG}.zip" .
 
             - name: Upload test artifact
               if: github.event_name == 'workflow_dispatch'
               uses: actions/upload-artifact@v4
               with:
-                  name: 440-lab-${{ env.RELEASE_TAG }}
-                  path: 440-lab-${{ env.RELEASE_TAG }}.zip
+                  name: 440lab-${{ env.RELEASE_TAG }}
+                  path: 440lab-${{ env.RELEASE_TAG }}.zip
                   if-no-files-found: error
 
             - name: Create release
@@ -60,5 +60,5 @@ jobs:
               run: |
                   gh release create \
                     "$RELEASE_TAG" \
-                    "440-lab-${RELEASE_TAG}.zip" \
+                    "440lab-${RELEASE_TAG}.zip" \
                     --generate-notes

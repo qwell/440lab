@@ -5,9 +5,9 @@ __metadata:
   version: 10
   cacheKey: 10c0
 
-"440-lab@workspace:.":
+"440lab@workspace:.":
   version: 0.0.0-use.local
-  resolution: "440-lab@workspace:."
+  resolution: "440lab@workspace:."
   dependencies:
     "@eslint/css": "npm:^2.0.0"
     "@eslint/js": "npm:^10.0.1"
