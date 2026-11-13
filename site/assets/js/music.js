@@ -125,23 +125,19 @@ const INTERVAL_LEVELS = {
 };
 
 const INTERVALS = [
-    { semitones: 0, name: 'Unison', level: INTERVAL_LEVELS['starter'] },
-    { semitones: 1, name: 'Minor 2nd', level: INTERVAL_LEVELS['all'] },
-    { semitones: 2, name: 'Major 2nd', level: INTERVAL_LEVELS['common'] },
-    { semitones: 3, name: 'Minor 3rd', level: INTERVAL_LEVELS['all'] },
+    { semitones: 0, name: 'Unison', level: INTERVAL_LEVELS['common'] },
+    { semitones: 1, name: 'Minor 2nd', level: INTERVAL_LEVELS['common'] },
+    { semitones: 2, name: 'Major 2nd', level: INTERVAL_LEVELS['starter'] },
+    { semitones: 3, name: 'Minor 3rd', level: INTERVAL_LEVELS['common'] },
     { semitones: 4, name: 'Major 3rd', level: INTERVAL_LEVELS['starter'] },
-    { semitones: 5, name: 'Perfect 4th', level: INTERVAL_LEVELS['common'] },
-    { semitones: 6, name: 'Tritone', level: INTERVAL_LEVELS['all'] },
-    {
-        semitones: 7,
-        name: 'Perfect 5th',
-        level: INTERVAL_LEVELS['starter'],
-    },
+    { semitones: 5, name: 'Perfect 4th', level: INTERVAL_LEVELS['starter'] },
+    { semitones: 6, name: 'Tritone', level: INTERVAL_LEVELS['common'] },
+    { semitones: 7, name: 'Perfect 5th', level: INTERVAL_LEVELS['starter'] },
     { semitones: 8, name: 'Minor 6th', level: INTERVAL_LEVELS['all'] },
-    { semitones: 9, name: 'Major 6th', level: INTERVAL_LEVELS['common'] },
-    { semitones: 10, name: 'Minor 7th', level: INTERVAL_LEVELS['common'] },
+    { semitones: 9, name: 'Major 6th', level: INTERVAL_LEVELS['all'] },
+    { semitones: 10, name: 'Minor 7th', level: INTERVAL_LEVELS['all'] },
     { semitones: 11, name: 'Major 7th', level: INTERVAL_LEVELS['all'] },
-    { semitones: 12, name: 'Octave', level: INTERVAL_LEVELS['starter'] },
+    { semitones: 12, name: 'Octave', level: INTERVAL_LEVELS['all'] },
 ];
 
 const CHORD_QUALITIES = {

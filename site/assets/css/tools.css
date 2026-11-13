@@ -337,7 +337,7 @@ main.is-drag-over::after {
     margin-top: 0;
 }
 
-.control-row select[data-control='shared-soundfont'] {
+.control-row select[data-setting='shared-soundfont'] {
     width: var(--control-width);
 }
 

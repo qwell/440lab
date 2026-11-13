@@ -17,6 +17,7 @@ const APP_SHELL = [
     './assets/js/engine.js',
     './assets/js/practice.js',
     './assets/js/render.js',
+    './assets/js/dom.js',
     './assets/js/application.js',
 
     './assets/fonts/NotoMusic-Regular.ttf',

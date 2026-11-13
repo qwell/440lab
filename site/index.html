@@ -587,7 +587,7 @@
 
                         <input
                             id="global-volume"
-                            data-control="global-volume"
+                            data-setting="global-volume"
                             type="range"
                             min="0"
                             max="1"
@@ -635,7 +635,7 @@
                     <div class="control-group">
                         <input
                             id="global-a4"
-                            data-control="global-reference-a4"
+                            data-setting="global-reference-a4"
                             type="number"
                             min="300"
                             max="600"
@@ -644,10 +644,10 @@
                         />
 
                         <button
-                            data-action="global-reference-reset"
+                            data-action="global-settings-reset"
                             type="button"
                         >
-                            Reset
+                            Reset Settings
                         </button>
                     </div>
                 </div>
@@ -1052,7 +1052,7 @@
                             <div class="control-row">
                                 <select
                                     id="tuner-tuning-note"
-                                    data-control="shared-note"
+                                    data-setting="shared-note"
                                     data-note="tuner-tuning"
                                 ></select>
                             </div>
@@ -1074,7 +1074,7 @@
                             <div class="control-row">
                                 <select
                                     id="tuner-tuning-waveform"
-                                    data-control="shared-waveform"
+                                    data-setting="shared-waveform"
                                     data-waveform="tuner-tuning"
                                 >
                                     <option value="triangle">triangle</option>
@@ -1090,20 +1090,18 @@
                             <div class="control-row">
                                 <select
                                     id="tuner-tuning-instrument"
-                                    data-control="tuner-tuning-instrument"
+                                    data-setting="tuner-tuning-instrument"
                                 >
                                     <option value=""></option>
                                 </select>
                             </div>
                         </div>
                         <div class="field">
-                            <label for="tuner-tuning-variation"
-                                >Tuning variation</label
-                            >
+                            <label for="tuner-tuning-tuning">Tuning</label>
                             <div class="control-row">
                                 <select
-                                    id="tuner-tuning-variation"
-                                    data-control="tuner-tuning-variation"
+                                    id="tuner-tuning-tuning"
+                                    data-setting="tuner-tuning-tuning"
                                     disabled
                                 ></select>
                             </div>
@@ -1242,7 +1240,7 @@
                             <div class="control-row control-group">
                                 <input
                                     id="rhythm-metronome-bpm"
-                                    data-control="shared-rhythm-bpm"
+                                    data-setting="shared-rhythm-bpm"
                                     type="number"
                                     min="30"
                                     max="240"
@@ -1274,7 +1272,7 @@
                                 <select
                                     id="rhythm-metronome-time-signature"
                                     class="rhythm-time-signature"
-                                    data-control="shared-rhythm-time-signature"
+                                    data-setting="shared-rhythm-time-signature"
                                 >
                                     <option value="2/4">2/4 - 𝅘𝅥</option>
                                     <option value="3/4">3/4 - 𝅘𝅥</option>
@@ -1323,7 +1321,7 @@
                             <div class="control-row">
                                 <select
                                     id="rhythm-sheet-soundfont"
-                                    data-control="shared-soundfont"
+                                    data-setting="shared-soundfont"
                                     title="Choose a SoundFont, or drop an SF2 or SF3 file in this view"
                                 ></select>
                             </div>
@@ -1437,7 +1435,7 @@
                             <div class="control-row control-group">
                                 <input
                                     id="rhythm-sheet-bpm"
-                                    data-control="shared-rhythm-bpm"
+                                    data-setting="shared-rhythm-bpm"
                                     type="number"
                                     min="30"
                                     max="240"
@@ -1472,7 +1470,7 @@
                                 <select
                                     id="rhythm-sheet-time-signature"
                                     class="rhythm-time-signature"
-                                    data-control="shared-rhythm-time-signature"
+                                    data-setting="shared-rhythm-time-signature"
                                 >
                                     <option value="2/4">2/4 - 𝅘𝅥</option>
                                     <option value="3/4">3/4 - 𝅘𝅥</option>
@@ -1505,7 +1503,7 @@
                             <div class="control-row">
                                 <select
                                     id="rhythm-sheet-note-values"
-                                    data-control="rhythm-sheet-note-values"
+                                    data-setting="rhythm-sheet-note-values"
                                 >
                                     <option value="all" selected>all</option>
                                     <option value="all-dotted">
@@ -1519,7 +1517,7 @@
                             <div class="control-row">
                                 <select
                                     id="rhythm-sheet-bars"
-                                    data-control="rhythm-sheet-bars"
+                                    data-setting="rhythm-sheet-bars"
                                 >
                                     <option value="2">2</option>
                                     <option value="4" selected>4</option>
@@ -1533,7 +1531,7 @@
                             <div class="control-row">
                                 <select
                                     id="rhythm-sheet-clef"
-                                    data-control="rhythm-sheet-clef"
+                                    data-setting="rhythm-sheet-clef"
                                 >
                                     <option value="treble" selected>
                                         treble
@@ -1549,7 +1547,7 @@
                             <div class="control-row">
                                 <select
                                     id="rhythm-sheet-pitches"
-                                    data-control="rhythm-sheet-pitches"
+                                    data-setting="rhythm-sheet-pitches"
                                 >
                                     <option value="natural" selected>
                                         natural
@@ -1655,13 +1653,13 @@
                                     </button>
                                     <select
                                         id="midi-sheet-library"
-                                        data-control="shared-midi-library"
+                                        data-input="shared-midi-library"
                                     ></select>
                                 </div>
                                 <input
                                     id="midi-sheet-file"
                                     class="sr-only"
-                                    data-control="midi-file-input"
+                                    data-input="midi-file-input"
                                     type="file"
                                     accept=".mid,.midi,audio/midi,audio/x-midi"
                                     tabindex="-1"
@@ -1674,7 +1672,7 @@
                                 <div class="control-row">
                                     <select
                                         id="midi-sheet-soundfont"
-                                        data-control="shared-soundfont"
+                                        data-setting="shared-soundfont"
                                         title="Choose a SoundFont, or drop an SF2 or SF3 file in this view"
                                     ></select>
                                 </div>
@@ -1728,7 +1726,7 @@
                             >
                             <input
                                 class="midi-player-seek"
-                                data-control="shared-midi-seek"
+                                data-input="shared-midi-seek"
                                 type="range"
                                 min="0"
                                 max="0"
@@ -1775,13 +1773,13 @@
                                     </button>
                                     <select
                                         id="midi-piano-roll-library"
-                                        data-control="shared-midi-library"
+                                        data-input="shared-midi-library"
                                     ></select>
                                 </div>
                                 <input
                                     id="midi-piano-roll-file"
                                     class="sr-only"
-                                    data-control="midi-file-input"
+                                    data-input="midi-file-input"
                                     type="file"
                                     accept=".mid,.midi,audio/midi,audio/x-midi"
                                     tabindex="-1"
@@ -1794,7 +1792,7 @@
                                 <div class="control-row">
                                     <select
                                         id="midi-piano-roll-soundfont"
-                                        data-control="shared-soundfont"
+                                        data-setting="shared-soundfont"
                                         title="Choose a SoundFont, or drop an SF2 or SF3 file in this view"
                                     ></select>
                                 </div>
@@ -1848,7 +1846,7 @@
                             >
                             <input
                                 class="midi-player-seek"
-                                data-control="shared-midi-seek"
+                                data-input="shared-midi-seek"
                                 type="range"
                                 min="0"
                                 max="0"
@@ -2012,7 +2010,7 @@
                             <div class="control-row">
                                 <select
                                     id="pitch-placement-note"
-                                    data-control="shared-note"
+                                    data-setting="shared-note"
                                     data-note="pitch-placement"
                                 ></select>
                             </div>
@@ -2034,7 +2032,7 @@
                             <div class="control-row">
                                 <select
                                     id="pitch-placement-waveform"
-                                    data-control="shared-waveform"
+                                    data-setting="shared-waveform"
                                     data-waveform="pitch-placement"
                                 >
                                     <option value="sine" selected>sine</option>
@@ -2060,7 +2058,7 @@
                             <div class="range-controls">
                                 <input
                                     id="pitch-placement-range-min"
-                                    data-control="pitch-placement-range-min"
+                                    data-setting="pitch-placement-range-min"
                                     type="number"
                                     min="0.1"
                                     max="200"
@@ -2073,7 +2071,7 @@
 
                                 <input
                                     id="pitch-placement-range-max"
-                                    data-control="pitch-placement-range-max"
+                                    data-setting="pitch-placement-range-max"
                                     type="number"
                                     min="0.1"
                                     max="200"
@@ -2092,7 +2090,7 @@
                             <div class="control-row">
                                 <input
                                     id="pitch-placement-duration"
-                                    data-control="pitch-placement-duration"
+                                    data-setting="pitch-placement-duration"
                                     type="number"
                                     min="0.1"
                                     max="10"
@@ -2118,7 +2116,7 @@
                             <div class="control-row">
                                 <select
                                     id="pitch-placement-interval"
-                                    data-control="pitch-placement-interval"
+                                    data-setting="pitch-placement-interval"
                                 >
                                     <option value="0" selected>unison</option>
 
@@ -2154,10 +2152,10 @@
                             <div class="control-row">
                                 <select
                                     id="pitch-placement-adaptive"
-                                    data-control="shared-adaptive"
+                                    data-setting="shared-adaptive"
                                 >
-                                    <option value="off" selected>off</option>
-                                    <option value="on">on</option>
+                                    <option value="off">off</option>
+                                    <option value="on" selected>on</option>
                                 </select>
                             </div>
                         </div>
@@ -2235,7 +2233,7 @@
                                 <div class="pitch-memory-pitch-scale">
                                     <input
                                         id="pitch-memory-pitch"
-                                        data-control="pitch-memory-pitch"
+                                        data-input="pitch-memory-pitch"
                                         type="range"
                                         step="any"
                                     />
@@ -2349,7 +2347,7 @@
                             <div class="control-row">
                                 <select
                                     id="pitch-memory-type"
-                                    data-control="pitch-memory-type"
+                                    data-setting="pitch-memory-type"
                                 >
                                     <option value="novel">novel melody</option>
                                     <option value="interference">
@@ -2373,7 +2371,7 @@
                             <div class="control-row">
                                 <select
                                     id="pitch-memory-delay"
-                                    data-control="pitch-memory-delay"
+                                    data-setting="pitch-memory-delay"
                                 >
                                     <option value="10">10 seconds</option>
                                     <option value="60">1 minute</option>
@@ -2402,7 +2400,7 @@
                             <div class="control-row">
                                 <select
                                     id="pitch-memory-distractors"
-                                    data-control="pitch-memory-distractors"
+                                    data-setting="pitch-memory-distractors"
                                 >
                                     <option value="0">0</option>
                                     <option value="11">11</option>
@@ -2517,7 +2515,7 @@
                             <div class="control-row">
                                 <select
                                     id="match-target-note"
-                                    data-control="shared-note"
+                                    data-setting="shared-note"
                                     data-note="match-target"
                                 ></select>
                             </div>
@@ -2539,7 +2537,7 @@
                             <div class="control-row">
                                 <select
                                     id="match-target-waveform"
-                                    data-control="shared-waveform"
+                                    data-setting="shared-waveform"
                                     data-waveform="match-target"
                                 >
                                     <option value="sine" selected>sine</option>
@@ -2565,7 +2563,7 @@
                             <div class="range-controls">
                                 <input
                                     id="match-target-range-min"
-                                    data-control="match-target-range-min"
+                                    data-setting="match-target-range-min"
                                     type="number"
                                     min="0.1"
                                     max="1200"
@@ -2578,7 +2576,7 @@
 
                                 <input
                                     id="match-target-range-max"
-                                    data-control="match-target-range-max"
+                                    data-setting="match-target-range-max"
                                     type="number"
                                     min="0.1"
                                     max="1200"
@@ -2597,7 +2595,7 @@
                             <div class="control-row">
                                 <input
                                     id="match-target-duration"
-                                    data-control="match-target-duration"
+                                    data-setting="match-target-duration"
                                     type="number"
                                     min="0.1"
                                     max="10"
@@ -2623,7 +2621,7 @@
                             <div class="control-row">
                                 <select
                                     id="match-target-count"
-                                    data-control="match-target-count"
+                                    data-setting="match-target-count"
                                 >
                                     <option value="2">2</option>
                                     <option value="3">3</option>
@@ -2655,10 +2653,10 @@
                             <div class="control-row">
                                 <select
                                     id="match-target-adaptive"
-                                    data-control="shared-adaptive"
+                                    data-setting="shared-adaptive"
                                 >
-                                    <option value="off" selected>off</option>
-                                    <option value="on">on</option>
+                                    <option value="off">off</option>
+                                    <option value="on" selected>on</option>
                                 </select>
                             </div>
                         </div>
@@ -2760,7 +2758,7 @@
                             <div class="control-row">
                                 <select
                                     id="match-identification-octave"
-                                    data-control="match-identification-octave"
+                                    data-setting="match-identification-octave"
                                 >
                                     <option value="random">random (3–5)</option>
                                     <option value="3">3</option>
@@ -2782,7 +2780,7 @@
                             <div class="control-row">
                                 <select
                                     id="match-identification-waveform"
-                                    data-control="shared-waveform"
+                                    data-setting="shared-waveform"
                                     data-waveform="match-identification"
                                 >
                                     <option value="sine" selected>sine</option>
@@ -2797,7 +2795,7 @@
                             <div class="control-row">
                                 <input
                                     id="match-identification-duration"
-                                    data-control="match-identification-duration"
+                                    data-setting="match-identification-duration"
                                     type="number"
                                     min="0.1"
                                     max="10"
@@ -2926,7 +2924,7 @@
                             <div class="control-row">
                                 <select
                                     id="interval-recognition-level"
-                                    data-control="shared-interval-set"
+                                    data-setting="shared-interval-set"
                                 >
                                     <option value="starter" selected>
                                         starter - 4
@@ -2944,7 +2942,7 @@
                             <div class="control-row">
                                 <select
                                     id="interval-recognition-direction"
-                                    data-control="shared-interval-direction"
+                                    data-setting="shared-interval-direction"
                                 >
                                     <option value="random" selected>
                                         random
@@ -2972,10 +2970,10 @@
                             <div class="control-row">
                                 <select
                                     id="interval-recognition-adaptive"
-                                    data-control="shared-adaptive"
+                                    data-setting="shared-adaptive"
                                 >
-                                    <option value="off" selected>off</option>
-                                    <option value="on">on</option>
+                                    <option value="off">off</option>
+                                    <option value="on" selected>on</option>
                                 </select>
                             </div>
                         </div>
@@ -2995,7 +2993,7 @@
                             <div class="control-row">
                                 <select
                                     id="interval-recognition-waveform"
-                                    data-control="shared-waveform"
+                                    data-setting="shared-waveform"
                                     data-waveform="interval-recognition"
                                 >
                                     <option value="sine" selected>sine</option>
@@ -3011,7 +3009,7 @@
                             <div class="control-row">
                                 <input
                                     id="interval-recognition-duration"
-                                    data-control="shared-interval-duration"
+                                    data-setting="shared-interval-duration"
                                     type="number"
                                     min="0.1"
                                     max="3"
@@ -3138,7 +3136,7 @@
                             <div class="control-row">
                                 <select
                                     id="interval-construction-level"
-                                    data-control="shared-interval-set"
+                                    data-setting="shared-interval-set"
                                 >
                                     <option value="starter" selected>
                                         starter - 4
@@ -3156,7 +3154,7 @@
                             <div class="control-row">
                                 <select
                                     id="interval-construction-direction"
-                                    data-control="shared-interval-direction"
+                                    data-setting="shared-interval-direction"
                                 >
                                     <option value="random" selected>
                                         random
@@ -3184,10 +3182,10 @@
                             <div class="control-row">
                                 <select
                                     id="interval-construction-adaptive"
-                                    data-control="shared-adaptive"
+                                    data-setting="shared-adaptive"
                                 >
-                                    <option value="off" selected>off</option>
-                                    <option value="on">on</option>
+                                    <option value="off">off</option>
+                                    <option value="on" selected>on</option>
                                 </select>
                             </div>
                         </div>
@@ -3207,7 +3205,7 @@
                             <div class="control-row">
                                 <select
                                     id="interval-construction-waveform"
-                                    data-control="shared-waveform"
+                                    data-setting="shared-waveform"
                                     data-waveform="interval-construction"
                                 >
                                     <option value="sine" selected>sine</option>
@@ -3223,7 +3221,7 @@
                             <div class="control-row">
                                 <input
                                     id="interval-construction-duration"
-                                    data-control="shared-interval-duration"
+                                    data-setting="shared-interval-duration"
                                     type="number"
                                     min="0.1"
                                     max="3"
@@ -3432,7 +3430,7 @@
                             <div class="control-row">
                                 <select
                                     id="chord-quality-waveform"
-                                    data-control="shared-waveform"
+                                    data-setting="shared-waveform"
                                     data-waveform="chord-quality"
                                 >
                                     <option value="sine" selected>sine</option>
@@ -3457,7 +3455,7 @@
                             <div class="control-row">
                                 <select
                                     id="chord-quality-playback"
-                                    data-control="chord-quality-playback"
+                                    data-setting="chord-quality-playback"
                                 >
                                     <option value="together" selected>
                                         together
@@ -3627,8 +3625,9 @@
         <script defer src="assets/js/music.js"></script>
         <script defer src="assets/js/notation.js"></script>
         <script defer src="assets/js/engine.js"></script>
-        <script defer src="assets/js/practice.js"></script>
+        <script defer src="assets/js/dom.js"></script>
         <script defer src="assets/js/render.js"></script>
+        <script defer src="assets/js/practice.js"></script>
         <script defer src="assets/js/application.js"></script>
     </body>
 </html>

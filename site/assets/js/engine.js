@@ -1,11 +1,19 @@
 'use strict';
-const PREFERENCES_KEY = '440Lab.preferences.v1';
+const SETTINGS_KEY = '440Lab.settings.v1';
 const STATS_KEY = '440Lab.stats.v1';
 const STATE_KEY = '440Lab.state.v1';
 
 const TRIAL_ADVANCE_DELAY = 3000;
+let referenceFrequency = DEFAULT_A4_FREQUENCY;
+
 function getReferenceFrequency() {
-    return readNumber(getControl('global-reference-a4'), DEFAULT_A4_FREQUENCY);
+    return referenceFrequency;
+}
+
+function setReferenceFrequency(frequency) {
+    referenceFrequency = Number.isFinite(frequency)
+        ? frequency
+        : DEFAULT_A4_FREQUENCY;
 }
 
 function frequencyFromMidi(midi) {
@@ -46,76 +54,6 @@ function noteNameFromMidi(midi, accidental = null) {
     return `${noteName}${octave}`;
 }
 
-function getControl(name, root = document) {
-    return root.querySelector(`[data-control="${name}"]`);
-}
-
-function getControls(names, root = document) {
-    const controlNames = Array.isArray(names) ? names : [names];
-    const selector = controlNames
-        .map((name) => `[data-control="${name}"]`)
-        .join(', ');
-
-    return root.querySelectorAll(selector);
-}
-
-function getOutput(name, root = document) {
-    return root.querySelector(`[data-output="${name}"]`);
-}
-
-function getOutputs(name, root = document) {
-    return root.querySelectorAll(`[data-output="${name}"]`);
-}
-
-function getAction(name, root = document) {
-    return root.querySelector(`[data-action="${name}"]`);
-}
-
-function getActions(name, root = document) {
-    return root.querySelectorAll(`[data-action="${name}"]`);
-}
-
-function getModuleActions(module, action, root = document) {
-    return root.querySelectorAll(
-        `[data-action^="${module}-"][data-action$="-${action}"]`
-    );
-}
-
-function getNoteControl(name) {
-    return document.querySelector(`[data-note="${name}"]`);
-}
-
-function getWaveform(name) {
-    return document.querySelector(`[data-waveform="${name}"]`);
-}
-
-function syncSharedControl(control) {
-    const name = control?.dataset?.control;
-
-    if (!name?.startsWith('shared-')) {
-        return;
-    }
-
-    for (const peer of getControls(name)) {
-        if (control instanceof HTMLInputElement && control.type === 'radio') {
-            peer.checked = peer.value === control.value;
-        } else if (
-            control instanceof HTMLInputElement &&
-            control.type === 'checkbox'
-        ) {
-            peer.checked = control.checked;
-        } else {
-            peer.value = control.value;
-        }
-    }
-}
-
-function getModePanels(name) {
-    return document.querySelectorAll(
-        `[data-panel="${name}"] > [data-mode-panel]`
-    );
-}
-
 const storage = {
     load(key, fallback) {
         try {
@@ -145,35 +83,16 @@ const storage = {
     },
 };
 
-function savePreferences() {
-    storage.save(PREFERENCES_KEY, {
-        a4: getReferenceFrequency(),
-        volume: Number(getControl('global-volume').value),
-    });
+function saveSettings(settings) {
+    storage.save(SETTINGS_KEY, settings);
 }
 
-function restorePreferences() {
-    const preferences = storage.load(PREFERENCES_KEY, {});
-    const referenceFrequencyInput = getControl('global-reference-a4');
-    const volumeInput = getControl('global-volume');
+function loadSettings() {
+    return storage.load(SETTINGS_KEY, {});
+}
 
-    if (Number.isFinite(preferences.a4)) {
-        referenceFrequencyInput.value = clamp(
-            preferences.a4,
-            Number(referenceFrequencyInput.min),
-            Number(referenceFrequencyInput.max)
-        ).toFixed(3);
-    }
-
-    if (Number.isFinite(preferences.volume)) {
-        volumeInput.value = String(
-            clamp(
-                preferences.volume,
-                Number(volumeInput.min),
-                Number(volumeInput.max)
-            )
-        );
-    }
+function removeSettings() {
+    storage.remove(SETTINGS_KEY);
 }
 
 function defaultStats(module = null, mode = null, type = null) {
@@ -315,6 +234,7 @@ function loadState() {
 }
 
 const state = loadState();
+let statePersistenceEnabled = true;
 
 function getState(module) {
     const moduleState = state[module];
@@ -331,11 +251,28 @@ function getState(module) {
 }
 
 function saveState() {
+    if (!statePersistenceEnabled) {
+        return;
+    }
     storage.save(STATE_KEY, state);
+}
+
+function clearState() {
+    statePersistenceEnabled = false;
+    for (const moduleState of Object.values(state)) {
+        for (const name of Object.keys(moduleState)) {
+            delete moduleState[name];
+        }
+    }
+    storage.remove(STATE_KEY);
 }
 
 function removeState(module, name) {
     delete state[module]?.[name];
+
+    if (!statePersistenceEnabled) {
+        return;
+    }
 
     if (
         Object.values(state).every(
@@ -348,59 +285,6 @@ function removeState(module, name) {
     }
 }
 
-function createAutoAdvance(elements, advance) {
-    let timer = null;
-
-    function cancel() {
-        if (timer !== null) {
-            clearTimeout(timer);
-            timer = null;
-        }
-
-        for (const button of elements) {
-            button.classList.remove('is-counting-down');
-        }
-    }
-
-    function schedule() {
-        cancel();
-
-        const refreshButton = [...elements].find(
-            (button) => !button.closest('[hidden]')
-        );
-        if (!refreshButton) {
-            return;
-        }
-
-        void refreshButton.offsetWidth;
-        refreshButton.classList.add('is-counting-down');
-
-        timer = window.setTimeout(() => {
-            timer = null;
-            refreshButton.classList.remove('is-counting-down');
-            advance();
-        }, TRIAL_ADVANCE_DELAY);
-    }
-
-    return { cancel, schedule };
-}
-
-function clearPracticeResult(outputName) {
-    const result = getOutput(outputName);
-
-    result.classList.remove('is-correct', 'is-incorrect');
-    result.replaceChildren();
-}
-
-function renderPracticeResult(outputName, correct, text) {
-    const result = getOutput(outputName);
-    const icon = document.createElement('strong');
-
-    result.classList.add(correct ? 'is-correct' : 'is-incorrect');
-    icon.textContent = correct ? '✓' : '✕';
-    result.replaceChildren(icon, document.createTextNode(` ${text}`));
-}
-
 function answerStateClass(answer, selected, correct) {
     if (selected === null) {
         return null;
@@ -411,16 +295,6 @@ function answerStateClass(answer, selected, correct) {
     }
 
     return answer === selected ? 'is-incorrect' : null;
-}
-
-function setAnswerOptionState(button, answer, selected, correct) {
-    button.classList.remove('is-correct', 'is-incorrect', 'is-target');
-
-    const stateClass = answerStateClass(answer, selected, correct);
-
-    if (stateClass) {
-        button.classList.add(stateClass);
-    }
 }
 
 // Audio
@@ -811,24 +685,6 @@ function applyMicrophoneState(state, failureMessage = null) {
         microphoneFailureMessage = failureMessage ?? MICROPHONE_MESSAGES.DENIED;
     }
 
-    const labels = {
-        [MICROPHONE_STATES.UNPROMPTED]: 'Enable microphone',
-        [MICROPHONE_STATES.DENIED]: 'Retry microphone access',
-        [MICROPHONE_STATES.LISTENING]: 'Pause microphone',
-        [MICROPHONE_STATES.PAUSED]: 'Start microphone',
-    };
-    const label = labels[state];
-
-    for (const button of getActions('global-microphone-toggle')) {
-        button.dataset.microphoneState = state;
-        button.setAttribute(
-            'aria-pressed',
-            String(state === MICROPHONE_STATES.LISTENING)
-        );
-        button.setAttribute('aria-label', label);
-        button.title = label;
-    }
-
     if (changed) {
         notifyMicrophoneStateChange();
     }
@@ -1095,44 +951,9 @@ function deactivateActiveMicrophoneInput(reason) {
 }
 
 let masterVolume = DEFAULT_VOLUME;
-let volumeBeforeMute = DEFAULT_VOLUME;
 
-function updateVolume() {
-    const input = getControl('global-volume');
-
-    const volume = clamp(Number(input.value), 0, 1);
-
-    let icon = '🔊';
-
-    if (volume === 0) {
-        icon = '🔇';
-    } else if (volume <= 0.2) {
-        icon = '🔈';
-    } else if (volume <= 0.6) {
-        icon = '🔉';
-    }
-
-    if (volume > 0) {
-        volumeBeforeMute = volume;
-    }
-
-    getOutput('global-volume-percent').textContent =
-        `${Math.round(volume * 100)}%`;
-    getOutput('global-volume-icon').textContent = icon;
-
-    const button = getAction('global-volume-toggle');
-    const label = volume === 0 ? 'Restore volume' : 'Mute volume';
-    button.setAttribute('aria-label', label);
-    button.title = label;
-
+function setVolume(volume) {
     audio.setMasterVolume(volume);
-    savePreferences();
-}
-
-function toggleVolume() {
-    const input = getControl('global-volume');
-    input.value = Number(input.value) === 0 ? String(volumeBeforeMute) : '0';
-    updateVolume();
 }
 
 const musicEngine = Object.freeze({
@@ -1143,40 +964,27 @@ const musicEngine = Object.freeze({
     answerStateClass,
     audio,
     addMicrophoneStateListener,
-    clearPracticeResult,
-    createAutoAdvance,
+    clearState,
     createMicrophoneInput,
     deactivateActiveMicrophoneInput,
     frequencyFromMidi,
-    getAction,
-    getActions,
-    getControl,
-    getControls,
-    getModePanels,
-    getModuleActions,
-    getNoteControl,
-    getOutput,
-    getOutputs,
     getState,
-    getWaveform,
+    loadSettings,
     midiFromFrequency,
     noteNameFromMidi,
     pitchClassFromMidi,
     pitchClassName,
+    removeSettings,
     removeState,
     resetStats,
-    renderPracticeResult,
-    restorePreferences,
-    savePreferences,
+    saveSettings,
     saveState,
-    setAnswerOptionState,
+    setReferenceFrequency,
     setMicrophoneState,
+    setVolume,
     state,
     stats,
-    syncSharedControl,
-    toggleVolume,
     updateStats,
-    updateVolume,
     get microphoneFailureMessage() {
         return microphoneFailureMessage;
     },
