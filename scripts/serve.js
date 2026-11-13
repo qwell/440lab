@@ -1,24 +1,30 @@
 import express from 'express';
+import nodeHttp from 'node:http';
 
 const app = express();
 const port = 3000;
 
+function logHttpMethod(method) {
+    return nodeHttp.METHODS.includes(method) ? method : 'UNKNOWN';
+}
+
 app.use((req, res, next) => {
     const started = Date.now();
 
-    console.log(`--> ${req.method} ${req.url}`);
+    const method = logHttpMethod(req.method);
+    const url = encodeURI(req.url);
+
+    console.log(`--> ${method} ${url}`);
 
     res.on('finish', () => {
         console.log(
-            `<-- ${req.method} ${req.url} ${res.statusCode} ${Date.now() - started}ms`
+            `<-- ${method} ${url} ${res.statusCode} ${Date.now() - started}ms`
         );
     });
 
     res.on('close', () => {
         if (!res.writableFinished) {
-            console.warn(
-                `xxx ${req.method} ${req.url} connection closed early`
-            );
+            console.warn(`xxx ${method} ${url} connection closed early`);
         }
     });
 
@@ -28,7 +34,9 @@ app.use((req, res, next) => {
 app.use(express.static('./site'));
 
 app.use((req, res) => {
-    console.warn(`404 ${req.method} ${req.url}`);
+    const method = logHttpMethod(req.method);
+    const url = encodeURI(req.url);
+    console.warn(`404 ${method} ${url}`);
     res.status(404).send('Not found');
 });
 
@@ -38,7 +46,9 @@ app.use((err, req, res, next) => {
         return;
     }
 
-    console.error(err);
+    const error =
+        err instanceof Error ? (err.stack ?? err.message) : 'Unknown error';
+    console.error(error);
     res.status(500).send('Internal server error');
 });
 
