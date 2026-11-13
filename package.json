@@ -1,17 +1,23 @@
 {
-    "name": "440-lab",
-    "version": "1.1.6",
-    "repository": "git@github.com:qwell/440-lab.git",
+    "name": "440lab",
+    "version": "1.1.8",
+    "repository": "git@github.com:qwell/440lab.git",
     "author": "Jason Parker <north@ntbox.com>",
     "license": "GPL-3.0-or-later",
     "bugs": {
-        "url": "https://github.com/qwell/440-lab/issues",
+        "url": "https://github.com/qwell/440lab/issues",
         "email": "north@ntbox.com"
     },
     "funding": {
         "type": "patreon",
         "url": "https://www.patreon.com/northantara"
     },
+    "files": [
+        "site/",
+        "scripts/serve.js",
+        "!site/assets/soundfonts/**",
+        "site/assets/soundfonts/generaluser-gs/"
+    ],
     "keywords": [
         "music tuner",
         "instrument tuner",
@@ -55,26 +61,26 @@
         "serve": "node scripts/serve.js",
         "generate": "node scripts/generate.js && yarn hygiene",
         "deploy": "node scripts/deploy.js",
+        "release": "bash scripts/release.sh",
         "lint": "eslint --cache --cache-strategy metadata --cache-location ./.cache/eslint . --fix",
         "lint:check": "eslint --cache --cache-strategy metadata --cache-location ./.cache/eslint .",
         "format": "prettier --cache --cache-strategy metadata --cache-location ./.cache/prettier --write .",
         "format:check": "prettier --cache --cache-strategy metadata --cache-location ./.cache/prettier --check .",
-        "hygiene": "yarn format && yarn lint",
-        "release": "echo 'TODO'"
+        "hygiene": "yarn format && yarn lint"
     },
     "dependencies": {
         "express": "^5.3.0"
     },
     "devDependencies": {
-        "@eslint/css": "^2.0.0",
+        "@eslint/css": "^2.0.1",
         "@eslint/js": "^10.0.1",
-        "@html-eslint/eslint-plugin": "^0.67.0",
+        "@html-eslint/eslint-plugin": "^0.68.0",
         "@yarnpkg/sdks": "^3.3.1",
-        "eslint": "^10.12.0",
+        "eslint": "^10.14.0",
         "eslint-config-prettier": "^10.1.8",
-        "globals": "^17.13.0",
+        "globals": "^17.14.0",
         "prettier": "^3.9.10",
         "prettier-plugin-nginx": "^2.0.0",
-        "spessasynth_lib": "^4.3.14"
+        "spessasynth_lib": "^4.4.7"
     }
 }

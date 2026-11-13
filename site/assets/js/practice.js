@@ -1,10 +1,26 @@
 'use strict';
 
+let practiceConfigurationProvider = null;
+
+function configurePractice(provider) {
+    practiceConfigurationProvider = provider;
+}
+
+function practiceConfiguration() {
+    if (!practiceConfigurationProvider) {
+        throw new Error('Practice is not configured.');
+    }
+    return practiceConfigurationProvider();
+}
+
+function renderStats() {
+    renderStatsView(musicEngine.stats);
+}
+
 function newTrial() {
     switch (`${activeSection}/${activeView}`) {
         case 'rhythm/sheet':
-            newRhythmPhrase();
-            playRhythm();
+            newRhythmTrial();
             break;
         case 'pitch/placement':
             newPitchPlacementTrial(true);
@@ -51,25 +67,17 @@ function cancelAllAdvances() {
     cancelChordAdvance();
 }
 
-function clearStats() {
-    switch (activeSection) {
-        case 'pitch':
-            clearPitchStats();
-            break;
-        case 'match':
-            clearMatchStats();
-            break;
-        case 'interval':
-            clearIntervalStats();
-            break;
-        case 'chord':
-            clearChordStats();
-            break;
-    }
+function clearStats(mode, type = null) {
+    musicEngine.resetStats(activeSection, mode, type);
+    renderStats();
 }
 
 function updateSectionMode() {
     switch (activeSection) {
+        case 'tuner':
+        case 'chord':
+            updateModePanels(activeSection);
+            break;
         case 'rhythm':
             updateRhythmMode();
             break;
@@ -90,77 +98,20 @@ function updateSectionMode() {
 
 // Pitch
 
-function defaultPitchTypeStats() {
-    return {
-        streak: 0,
-        trials: 0,
-        correct: 0,
-        errorTotal: 0,
-        best: null,
-    };
-}
-
-function defaultPitchStats() {
-    return {
-        placement: defaultPitchTypeStats(),
-        'memory|novel': defaultPitchTypeStats(),
-        'memory|interference': defaultPitchTypeStats(),
-    };
-}
-
-function loadPitchTypeStats(stored) {
-    if (!stored || typeof stored !== 'object') {
-        return defaultPitchTypeStats();
-    }
-
-    return {
-        streak: Number.isFinite(stored.streak) ? stored.streak : 0,
-        trials: Number.isFinite(stored.trials) ? stored.trials : 0,
-        correct: Number.isFinite(stored.correct) ? stored.correct : 0,
-        errorTotal: Number.isFinite(stored.errorTotal) ? stored.errorTotal : 0,
-        best: Number.isFinite(stored.best) ? stored.best : null,
-    };
-}
-
-function loadPitchStats() {
-    const stored = musicEngine.loadStats('pitch');
-
-    if (!stored || typeof stored !== 'object') {
-        return defaultPitchStats();
-    }
-
-    return {
-        placement: loadPitchTypeStats(stored.placement),
-        'memory|novel': loadPitchTypeStats(stored['memory|novel']),
-        'memory|interference': loadPitchTypeStats(
-            stored['memory|interference']
-        ),
-    };
-}
-
-function savePitchStats() {
-    musicEngine.saveStats('pitch');
-}
-
-musicEngine.stats.pitch = loadPitchStats();
-
 const pitchPlacement = {
     trial: null,
     adaptiveResults: [],
 };
 
 function newPitchTrial() {
-    if (sectionView('pitch') === 'memory') {
+    if (practiceConfiguration().modes.pitch === 'memory') {
         newPitchMemoryTrial();
     } else {
         newPitchPlacementTrial(true);
     }
 }
 
-const pitchAdvance = musicEngine.createAutoAdvance(
-    musicEngine.getModuleActions('pitch', 'new'),
-    newPitchTrial
-);
+const pitchAdvance = createAutoAdvance('pitch', newPitchTrial);
 
 function cancelPitchAdvance() {
     pitchAdvance.cancel();
@@ -170,98 +121,10 @@ function schedulePitchAdvance() {
     pitchAdvance.schedule();
 }
 
-function pitchStatsType(mode, type = null) {
-    return mode === 'memory' ? `memory|${type}` : mode;
-}
-
-function renderPitchStats() {
-    const mode = sectionView('pitch');
-    const type =
-        mode === 'memory'
-            ? musicEngine.getControl('pitch-memory-type').value
-            : null;
-    const { streak, trials, errorTotal, best } =
-        musicEngine.stats.pitch[pitchStatsType(mode, type)];
-    const meanError = trials > 0 ? errorTotal / trials : null;
-
-    musicEngine.getOutput(`pitch-${mode}-streak`).textContent = String(streak);
-    musicEngine.getOutput(`pitch-${mode}-mean-error`).textContent =
-        meanError === null ? '--' : `${meanError.toFixed(1)} cents`;
-    musicEngine.getOutput(`pitch-${mode}-best`).textContent =
-        best === null ? '--' : `${best.toFixed(2)} cents`;
-}
-
-function clearPitchStats() {
-    const mode = sectionView('pitch');
-    const type =
-        mode === 'memory'
-            ? musicEngine.getControl('pitch-memory-type').value
-            : null;
-
-    musicEngine.stats.pitch[pitchStatsType(mode, type)] =
-        defaultPitchTypeStats();
-
-    savePitchStats();
-    renderPitchStats();
-}
-
-function setPitchPlacementAnswerState({
-    disabled,
-    selected = null,
-    correct = null,
-}) {
-    for (const button of document.querySelectorAll(
-        '[data-pitch-placement-answers] [data-answer]'
-    )) {
-        button.disabled = disabled;
-        musicEngine.setAnswerOptionState(
-            button,
-            button.dataset.answer,
-            selected,
-            correct
-        );
-    }
-}
-
-function writeNumberIfChanged(input, value) {
-    const rawValue = input.value.trim();
-    const currentValue = rawValue === '' ? NaN : Number(rawValue);
-
-    if (!Number.isFinite(currentValue) || currentValue !== value) {
-        input.value = String(value);
-    }
-}
-
-function normalizeNumberInput(input, fallback) {
-    const value = musicEngine.readNumber(input, fallback);
-
-    writeNumberIfChanged(input, value);
-
-    return value;
-}
-
-function readRange(minimumInput, maximumInput, defaultMinimum, defaultMaximum) {
-    let minimum = musicEngine.readNumber(minimumInput, defaultMinimum);
-    let maximum = musicEngine.readNumber(maximumInput, defaultMaximum);
-
-    if (minimum > maximum) {
-        [minimum, maximum] = [maximum, minimum];
-    }
-
-    writeNumberIfChanged(minimumInput, minimum);
-    writeNumberIfChanged(maximumInput, maximum);
-
-    return {
-        minimum,
-        maximum,
-    };
-}
-
 function updateAdaptiveDifficulty(exercise, correct) {
     const state = getAdaptiveState(exercise);
-    const status = musicEngine.getOutput(`${exercise}-adaptive-status`);
-
-    if (musicEngine.getControl('shared-adaptive').value !== 'on') {
+    const configuration = practiceConfiguration();
+    if (!configuration.adaptive) {
         state.adaptiveResults.length = 0;
         return;
     }
@@ -269,9 +132,11 @@ function updateAdaptiveDifficulty(exercise, correct) {
     state.adaptiveResults.push(correct);
 
     if (state.adaptiveResults.length < musicEngine.ADAPTIVE_WINDOW_SIZE) {
-        status.textContent =
+        renderAdaptiveStatus(
+            exercise,
             `${state.adaptiveResults.length} of ` +
-            `${musicEngine.ADAPTIVE_WINDOW_SIZE} answers`;
+                `${musicEngine.ADAPTIVE_WINDOW_SIZE} answers`
+        );
         return;
     }
 
@@ -289,7 +154,10 @@ function updateAdaptiveDifficulty(exercise, correct) {
     }
 
     if (factor === 1) {
-        status.textContent = `Unchanged ${correctCount}/${musicEngine.ADAPTIVE_WINDOW_SIZE}`;
+        renderAdaptiveStatus(
+            exercise,
+            `Unchanged ${correctCount}/${musicEngine.ADAPTIVE_WINDOW_SIZE}`
+        );
         return;
     }
 
@@ -299,42 +167,44 @@ function updateAdaptiveDifficulty(exercise, correct) {
         exercise === 'interval-recognition' ||
         exercise === 'interval-construction'
     ) {
-        const level = musicEngine.getControl('shared-interval-set');
-
-        level.selectedIndex = musicEngine.clamp(
-            level.selectedIndex + (factor < 1 ? 1 : -1),
+        const level = configuration.interval.levels;
+        const selectedIndex = musicEngine.clamp(
+            level.index + (factor < 1 ? 1 : -1),
             0,
-            level.options.length - 1
+            level.values.length - 1
         );
-        musicEngine.synchronizeSharedControl(level);
+        result = level.values[selectedIndex];
+        renderSettingSelectedIndex('shared-interval-set', selectedIndex);
         for (const intervalExercise of [
             'interval-recognition',
             'interval-construction',
         ]) {
             resetAdaptiveProgress(intervalExercise);
         }
-        result = level.value;
     } else {
-        const minimumInput = musicEngine.getControl(`${exercise}-range-min`);
-        const maximumInput = musicEngine.getControl(`${exercise}-range-max`);
+        const range = {
+            'pitch-placement': configuration.pitch.placement.range,
+            'match-target': configuration.match.target.range,
+        }[exercise];
         const minimum = musicEngine.clamp(
-            Math.round(Number(minimumInput.value) * factor * 10) / 10,
-            Number(minimumInput.min),
-            Number(minimumInput.max)
+            Math.round(range.minimum * factor * 10) / 10,
+            range.minimumLimit,
+            range.maximumLimit
         );
         const maximum = musicEngine.clamp(
-            Math.round(Number(maximumInput.value) * factor * 10) / 10,
-            Number(maximumInput.min),
-            Number(maximumInput.max)
+            Math.round(range.maximum * factor * 10) / 10,
+            range.minimumLimit,
+            range.maximumLimit
         );
 
-        writeNumberIfChanged(minimumInput, minimum);
-        writeNumberIfChanged(maximumInput, maximum);
+        renderSettingValue(`${exercise}-range-min`, minimum);
+        renderSettingValue(`${exercise}-range-max`, maximum);
 
         result = `${minimum} - ${maximum}¢`;
     }
 
-    status.textContent = `${direction} to ${result}`;
+    saveCurrentSettings();
+    renderAdaptiveStatus(exercise, `${direction} to ${result}`);
 }
 
 function getAdaptiveState(exercise) {
@@ -346,43 +216,29 @@ function getAdaptiveState(exercise) {
     }[exercise];
 }
 
-function renderAdaptiveProgress(exercise) {
-    const state = getAdaptiveState(exercise);
-    const enabled = musicEngine.getControl('shared-adaptive').value === 'on';
-
-    musicEngine.getOutput(`${exercise}-adaptive-status`).textContent = enabled
-        ? `${state.adaptiveResults.length} of ${musicEngine.ADAPTIVE_WINDOW_SIZE} answers`
-        : '';
-}
-
 function resetAdaptiveProgress(exercise) {
     const state = getAdaptiveState(exercise);
 
     state.adaptiveResults.length = 0;
-    renderAdaptiveProgress(exercise);
+    renderAdaptiveProgress(
+        exercise,
+        state.adaptiveResults.length,
+        practiceConfiguration().adaptive
+    );
 }
 
 // Pitch: placement
 
 function clearPitchPlacementResult() {
-    musicEngine.clearPracticeResult('pitch-placement-result');
+    clearPracticeResult('pitch-placement-result');
 }
 
 function createPitchPlacementTrial() {
-    const rootFrequency = selectedNoteFrequency(
-        musicEngine.getNoteControl('pitch-placement')
-    );
-
-    const semitones = Number(
-        musicEngine.getControl('pitch-placement-interval').value
-    );
-
-    const { minimum: minimumCents, maximum: maximumCents } = readRange(
-        musicEngine.getControl('pitch-placement-range-min'),
-        musicEngine.getControl('pitch-placement-range-max'),
-        10,
-        50
-    );
+    const configuration = practiceConfiguration().pitch.placement;
+    const rootFrequency = musicEngine.frequencyFromMidi(configuration.rootMidi);
+    const semitones = configuration.interval;
+    const { minimum: minimumCents, maximum: maximumCents } =
+        configuration.range;
 
     const magnitude =
         minimumCents + Math.random() * (maximumCents - minimumCents);
@@ -435,12 +291,7 @@ function playPitchPlacementTrial() {
     const { rootFrequency, correctTargetFrequency, mistuneCents } =
         pitchPlacement.trial;
 
-    const waveform = musicEngine.getWaveform('pitch-placement').value;
-
-    const duration = musicEngine.readNumber(
-        musicEngine.getControl('pitch-placement-duration'),
-        1
-    );
+    const { waveform, duration } = practiceConfiguration().pitch.placement;
 
     const targetFrequency = musicEngine.frequencyFromCents(
         correctTargetFrequency,
@@ -488,28 +339,15 @@ function commitPitchPlacement(answer) {
         correct: direction,
     });
 
-    musicEngine.stats.pitch.placement.trials += 1;
-    musicEngine.stats.pitch.placement.correct += correct ? 1 : 0;
-
-    musicEngine.stats.pitch.placement.errorTotal += correct ? 0 : distance;
-
-    musicEngine.stats.pitch.placement.streak = correct
-        ? musicEngine.stats.pitch.placement.streak + 1
-        : 0;
-
-    if (
-        correct &&
-        (musicEngine.stats.pitch.placement.best === null ||
-            distance < musicEngine.stats.pitch.placement.best)
-    ) {
-        musicEngine.stats.pitch.placement.best = distance;
-    }
-
-    savePitchStats();
-    renderPitchStats();
+    musicEngine.updateStats(musicEngine.stats.pitch.placement, {
+        correct,
+        error: correct ? 0 : distance,
+        bestError: correct ? distance : null,
+    });
+    renderStats();
     updateAdaptiveDifficulty('pitch-placement', correct);
 
-    musicEngine.renderPracticeResult(
+    renderPracticeResult(
         'pitch-placement-result',
         correct,
         `${direction} - ` +
@@ -523,13 +361,30 @@ function commitPitchPlacement(answer) {
 // Pitch: memory
 
 const pitchMemory = {
-    trial: musicEngine.storage.load(musicEngine.TRIAL_KEYS.pitchMemory, null),
     timer: null,
     countdown: null,
     replayTimer: null,
     responseVoice: null,
     responseMethod: 'oscillator',
 };
+const pitchMemoryDelayStateListeners = new Set();
+
+function isPitchMemoryDelayActive() {
+    return musicEngine.state.pitch.memory?.state === 'waiting';
+}
+
+function addPitchMemoryDelayStateListener(listener) {
+    pitchMemoryDelayStateListeners.add(listener);
+    listener(isPitchMemoryDelayActive());
+    return () => pitchMemoryDelayStateListeners.delete(listener);
+}
+
+function notifyPitchMemoryDelayStateChange() {
+    const active = isPitchMemoryDelayActive();
+    for (const listener of pitchMemoryDelayStateListeners) {
+        listener(active);
+    }
+}
 
 const pitchMemoryMicrophoneInput = musicEngine.createMicrophoneInput({
     minimumMidi: musicEngine.PITCH_MEMORY_MINIMUM_MIDI,
@@ -544,13 +399,13 @@ const pitchMemoryMicrophoneInput = musicEngine.createMicrophoneInput({
 });
 
 function savePitchMemoryState() {
-    if (pitchMemory.trial && pitchMemory.trial.state !== 'complete') {
-        musicEngine.storage.save(
-            musicEngine.TRIAL_KEYS.pitchMemory,
-            pitchMemory.trial
-        );
+    if (
+        musicEngine.state.pitch.memory &&
+        musicEngine.state.pitch.memory.state !== 'complete'
+    ) {
+        musicEngine.saveState();
     } else {
-        musicEngine.storage.remove(musicEngine.TRIAL_KEYS.pitchMemory);
+        musicEngine.removeState('pitch', 'memory');
     }
 }
 
@@ -592,28 +447,17 @@ function randomPitchMemoryFrequency(random = Math.random) {
     return minimumFrequency * (maximumFrequency / minimumFrequency) ** random();
 }
 
-function getPitchMemoryResponseFrequency() {
-    const cents = Number(musicEngine.getControl('pitch-memory-pitch').value);
-
+function pitchMemoryResponseFrequency(cents) {
     return (
         musicEngine.frequencyFromMidi(musicEngine.PITCH_MEMORY_MINIMUM_MIDI) *
         2 ** (cents / musicEngine.CENTS_PER_OCTAVE)
     );
 }
 
-function getPitchMemoryRefreshButton() {
-    return document.querySelector(
-        '[data-mode-panel="memory"] [data-action="pitch-memory-new"]'
+function getPitchMemoryResponseFrequency() {
+    return pitchMemoryResponseFrequency(
+        practiceConfiguration().pitch.memory.responseCents
     );
-}
-
-function hidePitchMemoryResponses() {
-    document.getElementById('pitch-memory-pitch-response').hidden =
-        !pitchMemory.trial;
-    const response = document.getElementById('pitch-memory-response-actions');
-
-    response.hidden = true;
-    musicEngine.getAction('pitch-memory-submit', response).disabled = true;
 }
 
 function pitchMemorySliderValueForFrequency(frequency) {
@@ -631,73 +475,14 @@ function pitchMemorySliderValueForFrequency(frequency) {
 }
 
 function initializePitchMemorySlider() {
-    const slider = musicEngine.getControl('pitch-memory-pitch');
-    slider.min = '0';
-    slider.max = String(musicEngine.PITCH_MEMORY_RANGE_CENTS);
-    slider.value = String(musicEngine.PITCH_MEMORY_RANGE_CENTS / 2);
+    musicEngine.getState('pitch');
+    renderPitchMemorySliderInitialized();
 }
 
 function formatPitchAndCents(frequency) {
     const note = nearestNoteFromFrequency(frequency);
 
     return `${musicEngine.noteNameFromMidi(note.midi, 'sharp')} ${musicEngine.signed(note.cents, 0)}¢`;
-}
-
-function renderPitchMemoryResponsePitch() {
-    musicEngine.getOutput('pitch-memory-response-pitch').textContent =
-        formatPitchAndCents(getPitchMemoryResponseFrequency());
-}
-
-function clearPitchMemoryPitchMarkers() {
-    musicEngine.getControl('pitch-memory-pitch').classList.remove('has-result');
-
-    for (const name of [
-        'pitch-memory-target-marker',
-        'pitch-memory-response-marker',
-    ]) {
-        const marker = musicEngine.getOutput(name);
-
-        marker.hidden = true;
-        marker.classList.remove('is-correct', 'is-incorrect');
-    }
-}
-
-function showPitchMemoryPitchMarkers(result) {
-    const targetMarker = musicEngine.getOutput('pitch-memory-target-marker');
-    const responseMarker = musicEngine.getOutput(
-        'pitch-memory-response-marker'
-    );
-    const responseFrequency =
-        result.method === 'microphone'
-            ? result.scoredResponseFrequency
-            : result.responseFrequency;
-    const minimumFrequency = musicEngine.frequencyFromMidi(
-        musicEngine.PITCH_MEMORY_MINIMUM_MIDI
-    );
-    const maximumFrequency = musicEngine.frequencyFromMidi(
-        musicEngine.PITCH_MEMORY_MAXIMUM_MIDI
-    );
-    const position = (frequency) =>
-        musicEngine.clamp(
-            Math.log2(frequency / minimumFrequency) /
-                Math.log2(maximumFrequency / minimumFrequency),
-            0,
-            1
-        );
-
-    targetMarker.style.left = `${position(result.targetFrequency) * 100}%`;
-    responseMarker.style.left = `${position(responseFrequency) * 100}%`;
-    const correct =
-        result.absoluteErrorCents < musicEngine.PITCH_MEMORY_CORRECT_CENTS;
-    responseMarker.classList.toggle('is-correct', correct);
-    responseMarker.classList.toggle('is-incorrect', !correct);
-    musicEngine.getControl('pitch-memory-pitch').classList.add('has-result');
-    targetMarker.hidden = false;
-    responseMarker.hidden = false;
-}
-
-function setPitchMemoryStatus(text) {
-    musicEngine.getOutput('pitch-memory-status').textContent = text;
 }
 
 function clearPitchMemoryTimers() {
@@ -725,8 +510,8 @@ function handlePitchMemoryMicrophoneDeactivation({ reason }) {
 
     if (
         reason === 'microphone-paused' &&
-        pitchMemory.trial &&
-        pitchMemory.trial.state !== 'complete'
+        musicEngine.state.pitch.memory &&
+        musicEngine.state.pitch.memory.state !== 'complete'
     ) {
         stopPitchMemoryAudio();
     }
@@ -739,7 +524,10 @@ function processPitchMemoryMicrophoneFrame({
 }) {
     const microphone = pitchMemoryMicrophoneInput;
 
-    if (samplesUpdated && pitchMemory.trial?.state === 'responding') {
+    if (
+        samplesUpdated &&
+        musicEngine.state.pitch.memory?.state === 'responding'
+    ) {
         const frequency = detectPitchYin(
             samples,
             sampleRate,
@@ -760,21 +548,15 @@ function processPitchMemoryMicrophoneFrame({
                 microphone.detectedFrequencies
             );
             pitchMemory.responseMethod = 'microphone';
-
-            musicEngine.getOutput('pitch-memory-response-pitch').textContent =
-                formatPitchAndCents(microphone.detectedFrequency);
-            musicEngine.getControl('pitch-memory-pitch').value = String(
-                pitchMemorySliderValueForFrequency(microphone.detectedFrequency)
-            );
+            renderPitchMemoryDetectedFrequency(microphone.detectedFrequency);
         }
     }
 }
 
 async function activatePitchMemoryMicrophone() {
-    const refreshButton = getPitchMemoryRefreshButton();
-    const active = pitchMemoryMicrophoneInput.active();
+    const active = pitchMemoryMicrophoneInput.isActive();
 
-    refreshButton.disabled = false;
+    setPitchMemoryRefreshEnabled(true);
     if (!active) {
         setPitchMemoryStatus(musicEngine.MICROPHONE_MESSAGES.REQUESTING);
     }
@@ -793,20 +575,18 @@ async function activatePitchMemoryMicrophone() {
         }
 
         if (active) {
-            refreshButton.disabled = false;
+            setPitchMemoryRefreshEnabled(true);
             setPitchMemoryStatus(musicEngine.MICROPHONE_MESSAGES.LISTENING);
             return;
         }
 
         pitchMemoryMicrophoneInput.detectedFrequencies = [];
         pitchMemoryMicrophoneInput.detectedFrequency = null;
-        refreshButton.disabled = false;
-
-        musicEngine.getOutput('pitch-memory-response-pitch').textContent =
-            musicEngine.MICROPHONE_MESSAGES.NO_STABLE_PITCH;
+        setPitchMemoryRefreshEnabled(true);
+        renderPitchMemoryNoStablePitch();
         setPitchMemoryStatus(musicEngine.MICROPHONE_MESSAGES.LISTENING);
     } catch {
-        refreshButton.disabled = false;
+        setPitchMemoryRefreshEnabled(true);
         setPitchMemoryStatus(
             `${musicEngine.MICROPHONE_MESSAGES.FAILED}; adjust the tone manually.`
         );
@@ -814,24 +594,25 @@ async function activatePitchMemoryMicrophone() {
 }
 
 function showPitchMemoryResponse() {
-    if (!pitchMemory.trial || pitchMemory.trial.state === 'responding') {
+    if (
+        !musicEngine.state.pitch.memory ||
+        musicEngine.state.pitch.memory.state === 'responding'
+    ) {
         return;
     }
 
     clearPitchMemoryTimers();
     musicEngine.audio.stopTransient();
 
-    pitchMemory.trial.state = 'responding';
-    pitchMemory.trial.responseStartedAt = Date.now();
+    musicEngine.state.pitch.memory.state = 'responding';
+    notifyPitchMemoryDelayStateChange();
+    musicEngine.state.pitch.memory.responseStartedAt = Date.now();
 
-    const response = document.getElementById('pitch-memory-response-actions');
-
-    hidePitchMemoryResponses();
-    document.getElementById('pitch-memory-pitch-response').hidden = false;
-    response.hidden = false;
-    const random = seededRandom(pitchMemory.trial.seed ^ 0xa55a5aa5);
+    const random = seededRandom(
+        musicEngine.state.pitch.memory.seed ^ 0xa55a5aa5
+    );
     const targetCents = pitchMemorySliderValueForFrequency(
-        pitchMemory.trial.targetFrequency
+        musicEngine.state.pitch.memory.targetFrequency
     );
     const direction = random() < 0.5 ? -1 : 1;
     const offset = direction * (300 + random() * 900);
@@ -839,32 +620,31 @@ function showPitchMemoryResponse() {
     pitchMemory.responseMethod = 'oscillator';
     pitchMemoryMicrophoneInput.detectedFrequency = null;
     pitchMemoryMicrophoneInput.detectedFrequencies = [];
-    musicEngine.getControl('pitch-memory-pitch').value = String(
-        musicEngine.clamp(
-            targetCents + offset,
-            0,
-            musicEngine.PITCH_MEMORY_RANGE_CENTS
-        )
+    const sliderValue = musicEngine.clamp(
+        targetCents + offset,
+        0,
+        musicEngine.PITCH_MEMORY_RANGE_CENTS
     );
-    renderPitchMemoryResponsePitch();
-    clearPitchMemoryPitchMarkers();
-    musicEngine.getControl('pitch-memory-pitch').disabled = false;
-    musicEngine.getAction('pitch-memory-response-play').disabled = false;
-    musicEngine.getAction('pitch-memory-response-stop').disabled = false;
-    musicEngine.getAction('pitch-memory-submit', response).disabled = false;
-    setPitchMemoryStatus(
-        'Produce the remembered pitch or adjust the tone, then submit.'
+    renderPitchMemoryResponse(
+        sliderValue,
+        pitchMemoryResponseFrequency(sliderValue)
     );
 
     savePitchMemoryState();
 }
 
-function renderPitchMemoryCountdown() {
-    if (!pitchMemory.trial || pitchMemory.trial.state !== 'waiting') {
+function updatePitchMemoryCountdown() {
+    if (
+        !musicEngine.state.pitch.memory ||
+        musicEngine.state.pitch.memory.state !== 'waiting'
+    ) {
         return;
     }
 
-    const remaining = Math.max(0, pitchMemory.trial.availableAt - Date.now());
+    const remaining = Math.max(
+        0,
+        musicEngine.state.pitch.memory.availableAt - Date.now()
+    );
 
     if (remaining <= 0) {
         showPitchMemoryResponse();
@@ -884,17 +664,23 @@ function renderPitchMemoryCountdown() {
 
 function schedulePitchMemoryResponse() {
     clearPitchMemoryTimers();
-    renderPitchMemoryCountdown();
+    updatePitchMemoryCountdown();
 
-    if (!pitchMemory.trial || pitchMemory.trial.state !== 'waiting') {
+    if (
+        !musicEngine.state.pitch.memory ||
+        musicEngine.state.pitch.memory.state !== 'waiting'
+    ) {
         return;
     }
 
-    const remaining = Math.max(0, pitchMemory.trial.availableAt - Date.now());
+    const remaining = Math.max(
+        0,
+        musicEngine.state.pitch.memory.availableAt - Date.now()
+    );
 
     pitchMemory.timer = window.setTimeout(showPitchMemoryResponse, remaining);
     pitchMemory.countdown = window.setInterval(
-        renderPitchMemoryCountdown,
+        updatePitchMemoryCountdown,
         1000
     );
 }
@@ -907,7 +693,7 @@ function playInterferenceSequence(random, count) {
             Math.abs(
                 musicEngine.centsBetween(
                     frequency,
-                    pitchMemory.trial.targetFrequency
+                    musicEngine.state.pitch.memory.targetFrequency
                 )
             ) < 200
         ) {
@@ -948,48 +734,52 @@ function playNovelPitchMemoryMelody(random, startingFrequency) {
     });
 }
 
-function setPitchMemoryReplayEnabled(enabled) {
-    musicEngine.getAction('pitch-memory-play').disabled = !enabled;
-}
-
 function playPitchMemoryStimulus() {
     cancelPitchAdvance();
 
     if (
-        !pitchMemory.trial ||
-        pitchMemory.trial.state === 'complete' ||
-        pitchMemory.trial.stimulusPlayed
+        !musicEngine.state.pitch.memory ||
+        musicEngine.state.pitch.memory.state === 'complete' ||
+        musicEngine.state.pitch.memory.stimulusPlayed
     ) {
         return;
     }
 
     musicEngine.audio.stopTransient();
 
-    const random = seededRandom(pitchMemory.trial.seed);
+    const random = seededRandom(musicEngine.state.pitch.memory.seed);
     const startedAt = Date.now();
-    const conditionValue = Number.parseInt(pitchMemory.trial.condition, 10);
+    const conditionValue = Number.parseInt(
+        musicEngine.state.pitch.memory.condition,
+        10
+    );
     const sequenceSeconds = 1.45 + conditionValue * 0.18;
 
-    pitchMemory.trial.state = 'waiting';
-    pitchMemory.trial.encodedAt = startedAt;
-    pitchMemory.trial.encodingEndsAt =
-        startedAt + (pitchMemory.trial.type === 'novel' ? 3000 : 1200);
-    pitchMemory.trial.availableAt =
+    musicEngine.state.pitch.memory.state = 'waiting';
+    notifyPitchMemoryDelayStateChange();
+    musicEngine.state.pitch.memory.encodedAt = startedAt;
+    musicEngine.state.pitch.memory.encodingEndsAt =
         startedAt +
-        (pitchMemory.trial.type === 'novel'
+        (musicEngine.state.pitch.memory.type === 'novel' ? 3000 : 1200);
+    musicEngine.state.pitch.memory.availableAt =
+        startedAt +
+        (musicEngine.state.pitch.memory.type === 'novel'
             ? conditionValue + 3
             : sequenceSeconds) *
             1000;
-    musicEngine.getAction('pitch-memory-stop').disabled = false;
+    setPitchMemoryStopEnabled(true);
 
     // Consume the value originally used to select targetFrequency.
     randomPitchMemoryFrequency(random);
 
-    if (pitchMemory.trial.type === 'novel') {
-        playNovelPitchMemoryMelody(random, pitchMemory.trial.targetFrequency);
+    if (musicEngine.state.pitch.memory.type === 'novel') {
+        playNovelPitchMemoryMelody(
+            random,
+            musicEngine.state.pitch.memory.targetFrequency
+        );
     } else {
         musicEngine.audio.playTransient(
-            pitchMemory.trial.targetFrequency,
+            musicEngine.state.pitch.memory.targetFrequency,
             'sine',
             1.2,
             0.8
@@ -997,9 +787,9 @@ function playPitchMemoryStimulus() {
         playInterferenceSequence(random, conditionValue);
     }
 
-    const trialSeed = pitchMemory.trial.seed;
+    const trialSeed = musicEngine.state.pitch.memory.seed;
     const playbackSeconds =
-        pitchMemory.trial.type === 'novel'
+        musicEngine.state.pitch.memory.type === 'novel'
             ? 3
             : Math.max(1.2, 1.45 + conditionValue * 0.18);
 
@@ -1010,13 +800,13 @@ function playPitchMemoryStimulus() {
     pitchMemory.replayTimer = window.setTimeout(() => {
         pitchMemory.replayTimer = null;
 
-        if (pitchMemory.trial?.seed !== trialSeed) {
+        if (musicEngine.state.pitch.memory?.seed !== trialSeed) {
             return;
         }
 
-        pitchMemory.trial.stimulusPlayed = true;
+        musicEngine.state.pitch.memory.stimulusPlayed = true;
         setPitchMemoryReplayEnabled(false);
-        musicEngine.getAction('pitch-memory-stop').disabled = true;
+        setPitchMemoryStopEnabled(false);
         savePitchMemoryState();
     }, playbackSeconds * 1000);
 
@@ -1026,22 +816,19 @@ function playPitchMemoryStimulus() {
 
 function newPitchMemoryTrial() {
     cancelPitchAdvance();
+    activatePitchMemoryMicrophone();
     cancelPitchMemoryTrial(false);
 
-    const type = musicEngine.getControl('pitch-memory-type').value;
-    void activatePitchMemoryMicrophone();
+    const configuration = practiceConfiguration().pitch.memory;
+    const type = configuration.type;
 
     const seed = randomSeed();
     const random = seededRandom(seed);
-    const distractors = Number(
-        musicEngine.getControl('pitch-memory-distractors').value
-    );
-    const delaySeconds = Number(
-        musicEngine.getControl('pitch-memory-delay').value
-    );
+    const distractors = configuration.distractors;
+    const delaySeconds = configuration.delay;
     const sequenceSeconds = 1.45 + distractors * 0.18;
 
-    pitchMemory.trial = {
+    musicEngine.state.pitch.memory = {
         type,
         condition:
             type === 'novel'
@@ -1057,12 +844,9 @@ function newPitchMemoryTrial() {
         state: 'waiting',
         stimulusPlayed: false,
     };
+    notifyPitchMemoryDelayStateChange();
 
-    hidePitchMemoryResponses();
-    clearPitchMemoryPitchMarkers();
-    musicEngine.getOutput('pitch-memory-result').textContent = '';
-    setPitchMemoryReplayEnabled(true);
-    musicEngine.getAction('pitch-memory-stop').disabled = false;
+    renderPitchMemoryTrialStarted();
 
     playPitchMemoryStimulus();
 }
@@ -1079,21 +863,10 @@ function cancelPitchMemoryTrial(showStatus = true) {
     stopPitchMemoryResponseTone();
     musicEngine.audio.stopTransient();
 
-    pitchMemory.trial = null;
+    musicEngine.state.pitch.memory = null;
+    notifyPitchMemoryDelayStateChange();
 
-    const playButton = musicEngine.getAction('pitch-memory-play');
-
-    if (!playButton) {
-        return;
-    }
-
-    playButton.disabled = true;
-    musicEngine.getAction('pitch-memory-stop').disabled = true;
-    hidePitchMemoryResponses();
-
-    if (showStatus) {
-        setPitchMemoryStatus('Trial cancelled.');
-    }
+    renderPitchMemoryTrialCancelled(showStatus);
 
     savePitchMemoryState();
 }
@@ -1109,20 +882,22 @@ function stopPitchMemoryAudio() {
         pitchMemory.replayTimer = null;
     }
 
-    if (pitchMemory.trial?.state !== 'complete') {
-        pitchMemory.trial.state = 'stopped';
-        musicEngine.getAction('pitch-memory-stop').disabled = true;
-        hidePitchMemoryResponses();
-        setPitchMemoryStatus('Trial stopped.');
+    if (
+        musicEngine.state.pitch.memory &&
+        musicEngine.state.pitch.memory.state !== 'complete'
+    ) {
+        musicEngine.state.pitch.memory.state = 'stopped';
+        notifyPitchMemoryDelayStateChange();
+        renderPitchMemoryTrialStopped();
         savePitchMemoryState();
     }
 }
 
 function playPitchMemoryResponse() {
     if (
-        document.getElementById('pitch-memory-response-actions').hidden ||
-        !pitchMemory.trial ||
-        pitchMemory.trial.state !== 'responding'
+        !isPitchMemoryResponseVisible() ||
+        !musicEngine.state.pitch.memory ||
+        musicEngine.state.pitch.memory.state !== 'responding'
     ) {
         return;
     }
@@ -1146,12 +921,15 @@ function updatePitchMemoryResponseTone() {
         ) <= musicEngine.PITCH_MEMORY_MICROPHONE_ADJUSTMENT_CENTS
             ? 'microphone'
             : 'oscillator';
-    renderPitchMemoryResponsePitch();
+    renderPitchMemoryResponsePitch(responseFrequency);
     pitchMemory.responseVoice?.setFrequency(responseFrequency);
 }
 
 function submitPitchMemoryResponse() {
-    if (!pitchMemory.trial || pitchMemory.trial.state !== 'responding') {
+    if (
+        !musicEngine.state.pitch.memory ||
+        musicEngine.state.pitch.memory.state !== 'responding'
+    ) {
         return;
     }
 
@@ -1166,83 +944,61 @@ function submitPitchMemoryResponse() {
         method === 'microphone'
             ? musicEngine.nearestOctaveFrequency(
                   responseFrequency,
-                  pitchMemory.trial.targetFrequency
+                  musicEngine.state.pitch.memory.targetFrequency
               )
             : responseFrequency;
     const errorCents = musicEngine.centsBetween(
         scoredResponseFrequency,
-        pitchMemory.trial.targetFrequency
+        musicEngine.state.pitch.memory.targetFrequency
     );
     const result = {
         timestamp: new Date().toISOString(),
-        type: pitchMemory.trial.type,
+        type: musicEngine.state.pitch.memory.type,
         method,
-        condition: pitchMemory.trial.condition,
-        targetFrequency: pitchMemory.trial.targetFrequency,
+        condition: musicEngine.state.pitch.memory.condition,
+        targetFrequency: musicEngine.state.pitch.memory.targetFrequency,
         responseFrequency,
         scoredResponseFrequency,
         errorCents,
         absoluteErrorCents: Math.abs(errorCents),
-        responseTimeMs: Date.now() - pitchMemory.trial.responseStartedAt,
+        responseTimeMs:
+            Date.now() - musicEngine.state.pitch.memory.responseStartedAt,
         waveform: 'sine',
-        seed: pitchMemory.trial.seed,
+        seed: musicEngine.state.pitch.memory.seed,
     };
 
     const correct =
         result.absoluteErrorCents < musicEngine.PITCH_MEMORY_CORRECT_CENTS;
 
-    const typeStats =
-        musicEngine.stats.pitch[pitchStatsType('memory', result.type)];
-
-    typeStats.trials += 1;
-    typeStats.correct += correct ? 1 : 0;
-    typeStats.errorTotal += result.absoluteErrorCents;
-    typeStats.streak = correct ? typeStats.streak + 1 : 0;
-
-    if (typeStats.best === null || result.absoluteErrorCents < typeStats.best) {
-        typeStats.best = result.absoluteErrorCents;
-    }
-
-    savePitchStats();
+    musicEngine.updateStats(musicEngine.stats.pitch.memory[result.type], {
+        correct,
+        error: result.absoluteErrorCents,
+    });
     stopPitchMemoryResponseTone();
 
-    musicEngine.getOutput('pitch-memory-result').textContent =
-        result.method === 'microphone'
-            ? `Target ${formatPitchAndCents(result.targetFrequency)}; response ${formatPitchAndCents(result.responseFrequency)}; octave-adjusted ${formatPitchAndCents(result.scoredResponseFrequency)}; error ${musicEngine.signed(result.errorCents, 1)} cents.`
-            : `Target ${formatPitchAndCents(result.targetFrequency)}; response ${formatPitchAndCents(result.responseFrequency)}; error ${musicEngine.signed(result.errorCents, 1)} cents.`;
+    renderPitchMemoryResult(result);
 
-    showPitchMemoryPitchMarkers(result);
-
-    musicEngine.getControl('pitch-memory-pitch').disabled = true;
-    musicEngine.getAction('pitch-memory-response-play').disabled = true;
-    musicEngine.getAction('pitch-memory-response-stop').disabled = true;
-    musicEngine.getAction(
-        'pitch-memory-submit',
-        document.getElementById('pitch-memory-response-actions')
-    ).disabled = true;
-
-    pitchMemory.trial.state = 'complete';
+    musicEngine.state.pitch.memory.state = 'complete';
+    notifyPitchMemoryDelayStateChange();
 
     setPitchMemoryReplayEnabled(true);
-    musicEngine.getAction('pitch-memory-stop').disabled = false;
+    setPitchMemoryStopEnabled(true);
 
     savePitchMemoryState();
-    renderPitchStats();
+    renderStats();
     setPitchMemoryStatus('Trial complete.');
     schedulePitchAdvance();
 }
 
 function updatePitchMemoryControls() {
-    const novel = musicEngine.getControl('pitch-memory-type').value === 'novel';
+    const novel = practiceConfiguration().pitch.memory.type === 'novel';
 
-    document.querySelector('[data-pitch-memory-type="novel"]').hidden = !novel;
-    document.querySelector('[data-pitch-memory-type="interference"]').hidden =
-        novel;
-    renderPitchStats();
+    renderPitchMemoryType(novel);
+    renderStats();
 }
 
 function updatePitchMode() {
-    const mode = sectionView('pitch');
+    const mode = practiceConfiguration().modes.pitch;
     updateModePanels('pitch');
 
     stopAllAudio();
@@ -1251,30 +1007,29 @@ function updatePitchMode() {
     if (mode === 'memory') {
         updatePitchMemoryControls();
         if (
-            pitchMemory.trial &&
+            musicEngine.state.pitch.memory &&
             musicEngine.microphoneRequestState ===
                 musicEngine.MICROPHONE_STATES.LISTENING
         ) {
-            void activatePitchMemoryMicrophone();
+            activatePitchMemoryMicrophone();
         }
         return;
     }
 
     if (
-        pitchMemory.trial?.state === 'waiting' &&
-        (pitchMemory.trial.type === 'interference' ||
-            Date.now() < pitchMemory.trial.encodingEndsAt)
+        musicEngine.state.pitch.memory?.state === 'waiting' &&
+        (musicEngine.state.pitch.memory.type === 'interference' ||
+            Date.now() < musicEngine.state.pitch.memory.encodingEndsAt)
     ) {
         cancelPitchMemoryTrial();
     }
 
     pitchMemoryMicrophoneInput.deactivate('mode-changed');
     newPitchPlacementTrial();
-    renderPitchStats();
 }
 
-function restorePitchMemoryTrial() {
-    const trial = pitchMemory.trial;
+function restorePitchMemoryState() {
+    const state = musicEngine.state.pitch.memory;
     const minimumFrequency = musicEngine.frequencyFromMidi(
         musicEngine.PITCH_MEMORY_MINIMUM_MIDI
     );
@@ -1283,89 +1038,52 @@ function restorePitchMemoryTrial() {
     );
 
     if (
-        !trial ||
-        !['novel', 'interference'].includes(trial.type) ||
-        !['waiting', 'responding'].includes(trial.state) ||
-        !Number.isFinite(trial.targetFrequency) ||
-        trial.targetFrequency < minimumFrequency ||
-        trial.targetFrequency > maximumFrequency
+        !state ||
+        !['novel', 'interference'].includes(state.type) ||
+        !['waiting', 'responding'].includes(state.state) ||
+        !Number.isFinite(state.targetFrequency) ||
+        state.targetFrequency < minimumFrequency ||
+        state.targetFrequency > maximumFrequency
     ) {
-        pitchMemory.trial = null;
-        musicEngine.storage.remove(musicEngine.TRIAL_KEYS.pitchMemory);
+        notifyPitchMemoryDelayStateChange();
+        musicEngine.removeState('pitch', 'memory');
         updatePitchMemoryControls();
         return;
     }
 
-    musicEngine.getControl('pitch-memory-type').value = trial.type;
-
-    const conditionValue = String(Number.parseInt(trial.condition, 10));
-
-    if (trial.type === 'novel') {
-        musicEngine.getControl('pitch-memory-delay').value = conditionValue;
-    } else {
-        musicEngine.getControl('pitch-memory-distractors').value =
-            conditionValue;
-    }
+    const conditionValue = String(Number.parseInt(state.condition, 10));
+    renderPitchMemoryStoredSettings(state.type, conditionValue);
 
     updatePitchMemoryControls();
 
-    if (trial.state === 'responding') {
-        trial.state = 'waiting';
+    if (state.state === 'responding') {
+        state.state = 'waiting';
         showPitchMemoryResponse();
         return;
     }
 
-    if (!trial.stimulusPlayed) {
-        trial.state = 'ready';
+    if (!state.stimulusPlayed) {
+        state.state = 'ready';
         playPitchMemoryStimulus();
         return;
     }
 
-    setPitchMemoryReplayEnabled(!trial.stimulusPlayed);
-    musicEngine.getAction('pitch-memory-stop').disabled = true;
+    setPitchMemoryReplayEnabled(!state.stimulusPlayed);
+    setPitchMemoryStopEnabled(false);
     schedulePitchMemoryResponse();
 }
 
 // Match
 
-function defaultMatchStats() {
-    return {
-        identification: defaultMatchIdentificationStats(),
-        target: defaultMatchTargetStats(),
-    };
-}
-
-function loadMatchStats() {
-    const stored = musicEngine.loadStats('match');
-
-    if (!stored || typeof stored !== 'object' || Array.isArray(stored)) {
-        return defaultMatchStats();
-    }
-
-    return {
-        identification: loadMatchIdentificationStats(stored.identification),
-        target: loadMatchTargetStats(stored.target),
-    };
-}
-
-function saveMatchStats() {
-    musicEngine.saveStats('match');
-}
-
-musicEngine.stats.match = loadMatchStats();
-
 function newMatchTrial(playImmediately = false) {
-    if (sectionView('match') === 'identification') {
+    if (practiceConfiguration().modes.match === 'identification') {
         newMatchIdentificationTrial(playImmediately);
     } else {
         newMatchTargetTrial();
     }
 }
 
-const matchAdvance = musicEngine.createAutoAdvance(
-    musicEngine.getModuleActions('match', 'new'),
-    () => newMatchTrial(true)
-);
+const matchAdvance = createAutoAdvance('match', () => newMatchTrial(true));
 
 function cancelMatchAdvance() {
     matchAdvance.cancel();
@@ -1375,28 +1093,8 @@ function scheduleMatchAdvance() {
     matchAdvance.schedule();
 }
 
-function renderMatchStats() {
-    if (sectionView('match') === 'identification') {
-        renderMatchIdentificationStats();
-    } else {
-        renderMatchTargetStats();
-    }
-}
-
-function clearMatchStats() {
-    if (sectionView('match') === 'identification') {
-        musicEngine.stats.match.identification =
-            defaultMatchIdentificationStats();
-    } else {
-        musicEngine.stats.match.target = defaultMatchTargetStats();
-    }
-
-    saveMatchStats();
-    renderMatchStats();
-}
-
 function updateMatchMode() {
-    const mode = sectionView('match');
+    const mode = practiceConfiguration().modes.match;
     updateModePanels('match');
 
     stopAllAudio();
@@ -1407,35 +1105,9 @@ function updateMatchMode() {
     } else {
         newMatchTargetTrial();
     }
-
-    renderMatchStats();
 }
 
 // Match: target
-
-function defaultMatchTargetStats() {
-    return {
-        streak: 0,
-        trials: 0,
-        correct: 0,
-        errorTotal: 0,
-        best: null,
-    };
-}
-
-function loadMatchTargetStats(stored) {
-    if (!stored || typeof stored !== 'object' || Array.isArray(stored)) {
-        return defaultMatchTargetStats();
-    }
-
-    return {
-        streak: Number.isFinite(stored.streak) ? stored.streak : 0,
-        trials: Number.isFinite(stored.trials) ? stored.trials : 0,
-        correct: Number.isFinite(stored.correct) ? stored.correct : 0,
-        errorTotal: Number.isFinite(stored.errorTotal) ? stored.errorTotal : 0,
-        best: Number.isFinite(stored.best) ? stored.best : null,
-    };
-}
 
 const matchTarget = {
     answers: [],
@@ -1496,20 +1168,13 @@ function newMatchTargetTrial() {
     cancelMatchAdvance();
     stopAllAudio();
 
-    const targetFrequency = selectedNoteFrequency(
-        musicEngine.getNoteControl('match-target')
+    const configuration = practiceConfiguration().match.target;
+    const targetFrequency = musicEngine.frequencyFromMidi(
+        configuration.targetMidi
     );
-
-    const { minimum: minimumCents, maximum: maximumCents } = readRange(
-        musicEngine.getControl('match-target-range-min'),
-        musicEngine.getControl('match-target-range-max'),
-        10,
-        50
-    );
-
-    const count = Math.round(
-        musicEngine.readNumber(musicEngine.getControl('match-target-count'), 7)
-    );
+    const { minimum: minimumCents, maximum: maximumCents } =
+        configuration.range;
+    const count = configuration.count;
 
     matchTarget.answers = musicEngine.shuffle(
         matchTargetAnswerOffsets(count, minimumCents, maximumCents).map(
@@ -1559,92 +1224,6 @@ function getMatchTargetAnswerResult(index) {
     };
 }
 
-function createMatchTargetAnswerRow(answer, index) {
-    const row = document.createElement('div');
-
-    row.className = 'practice-row';
-
-    row.dataset.matchTargetAnswer = String(index);
-
-    const buttons = document.createElement('div');
-
-    buttons.className = 'answer-actions';
-
-    const playButton = document.createElement('button');
-
-    playButton.type = 'button';
-
-    playButton.className = 'icon-button answer-play';
-
-    playButton.dataset.action = 'match-target-answer-play';
-
-    playButton.setAttribute('aria-label', `Play answer ${index + 1}`);
-
-    playButton.title = `Play answer ${index + 1}`;
-
-    playButton.textContent = '▶';
-
-    const chooseButton = document.createElement('button');
-
-    chooseButton.type = 'button';
-
-    chooseButton.className = 'answer-option answer-select';
-
-    chooseButton.dataset.action = 'match-target-answer-select';
-
-    chooseButton.textContent = `Choose #${index + 1}`;
-
-    chooseButton.disabled = matchTarget.committed || !answer.played;
-
-    buttons.append(playButton, chooseButton);
-
-    row.append(buttons);
-
-    const result = getMatchTargetAnswerResult(index);
-
-    if (!result) {
-        return row;
-    }
-
-    const details = document.createElement('span');
-
-    details.className = 'practice-result';
-
-    if (result.className) {
-        chooseButton.classList.add(result.className);
-        details.classList.add(result.className);
-    }
-
-    if (result.icon) {
-        const icon = document.createElement('span');
-
-        icon.className = 'result-icon';
-
-        icon.textContent = result.icon;
-
-        details.append(icon);
-    }
-
-    details.append(
-        document.createTextNode(
-            `${answer.frequency.toFixed(3)} Hz, ` +
-                `${musicEngine.signed(answer.cents, 2)} cents`
-        )
-    );
-
-    row.append(details);
-
-    return row;
-}
-
-function renderMatchTargetAnswers() {
-    const rows = matchTarget.answers.map(createMatchTargetAnswerRow);
-
-    document
-        .querySelector('[data-match-target-answers]')
-        .replaceChildren(...rows);
-}
-
 function playMatchTargetAnswer(index) {
     const answer = matchTarget.answers[index];
 
@@ -1656,44 +1235,19 @@ function playMatchTargetAnswer(index) {
     stopAllAudio();
 
     answer.played = true;
+    const configuration = practiceConfiguration().match.target;
 
     musicEngine.audio.playTransient(
         answer.frequency,
-
-        musicEngine.getWaveform('match-target').value,
-
-        musicEngine.readNumber(
-            musicEngine.getControl('match-target-duration'),
-            1
-        )
+        configuration.waveform,
+        configuration.duration
     );
 
     if (matchTarget.committed) {
         return;
     }
 
-    const row = document.querySelector(`[data-match-target-answer="${index}"]`);
-
-    const chooseButton = row
-        ? musicEngine.getAction('match-target-answer-select', row)
-        : null;
-
-    if (chooseButton) {
-        chooseButton.disabled = false;
-    }
-}
-
-function renderMatchTargetStats() {
-    const { streak, trials, errorTotal, best } = musicEngine.stats.match.target;
-    const meanError = trials > 0 ? errorTotal / trials : 0;
-
-    musicEngine.getOutput('match-target-streak').textContent = String(streak);
-
-    musicEngine.getOutput('match-target-mean-error').textContent =
-        `${meanError.toFixed(1)} cents`;
-
-    musicEngine.getOutput('match-target-best').textContent =
-        best === null ? '--' : String(best);
+    enableMatchTargetAnswer(index);
 }
 
 function commitMatchTargetAnswer(index) {
@@ -1719,92 +1273,28 @@ function commitMatchTargetAnswer(index) {
         musicEngine.centsBetween(selected.frequency, target.frequency)
     );
 
-    musicEngine.stats.match.target.trials += 1;
-    musicEngine.stats.match.target.correct += correct ? 1 : 0;
-    musicEngine.stats.match.target.errorTotal += errorCents;
-    musicEngine.stats.match.target.streak = correct
-        ? musicEngine.stats.match.target.streak + 1
-        : 0;
-
-    if (
-        correct &&
-        (musicEngine.stats.match.target.best === null ||
-            musicEngine.stats.match.target.streak >
-                musicEngine.stats.match.target.best)
-    ) {
-        musicEngine.stats.match.target.best =
-            musicEngine.stats.match.target.streak;
-    }
-
-    saveMatchStats();
+    musicEngine.updateStats(musicEngine.stats.match.target, {
+        correct,
+        error: errorCents,
+    });
 
     renderMatchTargetAnswers();
-    renderMatchTargetStats();
+    renderStats();
     updateAdaptiveDifficulty('match-target', correct);
 
-    const newMatchButton = [
-        ...musicEngine.getModuleActions('match', 'new'),
-    ].find((button) => !button.closest('[hidden]'));
-
-    newMatchButton?.focus();
+    focusVisibleModuleAction('match', 'new');
 
     scheduleMatchAdvance();
 }
 
 // Match: identification
 
-function defaultMatchIdentificationStats() {
-    return {
-        streak: 0,
-        trials: 0,
-        correct: 0,
-        best: null,
-    };
-}
-
-function loadMatchIdentificationStats(stored) {
-    if (!stored || typeof stored !== 'object' || Array.isArray(stored)) {
-        return defaultMatchIdentificationStats();
-    }
-
-    return {
-        streak: Number.isFinite(stored.streak) ? stored.streak : 0,
-        trials: Number.isFinite(stored.trials) ? stored.trials : 0,
-        correct: Number.isFinite(stored.correct) ? stored.correct : 0,
-        best: Number.isFinite(stored.best) ? stored.best : null,
-    };
-}
-
 const matchIdentification = { trial: null };
-
-function renderMatchIdentificationAnswers(selected = null) {
-    const trial = matchIdentification.trial;
-    const buttons = musicEngine.PITCH_CLASS_NAMES.map((_, pitchClass) => {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'answer-option';
-        button.dataset.matchIdentificationAnswer = String(pitchClass);
-        button.textContent = musicEngine.pitchClassName(pitchClass);
-        button.disabled = !trial?.played || trial.committed;
-        musicEngine.setAnswerOptionState(
-            button,
-            pitchClass,
-            selected,
-            trial?.midi % musicEngine.SEMITONES_PER_OCTAVE
-        );
-        return button;
-    });
-    document
-        .querySelector('[data-match-identification-answers]')
-        .replaceChildren(...buttons);
-}
 
 function newMatchIdentificationTrial(playImmediately = false) {
     cancelMatchAdvance();
     stopAllAudio();
-    const octaveValue = musicEngine.getControl(
-        'match-identification-octave'
-    ).value;
+    const octaveValue = practiceConfiguration().match.identification.octave;
     const octave =
         octaveValue === 'random'
             ? 3 + Math.floor(Math.random() * 3)
@@ -1816,7 +1306,7 @@ function newMatchIdentificationTrial(playImmediately = false) {
         played: false,
         committed: false,
     };
-    musicEngine.clearPracticeResult('match-identification-result');
+    clearPracticeResult('match-identification-result');
     renderMatchIdentificationAnswers();
     if (playImmediately) {
         playMatchIdentificationTrial();
@@ -1831,30 +1321,16 @@ function playMatchIdentificationTrial() {
     }
     stopAllAudio();
     const trial = matchIdentification.trial;
+    const configuration = practiceConfiguration().match.identification;
     musicEngine.audio.playTransient(
         musicEngine.frequencyFromMidi(trial.midi),
-        musicEngine.getWaveform('match-identification').value,
-        musicEngine.readNumber(
-            musicEngine.getControl('match-identification-duration'),
-            1
-        )
+        configuration.waveform,
+        configuration.duration
     );
     trial.played = true;
     if (!trial.committed) {
         renderMatchIdentificationAnswers();
     }
-}
-
-function renderMatchIdentificationStats() {
-    const { streak, trials, correct, best } =
-        musicEngine.stats.match.identification;
-    const accuracy = trials > 0 ? (correct / trials) * 100 : 0;
-    musicEngine.getOutput('match-identification-streak').textContent =
-        String(streak);
-    musicEngine.getOutput('match-identification-accuracy').textContent =
-        `${accuracy.toFixed(0)}%`;
-    musicEngine.getOutput('match-identification-best').textContent =
-        best === null ? '--' : String(best);
 }
 
 function commitMatchIdentification(pitchClass) {
@@ -1872,76 +1348,21 @@ function commitMatchIdentification(pitchClass) {
     trial.committed = true;
     const correct =
         pitchClass === trial.midi % musicEngine.SEMITONES_PER_OCTAVE;
-    const typeStats = musicEngine.stats.match.identification;
-    typeStats.trials += 1;
-    typeStats.correct += correct ? 1 : 0;
-    typeStats.streak = correct ? typeStats.streak + 1 : 0;
-    if (
-        correct &&
-        (typeStats.best === null || typeStats.streak > typeStats.best)
-    ) {
-        typeStats.best = typeStats.streak;
-    }
-    saveMatchStats();
-    renderMatchIdentificationStats();
+    musicEngine.updateStats(musicEngine.stats.match.identification, {
+        correct,
+    });
+    renderStats();
     renderMatchIdentificationAnswers(pitchClass);
-    musicEngine.renderPracticeResult(
+    renderPracticeResult(
         'match-identification-result',
         correct,
         musicEngine.noteNameFromMidi(trial.midi)
     );
+    playMatchIdentificationTrial();
     scheduleMatchAdvance();
 }
 
 // Intervals
-
-function defaultIntervalTypeStats() {
-    return {
-        streak: 0,
-        trials: 0,
-        correct: 0,
-        best: null,
-    };
-}
-
-function defaultIntervalStats() {
-    return {
-        recognition: defaultIntervalTypeStats(),
-        construction: defaultIntervalTypeStats(),
-    };
-}
-
-function loadIntervalTypeStats(stored) {
-    if (!stored || typeof stored !== 'object') {
-        return defaultIntervalTypeStats();
-    }
-
-    return {
-        streak: Number.isFinite(stored.streak) ? stored.streak : 0,
-        trials: Number.isFinite(stored.trials) ? stored.trials : 0,
-        correct: Number.isFinite(stored.correct) ? stored.correct : 0,
-        best: Number.isFinite(stored.best) ? stored.best : null,
-    };
-}
-
-function loadIntervalStats() {
-    const stored = musicEngine.loadStats('interval');
-
-    if (!stored || typeof stored !== 'object') {
-        return defaultIntervalStats();
-    }
-
-    return {
-        recognition: loadIntervalTypeStats(stored.recognition),
-        construction: loadIntervalTypeStats(stored.construction),
-    };
-}
-
-function saveIntervalStats() {
-    musicEngine.saveStats('interval');
-}
-
-musicEngine.stats.interval = loadIntervalStats();
 
 const interval = {
     trial: null,
@@ -1954,12 +1375,11 @@ const interval = {
 };
 
 function getIntervalExercise() {
-    return `interval-${sectionView('interval')}`;
+    return `interval-${practiceConfiguration().modes.interval}`;
 }
 
-const intervalAdvance = musicEngine.createAutoAdvance(
-    musicEngine.getModuleActions('interval', 'new'),
-    () => newIntervalTrial(true)
+const intervalAdvance = createAutoAdvance('interval', () =>
+    newIntervalTrial(true)
 );
 
 function cancelIntervalAdvance() {
@@ -1971,7 +1391,7 @@ function scheduleIntervalAdvance() {
 }
 
 function enabledIntervals() {
-    const levelName = musicEngine.getControl('shared-interval-set').value;
+    const levelName = practiceConfiguration().interval.level;
     const level =
         musicEngine.INTERVAL_LEVELS[levelName] ??
         musicEngine.INTERVAL_LEVELS['starter'];
@@ -1982,79 +1402,23 @@ function enabledIntervals() {
 function updateIntervalMode() {
     updateModePanels('interval');
 
-    renderAdaptiveProgress(getIntervalExercise());
+    const exercise = getIntervalExercise();
+    renderAdaptiveProgress(
+        exercise,
+        getAdaptiveState(exercise).adaptiveResults.length,
+        practiceConfiguration().adaptive
+    );
     newIntervalTrial();
-    renderIntervalStats();
-}
-
-function renderIntervalAnswers(selected = null, enabled = false) {
-    const answerSemitones = interval.trial?.answerSemitones || [];
-    const buttons = answerSemitones.map((semitones) => {
-        const answer = musicEngine.INTERVALS.find(
-            (candidate) => candidate.semitones === semitones
-        );
-        const button = document.createElement('button');
-
-        button.type = 'button';
-        button.className = 'answer-option';
-        button.dataset.intervalAnswer = String(answer.semitones);
-        button.textContent =
-            interval.trial.mode === 'construction'
-                ? musicEngine.noteNameFromMidi(
-                      interval.trial.rootMidi +
-                          interval.trial.direction * answer.semitones
-                  )
-                : answer.name;
-        button.setAttribute(
-            'aria-label',
-            interval.trial.mode === 'construction'
-                ? `Choose ${button.textContent}`
-                : answer.name
-        );
-        button.disabled = interval.trial?.committed || !enabled;
-
-        musicEngine.setAnswerOptionState(
-            button,
-            answer.semitones,
-            selected,
-            interval.trial.semitones
-        );
-
-        return button;
-    });
-
-    if (interval.trial?.mode === 'construction') {
-        const prompt = musicEngine.getOutput('interval-construction-prompt');
-        const intervalName = musicEngine.INTERVALS.find(
-            ({ semitones }) => semitones === interval.trial.semitones
-        ).name;
-        const direction =
-            interval.trial.semitones === 0
-                ? ''
-                : ` ${interval.trial.direction > 0 ? 'ascending' : 'descending'}`;
-
-        prompt.replaceChildren(
-            document.createTextNode(
-                `Start: ${musicEngine.noteNameFromMidi(interval.trial.rootMidi)}.`
-            ),
-            document.createElement('br'),
-            document.createTextNode(`Build: ${intervalName}${direction}.`)
-        );
-    }
-
-    document
-        .querySelector(`[data-interval-answers="${sectionView('interval')}"]`)
-        .replaceChildren(...buttons);
 }
 
 function clearIntervalResult() {
-    musicEngine.clearPracticeResult(`${getIntervalExercise()}-result`);
+    clearPracticeResult(`${getIntervalExercise()}-result`);
 }
 
 // Intervals: recognition and construction
 
 function newIntervalTrial(playImmediately = false) {
-    if (sectionView('interval') === 'construction') {
+    if (practiceConfiguration().modes.interval === 'construction') {
         newIntervalConstructionTrial(playImmediately);
     } else {
         newIntervalRecognitionTrial(playImmediately);
@@ -2075,9 +1439,7 @@ function createIntervalTrial(mode, playImmediately) {
 
     const choices = enabledIntervals();
     const target = choices[Math.floor(Math.random() * choices.length)];
-    const directionControl = musicEngine.getControl(
-        'shared-interval-direction'
-    ).value;
+    const directionControl = practiceConfiguration().interval.direction;
     const ascending =
         directionControl === 'random'
             ? Math.random() < 0.5
@@ -2126,13 +1488,10 @@ function playIntervalTrial() {
     stopAllAudio();
 
     const trial = interval.trial;
-    const duration = musicEngine.readNumber(
-        musicEngine.getControl('shared-interval-duration'),
-        0.7
-    );
-    const waveform = musicEngine.getWaveform(
-        `interval-${sectionView('interval')}`
-    ).value;
+    const configuration = practiceConfiguration();
+    const duration = configuration.interval.duration;
+    const waveform =
+        configuration.interval.waveform[configuration.modes.interval];
 
     musicEngine.audio.playTransient(
         musicEngine.frequencyFromMidi(trial.rootMidi),
@@ -2154,29 +1513,6 @@ function playIntervalTrial() {
     }
 }
 
-function renderIntervalStats() {
-    const mode = sectionView('interval');
-    const { streak, trials, correct, best } = musicEngine.stats.interval[mode];
-
-    const accuracy = trials > 0 ? (correct / trials) * 100 : 0;
-    musicEngine.getOutput(`interval-${mode}-streak`).textContent =
-        String(streak);
-
-    musicEngine.getOutput(`interval-${mode}-accuracy`).textContent =
-        `${accuracy.toFixed(0)}%`;
-
-    musicEngine.getOutput(`interval-${mode}-best`).textContent =
-        best === null ? '--' : String(best);
-}
-
-function clearIntervalStats() {
-    const mode = sectionView('interval');
-
-    musicEngine.stats.interval[mode] = defaultIntervalTypeStats();
-    saveIntervalStats();
-    renderIntervalStats();
-}
-
 function commitInterval(semitones) {
     const trial = interval.trial;
 
@@ -2192,92 +1528,28 @@ function commitInterval(semitones) {
         (candidate) => candidate.semitones === trial.semitones
     );
 
-    musicEngine.stats.interval[trial.mode].trials += 1;
-    musicEngine.stats.interval[trial.mode].correct += correct ? 1 : 0;
-    musicEngine.stats.interval[trial.mode].streak = correct
-        ? musicEngine.stats.interval[trial.mode].streak + 1
-        : 0;
-
-    if (
-        correct &&
-        (musicEngine.stats.interval[trial.mode].best === null ||
-            musicEngine.stats.interval[trial.mode].streak >
-                musicEngine.stats.interval[trial.mode].best)
-    ) {
-        musicEngine.stats.interval[trial.mode].best =
-            musicEngine.stats.interval[trial.mode].streak;
-    }
-
-    saveIntervalStats();
-    renderIntervalStats();
+    musicEngine.updateStats(musicEngine.stats.interval[trial.mode], {
+        correct,
+    });
+    renderStats();
     renderIntervalAnswers(semitones, true);
-    musicEngine.renderPracticeResult(
+    renderPracticeResult(
         `${getIntervalExercise()}-result`,
         correct,
         correctInterval.name
     );
     updateAdaptiveDifficulty(`interval-${trial.mode}`, correct);
 
-    const playedNotes = document.createElement('div');
-
-    playedNotes.className = 'played-notes';
-    playedNotes.textContent =
+    renderPlayedNotes(
+        `${getIntervalExercise()}-result`,
         `${musicEngine.noteNameFromMidi(trial.rootMidi)} → ` +
-        musicEngine.noteNameFromMidi(trial.targetMidi);
-    musicEngine
-        .getOutput(`${getIntervalExercise()}-result`)
-        .append(playedNotes);
+            musicEngine.noteNameFromMidi(trial.targetMidi)
+    );
 
     scheduleIntervalAdvance();
 }
 
 // Chords: quality
-
-function defaultChordQualityStats() {
-    return {
-        streak: 0,
-        trials: 0,
-        correct: 0,
-        best: null,
-    };
-}
-
-function defaultChordStats() {
-    return {
-        quality: defaultChordQualityStats(),
-    };
-}
-
-function loadChordQualityStats(stored) {
-    if (!stored || typeof stored !== 'object') {
-        return defaultChordQualityStats();
-    }
-
-    return {
-        streak: Number.isFinite(stored.streak) ? stored.streak : 0,
-        trials: Number.isFinite(stored.trials) ? stored.trials : 0,
-        correct: Number.isFinite(stored.correct) ? stored.correct : 0,
-        best: Number.isFinite(stored.best) ? stored.best : null,
-    };
-}
-
-function loadChordStats() {
-    const stored = musicEngine.loadStats('chord');
-
-    if (!stored || typeof stored !== 'object') {
-        return defaultChordStats();
-    }
-
-    return {
-        quality: loadChordQualityStats(stored.quality ?? stored.recognition),
-    };
-}
-
-function saveChordStats() {
-    musicEngine.saveStats('chord');
-}
-
-musicEngine.stats.chord = loadChordStats();
 
 const chord = {
     quality: null,
@@ -2286,10 +1558,7 @@ const chord = {
     playedNotes: [],
 };
 
-const chordAdvance = musicEngine.createAutoAdvance(
-    musicEngine.getModuleActions('chord', 'new'),
-    () => newChordTrial(true)
-);
+const chordAdvance = createAutoAdvance('chord', () => newChordTrial(true));
 
 function cancelChordAdvance() {
     chordAdvance.cancel();
@@ -2299,31 +1568,8 @@ function scheduleChordAdvance() {
     chordAdvance.schedule();
 }
 
-function renderChordAnswers(selected = null, answersEnabled = false) {
-    const buttons = Object.keys(musicEngine.CHORD_QUALITIES).map((quality) => {
-        const button = document.createElement('button');
-
-        button.type = 'button';
-        button.className = 'answer-option';
-        button.dataset.chordAnswer = quality;
-        button.textContent = quality[0].toUpperCase() + quality.slice(1);
-        button.disabled = chord.committed || !answersEnabled;
-
-        musicEngine.setAnswerOptionState(
-            button,
-            quality,
-            selected,
-            chord.quality
-        );
-
-        return button;
-    });
-
-    document.querySelector('[data-chord-answers]').replaceChildren(...buttons);
-}
-
 function clearChordResult() {
-    musicEngine.clearPracticeResult('chord-result');
+    clearPracticeResult('chord-quality-result');
 }
 
 function newChordTrial(playImmediately = false) {
@@ -2362,8 +1608,7 @@ function playChordTrial() {
     cancelChordAdvance();
     stopAllAudio();
 
-    const waveform = musicEngine.getWaveform('chord').value;
-    const playback = musicEngine.getControl('chord-playback').value;
+    const { waveform, playback } = practiceConfiguration().chord.quality;
     const sequential = playback !== 'together';
     const intervals = [...musicEngine.CHORD_QUALITIES[chord.quality]];
 
@@ -2390,28 +1635,6 @@ function playChordTrial() {
     }
 }
 
-function renderChordStats() {
-    const { streak, trials, correct, best } = musicEngine.stats.chord.quality;
-
-    const accuracy = trials > 0 ? (correct / trials) * 100 : 0;
-
-    musicEngine.getOutput('chord-streak').textContent = String(streak);
-
-    musicEngine.getOutput('chord-accuracy').textContent =
-        `${accuracy.toFixed(0)}%`;
-
-    musicEngine.getOutput('chord-best').textContent =
-        best === null ? '--' : String(best);
-}
-
-function clearChordStats() {
-    musicEngine.stats.chord.quality = defaultChordQualityStats();
-
-    saveChordStats();
-
-    renderChordStats();
-}
-
 function commitChordQuality(quality) {
     if (chord.committed || !musicEngine.CHORD_QUALITIES[quality]) {
         return;
@@ -2422,39 +1645,20 @@ function commitChordQuality(quality) {
 
     const correct = quality === chord.quality;
 
-    musicEngine.stats.chord.quality.trials += 1;
-    musicEngine.stats.chord.quality.correct += correct ? 1 : 0;
-    musicEngine.stats.chord.quality.streak = correct
-        ? musicEngine.stats.chord.quality.streak + 1
-        : 0;
-
-    if (
-        correct &&
-        (musicEngine.stats.chord.quality.best === null ||
-            musicEngine.stats.chord.quality.streak >
-                musicEngine.stats.chord.quality.best)
-    ) {
-        musicEngine.stats.chord.quality.best =
-            musicEngine.stats.chord.quality.streak;
-    }
-
-    saveChordStats();
-    renderChordStats();
+    musicEngine.updateStats(musicEngine.stats.chord.quality, { correct });
+    renderStats();
     renderChordAnswers(quality, true);
 
-    musicEngine.renderPracticeResult(
-        'chord-result',
+    renderPracticeResult(
+        'chord-quality-result',
         correct,
         `${chord.quality[0].toUpperCase()}${chord.quality.slice(1)}`
     );
 
-    const playedNotes = document.createElement('div');
-
-    playedNotes.className = 'played-notes';
-    playedNotes.textContent = `Notes: ${chord.playedNotes
-        .map(musicEngine.noteNameFromMidi)
-        .join(', ')}`;
-    musicEngine.getOutput('chord-result').append(playedNotes);
+    renderPlayedNotes(
+        'chord-quality-result',
+        `Notes: ${chord.playedNotes.map(musicEngine.noteNameFromMidi).join(', ')}`
+    );
 
     scheduleChordAdvance();
 }

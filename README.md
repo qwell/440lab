@@ -22,8 +22,12 @@ Live demo: [https://440lab.com/](https://440lab.com/)
     - Shows pitch deviation in cents on a tuning meter
     - Uses the adjustable A4 reference
 - Global output volume control
-- Metronome with adjustable BPM and time signature
-- Tap tempo
+- Interactive metronome practice with adjustable BPM and time signature
+    - Set the BPM by value or tap tempo
+    - Match the moving beat with Space or a tap and review early/late timing feedback
+- Generated sheet-music rhythm practice
+    - Practice in treble, bass, alto, or tenor clef using microphone input or press-and-hold responses
+    - Score note timing and microphone pitch against the generated phrase
 - Play Standard MIDI files with a selectable SoundFont
     - Choose an included file, attach a local file, or drag and drop it anywhere in the active MIDI view
     - Drop an SF2 or SF3 SoundFont into a MIDI or rhythm sheet view to use it for the current session
@@ -42,7 +46,8 @@ Live demo: [https://440lab.com/](https://440lab.com/)
 - Adjustable waveform, duration, interval, range, and candidate count
 - Streak and error statistics for ear-training exercises
 - Direct links to individual tools using URL fragments
-- No dependencies or build step
+- Keeps the screen awake during microphone use, audio playback and preparation, and timed pitch-memory delays when supported
+- No client-side installation or build step
 
 ## Usage
 
@@ -64,6 +69,8 @@ Use the global A4 reference to change the tuning standard used throughout the ap
 
 The Tuning tab can play a selected reference note, detect live pitches through the microphone, or do both at the same time. Pitch Memory microphone responses have the same permission and secure-context requirements as the tuner.
 
+The Rhythm tab includes an interactive metronome that measures tap timing and generated sheet-music practice that scores note timing and pitch. Metronome tempo can be entered directly or set by tapping. Sheet-music phrases can be performed through the microphone or with Space and pointer input.
+
 The MIDI tab includes a selection of MIDI files and parses local files in the browser. It can display them as multi-track sheet music or as a scrolling piano roll. The piano roll follows tempo and time-signature changes; sheet music currently supports files with a single meter. Dropped SF2 and SF3 SoundFonts can also be used for the current session, including when the site is opened through `file://`. MIDI and SoundFont files are not uploaded.
 
 ## Files
@@ -78,8 +85,13 @@ The MIDI tab includes a selection of MIDI files and parses local files in the br
 - `site/assets/css/tools.css` - tool-specific tuner, rhythm, MIDI, pitch, and interval displays
 - `site/assets/css/layout.css` - page and panel layout
 - `site/assets/css/practice.css` - practice-tool styles
-- `site/assets/js/index.js` - audio, MIDI playback and visualization, microphone pitch detection, exercises, and application logic
+- `site/assets/js/index.js` - service worker registration
+- `site/assets/js/application.js` - interface, MIDI playback and visualization, microphone pitch detection, and application logic
+- `site/assets/js/render.js` - application rendering and display updates
+- `site/assets/js/practice.js` - ear-training exercises and practice statistics
+- `site/assets/js/engine.js` - shared audio, microphone, preference, and music utilities
 - `site/assets/midi/` - included MIDI files and their generated `file://` data wrappers
+- `site/assets/soundfonts/` - included SoundFonts and their generated `file://` data wrappers
 - `site/assets/vendor/` - checked-in third-party files organized by package and asset type
 
 ## Technologies
@@ -88,6 +100,7 @@ HTML, CSS, and JavaScript using browser APIs including:
 
 - Web Audio API
 - MediaDevices / `getUserMedia()`
+- Screen Wake Lock API
 - `requestAnimationFrame()`
 - Local storage for practice statistics
 - SpessaSynth for MIDI and SoundFont playback
@@ -119,8 +132,8 @@ git lfs pull
 
 Generated browser assets are committed with the site. Run `yarn generate`
 after changing MIDI files in `site/assets/midi/`, SoundFonts in
-`site/assets/soundfonts/` or `site/assets/vendor/*/soundfonts/`, the
-vendored browser dependencies, or the HTML import map.
+`site/assets/soundfonts/`, the vendored browser dependencies, or the HTML
+import map.
 
 For MIDI and SoundFont assets, the generator creates base64 JavaScript wrappers
 for `file://` use and rebuilds the corresponding `files.js` dropdown catalogs.

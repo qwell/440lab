@@ -1,0 +1,13 @@
+# GeneralUser GS
+
+The GeneralUser GS 2.0.3 SoundFont files in this directory are by S. Christian
+Collins.
+
+- `GeneralUser-GS.sf3` is the SoundFont used by the MIDI player.
+- `GeneralUser-GS.js` contains the same SoundFont encoded for the browser
+  fallback. `yarn generate` regenerates it from `GeneralUser-GS.sf3`.
+
+GeneralUser GS is distributed under its own license. The complete license and
+sample-usage terms are embedded in the SoundFont metadata. Updates and further
+information are available from the
+[GeneralUser GS website](https://schristiancollins.com/generaluser.php).

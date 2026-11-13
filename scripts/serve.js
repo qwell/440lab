@@ -32,7 +32,12 @@ app.use((req, res) => {
     res.status(404).send('Not found');
 });
 
-app.use((err, req, res) => {
+app.use((err, req, res, next) => {
+    if (res.headersSent) {
+        next(err);
+        return;
+    }
+
     console.error(err);
     res.status(500).send('Internal server error');
 });

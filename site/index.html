@@ -114,7 +114,7 @@
                             "@id": "https://440lab.com/#jeltz"
                         },
                         "datePublished": "2026-08-25",
-                        "dateModified": "2026-10-13"
+                        "dateModified": "2026-11-09"
                     },
                     {
                         "@type": "WebPage",
@@ -158,7 +158,7 @@
                             "@id": "https://440lab.com/#jeltz"
                         },
                         "datePublished": "2026-08-25",
-                        "dateModified": "2026-10-13"
+                        "dateModified": "2026-11-09"
                     },
                     {
                         "@type": "WebPageElement",
@@ -173,7 +173,7 @@
                         "@type": "WebPageElement",
                         "@id": "https://440lab.com/#rhythm",
                         "name": "Rhythm",
-                        "description": "Metronome, timing practice, and generated sheet-music exercises that score rhythm and microphone pitch across treble, bass, alto, and tenor clefs.",
+                        "description": "Interactive metronome practice and generated sheet-music exercises that score rhythm and microphone pitch across treble, bass, alto, and tenor clefs.",
                         "isPartOf": {
                             "@id": "https://440lab.com/#webpage"
                         }
@@ -238,7 +238,7 @@
                         "url": "https://440lab.com/",
                         "name": "440 Lab",
                         "description": "Free online tuner, metronome, MIDI player and visualizer, rhythm and sheet-music practice, reference tones, and ear training for pitch, intervals, and chords.",
-                        "softwareVersion": "1.1.6",
+                        "softwareVersion": "1.1.8",
                         "mainEntityOfPage": {
                             "@id": "https://440lab.com/#webpage"
                         },
@@ -298,7 +298,7 @@
                         ],
                         "inLanguage": "en",
                         "applicationCategory": "EducationalApplication",
-                        "applicationSubCategory": "Music tuner, metronome, MIDI playback and visualization, sheet-music reading, timing practice, absolute-pitch identification, pitch and interval training, chord ear training, and pitch-memory testing",
+                        "applicationSubCategory": "Music tuner, interactive metronome, MIDI playback and visualization, sheet-music reading, absolute-pitch identification, pitch and interval training, chord ear training, and pitch-memory testing",
                         "learningResourceType": "Interactive music training application",
                         "teaches": [
                             "Pitch matching",
@@ -369,7 +369,7 @@
                         "runtimePlatform": "Web browser",
                         "browserRequirements": "Requires a modern web browser with Web Audio API support. Microphone tuning and vocal pitch-memory responses require MediaDevices support and microphone permission.",
                         "datePublished": "2026-08-25",
-                        "dateModified": "2026-10-13",
+                        "dateModified": "2026-11-09",
                         "screenshot": [
                             {
                                 "@type": "ImageObject",
@@ -463,7 +463,7 @@
                         "featureList": [
                             "Music tuner with adjustable A4 reference pitch and live pitch history",
                             "Reference-tone playback",
-                            "Rhythm: metronome, timing practice, and generated sheet music with four clefs, microphone pitch detection, and timing feedback",
+                            "Rhythm: interactive metronome practice and generated sheet music with four clefs, microphone pitch detection, and timing feedback",
                             "Included and local Standard MIDI File selection and drag-and-drop playback with bundled or dropped SF2 and SF3 SoundFonts, synchronized multi-track sheet music for fixed meter, seeking, track muting, and a color-coded scrolling piano roll with tempo and time signature changes",
                             "Flat and sharp pitch ear training",
                             "Match: chromatic note identification without a reference",
@@ -494,7 +494,7 @@
                         "codeRepository": "https://github.com/qwell/440lab",
                         "programmingLanguage": ["JavaScript", "HTML", "CSS"],
                         "datePublished": "2026-08-25",
-                        "dateModified": "2026-10-13",
+                        "dateModified": "2026-11-09",
                         "license": "https://spdx.org/licenses/GPL-3.0-or-later.html",
                         "author": {
                             "@id": "https://440lab.com/#jason-parker"
@@ -530,7 +530,21 @@
         </script>
     </head>
 
-    <body data-application-scripts="music notation engine practice application">
+    <body>
+        <svg class="svg-symbols" aria-hidden="true">
+            <symbol id="microphone-on-icon" viewBox="0 0 640 640">
+                <!-- !Font Awesome Free v7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc. -->
+                <path
+                    d="M320 64C267 64 224 107 224 160L224 288C224 341 267 384 320 384C373 384 416 341 416 288L416 160C416 107 373 64 320 64zM176 248C176 234.7 165.3 224 152 224C138.7 224 128 234.7 128 248L128 288C128 385.9 201.3 466.7 296 478.5L296 528L248 528C234.7 528 224 538.7 224 552C224 565.3 234.7 576 248 576L392 576C405.3 576 416 565.3 416 552C416 538.7 405.3 528 392 528L344 528L344 478.5C438.7 466.7 512 385.9 512 288L512 248C512 234.7 501.3 224 488 224C474.7 224 464 234.7 464 248L464 288C464 367.5 399.5 432 320 432C240.5 432 176 367.5 176 288L176 248z"
+                />
+            </symbol>
+            <symbol id="microphone-off-icon" viewBox="0 0 640 640">
+                <path
+                    d="M73 39.1C63.6 29.7 48.4 29.7 39.1 39.1C29.8 48.5 29.7 63.7 39 73.1L567 601.1C576.4 610.5 591.6 610.5 600.9 601.1C610.2 591.7 610.3 576.5 600.9 567.2L456.7 422.8C490.9 388.2 512 340.6 512 288L512 248C512 234.7 501.3 224 488 224C474.7 224 464 234.7 464 248L464 288C464 327.3 448.3 362.9 422.7 388.9L388.8 355C405.6 337.7 416 314 416 288L416 160C416 107 373 64 320 64C267 64 224 107 224 160L224 190.2L73 39.2zM371.3 473.1L329.9 431.7C326.6 431.9 323.4 432 320.1 432C240.6 432 176.1 367.5 176.1 288L176.1 277.8L132.5 234.2C129.7 238.1 128.1 242.9 128.1 248L128.1 288C128.1 385.9 201.4 466.7 296.1 478.5L296.1 528L248.1 528C234.8 528 224.1 538.7 224.1 552C224.1 565.3 234.8 576 248.1 576L392.1 576C405.4 576 416.1 565.3 416.1 552C416.1 538.7 405.4 528 392.1 528L344.1 528L344.1 478.5C353.4 477.3 362.5 475.5 371.4 473.1z"
+                />
+            </symbol>
+        </svg>
+
         <header class="site-header">
             <div class="page-width site-header-inner">
                 <button
@@ -549,16 +563,16 @@
                     </a>
                 </h1>
 
-                <div class="global-volume">
+                <div class="global-volume field">
                     <label for="global-volume">
                         Volume (<span data-output="global-volume-percent"
                             >80%</span
                         >)
                     </label>
 
-                    <div class="global-volume-controls">
+                    <div class="control-group">
                         <button
-                            class="global-volume-button"
+                            class="icon-button icon-button-small"
                             data-action="global-volume-toggle"
                             type="button"
                             aria-label="Mute volume"
@@ -573,7 +587,7 @@
 
                         <input
                             id="global-volume"
-                            data-control="global-volume"
+                            data-setting="global-volume"
                             type="range"
                             min="0"
                             max="1"
@@ -582,7 +596,7 @@
                         />
 
                         <button
-                            class="global-mic-button"
+                            class="icon-button icon-button-small microphone-button"
                             data-action="global-microphone-toggle"
                             type="button"
                             aria-label="Enable microphone"
@@ -590,35 +604,23 @@
                             title="Enable microphone"
                         >
                             <svg
-                                class="global-mic-icon global-mic-icon-on"
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 640 640"
-                                fill="currentColor"
+                                class="microphone-icon microphone-icon-on"
                                 aria-hidden="true"
                             >
-                                <!-- !Font Awesome Free v7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc. -->
-                                <path
-                                    d="M320 64C267 64 224 107 224 160L224 288C224 341 267 384 320 384C373 384 416 341 416 288L416 160C416 107 373 64 320 64zM176 248C176 234.7 165.3 224 152 224C138.7 224 128 234.7 128 248L128 288C128 385.9 201.3 466.7 296 478.5L296 528L248 528C234.7 528 224 538.7 224 552C224 565.3 234.7 576 248 576L392 576C405.3 576 416 565.3 416 552C416 538.7 405.3 528 392 528L344 528L344 478.5C438.7 466.7 512 385.9 512 288L512 248C512 234.7 501.3 224 488 224C474.7 224 464 234.7 464 248L464 288C464 367.5 399.5 432 320 432C240.5 432 176 367.5 176 288L176 248z"
-                                />
+                                <use href="#microphone-on-icon"></use>
                             </svg>
 
                             <svg
-                                class="global-mic-icon global-mic-icon-off"
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 640 640"
-                                fill="currentColor"
+                                class="microphone-icon microphone-icon-off"
                                 aria-hidden="true"
                             >
-                                <!-- !Font Awesome Free v7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc. -->
-                                <path
-                                    d="M73 39.1C63.6 29.7 48.4 29.7 39.1 39.1C29.8 48.5 29.7 63.7 39 73.1L567 601.1C576.4 610.5 591.6 610.5 600.9 601.1C610.2 591.7 610.3 576.5 600.9 567.2L456.7 422.8C490.9 388.2 512 340.6 512 288L512 248C512 234.7 501.3 224 488 224C474.7 224 464 234.7 464 248L464 288C464 327.3 448.3 362.9 422.7 388.9L388.8 355C405.6 337.7 416 314 416 288L416 160C416 107 373 64 320 64C267 64 224 107 224 160L224 190.2L73 39.2zM371.3 473.1L329.9 431.7C326.6 431.9 323.4 432 320.1 432C240.6 432 176.1 367.5 176.1 288L176.1 277.8L132.5 234.2C129.7 238.1 128.1 242.9 128.1 248L128.1 288C128.1 385.9 201.4 466.7 296.1 478.5L296.1 528L248.1 528C234.8 528 224.1 538.7 224.1 552C224.1 565.3 234.8 576 248.1 576L392.1 576C405.4 576 416.1 565.3 416.1 552C416.1 538.7 405.4 528 392.1 528L344.1 528L344.1 478.5C353.4 477.3 362.5 475.5 371.4 473.1z"
-                                />
+                                <use href="#microphone-off-icon"></use>
                             </svg>
                         </button>
                     </div>
                 </div>
 
-                <div class="global-reference">
+                <div class="global-reference field">
                     <label for="global-a4">
                         A4 reference (Hz)
 
@@ -626,15 +628,14 @@
                             class="info-tip"
                             tabindex="0"
                             aria-label="Sets the tuning reference used to calculate every note frequency. 440 Hz is standard concert pitch."
-                            data-tooltip="Sets the tuning reference used to calculate every note frequency. 440 Hz is standard concert pitch."
                         >
                             ⓘ
                         </span>
                     </label>
-                    <div class="global-reference-controls">
+                    <div class="control-group">
                         <input
                             id="global-a4"
-                            data-control="global-reference-a4"
+                            data-setting="global-reference-a4"
                             type="number"
                             min="300"
                             max="600"
@@ -643,10 +644,10 @@
                         />
 
                         <button
-                            data-action="global-reference-reset"
+                            data-action="global-settings-reset"
                             type="button"
                         >
-                            Reset
+                            Reset Settings
                         </button>
                     </div>
                 </div>
@@ -664,11 +665,10 @@
             <ul class="nav-list">
                 <li>
                     <button
-                        id="tuner-nav-item"
                         class="nav-item"
                         data-section="tuner"
                         type="button"
-                        aria-controls="tuner-panel"
+                        aria-controls="tuner-tuning-panel"
                     >
                         Tuning
                     </button>
@@ -676,7 +676,6 @@
 
                 <li class="nav-group">
                     <button
-                        id="rhythm-nav-item"
                         class="nav-item"
                         data-section="rhythm"
                         type="button"
@@ -694,15 +693,7 @@
                                 Metronome
                             </button>
                         </li>
-                        <li>
-                            <button
-                                type="button"
-                                data-nav-section="rhythm"
-                                data-nav-mode="timing"
-                            >
-                                Timing practice
-                            </button>
-                        </li>
+                        <!--
                         <li>
                             <button
                                 type="button"
@@ -712,12 +703,12 @@
                                 Sheet music
                             </button>
                         </li>
+                        -->
                     </ul>
                 </li>
 
                 <li class="nav-group">
                     <button
-                        id="midi-nav-item"
                         class="nav-item"
                         data-section="midi"
                         type="button"
@@ -726,6 +717,7 @@
                         MIDI
                     </button>
                     <ul class="nav-modes">
+                        <!--
                         <li>
                             <button
                                 type="button"
@@ -735,6 +727,7 @@
                                 Sheet music
                             </button>
                         </li>
+                        -->
                         <li>
                             <button
                                 type="button"
@@ -749,7 +742,6 @@
 
                 <li class="nav-group">
                     <button
-                        id="pitch-nav-item"
                         class="nav-item"
                         data-section="pitch"
                         type="button"
@@ -781,7 +773,6 @@
 
                 <li class="nav-group">
                     <button
-                        id="match-nav-item"
                         class="nav-item"
                         data-section="match"
                         type="button"
@@ -813,7 +804,6 @@
 
                 <li class="nav-group">
                     <button
-                        id="interval-nav-item"
                         class="nav-item"
                         data-section="interval"
                         type="button"
@@ -845,11 +835,10 @@
 
                 <li>
                     <button
-                        id="chord-nav-item"
                         class="nav-item"
                         data-section="chord"
                         type="button"
-                        aria-controls="chord-panel"
+                        aria-controls="chord-quality-panel"
                     >
                         Chords
                     </button>
@@ -857,7 +846,6 @@
 
                 <li>
                     <button
-                        id="about-nav-item"
                         class="nav-item is-active"
                         data-section="about"
                         type="button"
@@ -873,251 +861,250 @@
         <main class="page-width">
             <!-- Tuning -->
             <section
-                id="tuner-panel"
+                id="tuner-tuning-panel"
                 class="section-panel"
                 data-panel="tuner"
                 hidden
             >
                 <h2 class="sr-only">Tuning</h2>
-                <h3 class="blurb">
-                    Play a known note or string as a reference, or use the
-                    microphone to identify a live pitch and compare it with the
-                    selected string or nearest note. The history graph shows the
-                    detected pitch over the last eight seconds.
-                </h3>
+                <div data-mode-panel="tuning">
+                    <h3 class="blurb">
+                        Play a known note or string as a reference, or use the
+                        microphone to identify a live pitch and compare it with
+                        the selected string or nearest note. The history graph
+                        shows the detected pitch over the last eight seconds.
+                    </h3>
 
-                <div class="practice">
-                    <div class="practice-content-column-4">
-                        <div class="tuner-header">
-                            <strong
-                                class="tuner-note"
-                                data-output="tuner-closest"
+                    <div class="practice">
+                        <div class="practice-buttons">
+                            <button
+                                class="icon-button"
+                                data-action="tuner-tuning-play"
+                                type="button"
+                                aria-label="Play reference tone"
+                                title="Play"
                             >
-                                --
-                            </strong>
+                                <span aria-hidden="true">▶</span>
+                            </button>
 
-                            <span
-                                class="tuner-target-frequency"
-                                data-output="tuner-target"
+                            <button
+                                class="icon-button"
+                                data-action="tuner-tuning-stop"
+                                type="button"
+                                aria-label="Stop reference tone"
+                                title="Stop"
                             >
-                                -- Hz
-                            </span>
+                                <span aria-hidden="true">■</span>
+                            </button>
+
+                            <button
+                                class="icon-button microphone-button"
+                                data-action="global-microphone-toggle"
+                                type="button"
+                                aria-label="Enable microphone"
+                                aria-pressed="false"
+                                title="Enable microphone"
+                            >
+                                <svg
+                                    class="microphone-icon microphone-icon-on"
+                                    aria-hidden="true"
+                                >
+                                    <use href="#microphone-on-icon"></use>
+                                </svg>
+
+                                <svg
+                                    class="microphone-icon microphone-icon-off"
+                                    aria-hidden="true"
+                                >
+                                    <use href="#microphone-off-icon"></use>
+                                </svg>
+                            </button>
                         </div>
+                        <div class="practice-content-column-4">
+                            <div class="tuner-tuning-header">
+                                <strong
+                                    class="tuner-tuning-note"
+                                    data-output="tuner-tuning-closest"
+                                >
+                                    --
+                                </strong>
 
-                        <div class="tuner-gauge">
-                            <div class="tuner-scale" aria-hidden="true">
-                                <span class="tuner-scale-left">-50</span>
-                                <span class="tuner-scale-center">0 cents</span>
-                                <span class="tuner-scale-right">+50</span>
+                                <span
+                                    class="tuner-tuning-target-frequency"
+                                    data-output="tuner-tuning-target"
+                                >
+                                    -- Hz
+                                </span>
                             </div>
 
-                            <div class="tuner-track">
-                                <span
-                                    class="tuner-tick"
-                                    style="left: 10%"
-                                ></span>
-                                <span
-                                    class="tuner-tick"
-                                    style="left: 20%"
-                                ></span>
-                                <span
-                                    class="tuner-tick"
-                                    style="left: 30%"
-                                ></span>
-                                <span
-                                    class="tuner-tick"
-                                    style="left: 40%"
-                                ></span>
+                            <div class="tuner-tuning-gauge">
+                                <div
+                                    class="tuner-tuning-scale"
+                                    aria-hidden="true"
+                                >
+                                    <span class="tuner-tuning-scale-left"
+                                        >-50</span
+                                    >
+                                    <span class="tuner-tuning-scale-center"
+                                        >0 cents</span
+                                    >
+                                    <span class="tuner-tuning-scale-right"
+                                        >+50</span
+                                    >
+                                </div>
 
-                                <span
-                                    class="tuner-tick tuner-tick-center"
-                                    style="left: 50%"
-                                ></span>
+                                <div class="indicator-track">
+                                    <span
+                                        class="tuner-tuning-tick"
+                                        style="left: 10%"
+                                    ></span>
+                                    <span
+                                        class="tuner-tuning-tick"
+                                        style="left: 20%"
+                                    ></span>
+                                    <span
+                                        class="tuner-tuning-tick"
+                                        style="left: 30%"
+                                    ></span>
+                                    <span
+                                        class="tuner-tuning-tick"
+                                        style="left: 40%"
+                                    ></span>
 
-                                <span
-                                    class="tuner-tick"
-                                    style="left: 60%"
-                                ></span>
-                                <span
-                                    class="tuner-tick"
-                                    style="left: 70%"
-                                ></span>
-                                <span
-                                    class="tuner-tick"
-                                    style="left: 80%"
-                                ></span>
-                                <span
-                                    class="tuner-tick"
-                                    style="left: 90%"
-                                ></span>
+                                    <span
+                                        class="tuner-tuning-tick tuner-tuning-tick-center"
+                                        style="left: 50%"
+                                    ></span>
 
-                                <span
-                                    class="tuner-needle"
-                                    data-output="tuner-needle"
-                                ></span>
+                                    <span
+                                        class="tuner-tuning-tick"
+                                        style="left: 60%"
+                                    ></span>
+                                    <span
+                                        class="tuner-tuning-tick"
+                                        style="left: 70%"
+                                    ></span>
+                                    <span
+                                        class="tuner-tuning-tick"
+                                        style="left: 80%"
+                                    ></span>
+                                    <span
+                                        class="tuner-tuning-tick"
+                                        style="left: 90%"
+                                    ></span>
+
+                                    <span
+                                        class="tuner-tuning-needle"
+                                        data-output="tuner-tuning-needle"
+                                    ></span>
+                                </div>
                             </div>
-                        </div>
 
-                        <div class="tuner-footer">
-                            <strong
-                                class="tuner-cents"
-                                data-output="tuner-cents"
-                            >
-                                --
-                            </strong>
+                            <div class="tuner-tuning-footer">
+                                <strong
+                                    class="tuner-tuning-cents"
+                                    data-output="tuner-tuning-cents"
+                                >
+                                    --
+                                </strong>
 
-                            <span
-                                class="tuner-detected-frequency"
-                                data-output="tuner-detected"
+                                <span
+                                    class="tuner-tuning-detected-frequency"
+                                    data-output="tuner-tuning-detected"
+                                >
+                                    -- Hz detected
+                                </span>
+                            </div>
+
+                            <div
+                                class="sr-only"
+                                data-output="tuner-tuning-status"
+                                aria-live="polite"
                             >
-                                -- Hz detected
-                            </span>
+                                Microphone off
+                            </div>
                         </div>
 
                         <div
-                            class="sr-only"
-                            data-output="tuner-status"
-                            aria-live="polite"
-                        >
-                            Microphone off
+                            class="practice-content-column-3 tuner-tuning-strings"
+                            data-output="tuner-tuning-strings"
+                            role="group"
+                            aria-label="String reference tones, highest string number first. Press a note to start or stop."
+                            hidden
+                        ></div>
+
+                        <canvas
+                            class="practice-content-column-4 tuner-tuning-history"
+                            data-output="tuner-tuning-history"
+                            role="img"
+                        ></canvas>
+                    </div>
+                    <div class="settings field-grid">
+                        <h3 class="settings-heading">Settings</h3>
+                        <div class="field">
+                            <label for="tuner-tuning-note">
+                                Note (<span
+                                    data-output="tuner-tuning-note-frequency"
+                                ></span
+                                >)
+                            </label>
+
+                            <div class="control-row">
+                                <select
+                                    id="tuner-tuning-note"
+                                    data-setting="shared-note"
+                                    data-note="tuner-tuning"
+                                ></select>
+                            </div>
                         </div>
-                    </div>
 
-                    <div
-                        class="practice-content-column-3 tuner-strings"
-                        data-output="tuner-strings"
-                        role="group"
-                        aria-label="String reference tones, highest string number first. Press a note to start or stop."
-                        hidden
-                    ></div>
+                        <div class="field">
+                            <label for="tuner-tuning-waveform">
+                                Wave type
 
-                    <canvas
-                        class="practice-content-column-4 tuner-history"
-                        data-output="tuner-history"
-                        role="img"
-                    ></canvas>
+                                <span
+                                    class="info-tip"
+                                    tabindex="0"
+                                    aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
+                                >
+                                    ⓘ
+                                </span>
+                            </label>
 
-                    <div class="practice-buttons">
-                        <button
-                            class="icon-button"
-                            data-action="tuner-play"
-                            type="button"
-                            aria-label="Play reference tone"
-                            title="Play"
-                        >
-                            <span aria-hidden="true">▶</span>
-                        </button>
-
-                        <button
-                            class="icon-button"
-                            data-action="tuner-stop"
-                            type="button"
-                            aria-label="Stop reference tone"
-                            title="Stop"
-                        >
-                            <span aria-hidden="true">■</span>
-                        </button>
-
-                        <button
-                            class="icon-button global-mic-button"
-                            data-action="global-microphone-toggle"
-                            type="button"
-                            aria-label="Enable microphone"
-                            aria-pressed="false"
-                            title="Enable microphone"
-                        >
-                            <svg
-                                class="global-mic-icon global-mic-icon-on"
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 640 640"
-                                fill="currentColor"
-                                aria-hidden="true"
-                            >
-                                <!-- !Font Awesome Free v7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc. -->
-                                <path
-                                    d="M320 64C267 64 224 107 224 160L224 288C224 341 267 384 320 384C373 384 416 341 416 288L416 160C416 107 373 64 320 64zM176 248C176 234.7 165.3 224 152 224C138.7 224 128 234.7 128 248L128 288C128 385.9 201.3 466.7 296 478.5L296 528L248 528C234.7 528 224 538.7 224 552C224 565.3 234.7 576 248 576L392 576C405.3 576 416 565.3 416 552C416 538.7 405.3 528 392 528L344 528L344 478.5C438.7 466.7 512 385.9 512 288L512 248C512 234.7 501.3 224 488 224C474.7 224 464 234.7 464 248L464 288C464 367.5 399.5 432 320 432C240.5 432 176 367.5 176 288L176 248z"
-                                />
-                            </svg>
-
-                            <svg
-                                class="global-mic-icon global-mic-icon-off"
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 640 640"
-                                fill="currentColor"
-                                aria-hidden="true"
-                            >
-                                <!-- !Font Awesome Free v7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc. -->
-                                <path
-                                    d="M73 39.1C63.6 29.7 48.4 29.7 39.1 39.1C29.8 48.5 29.7 63.7 39 73.1L567 601.1C576.4 610.5 591.6 610.5 600.9 601.1C610.2 591.7 610.3 576.5 600.9 567.2L456.7 422.8C490.9 388.2 512 340.6 512 288L512 248C512 234.7 501.3 224 488 224C474.7 224 464 234.7 464 248L464 288C464 327.3 448.3 362.9 422.7 388.9L388.8 355C405.6 337.7 416 314 416 288L416 160C416 107 373 64 320 64C267 64 224 107 224 160L224 190.2L73 39.2zM371.3 473.1L329.9 431.7C326.6 431.9 323.4 432 320.1 432C240.6 432 176.1 367.5 176.1 288L176.1 277.8L132.5 234.2C129.7 238.1 128.1 242.9 128.1 248L128.1 288C128.1 385.9 201.4 466.7 296.1 478.5L296.1 528L248.1 528C234.8 528 224.1 538.7 224.1 552C224.1 565.3 234.8 576 248.1 576L392.1 576C405.4 576 416.1 565.3 416.1 552C416.1 538.7 405.4 528 392.1 528L344.1 528L344.1 478.5C353.4 477.3 362.5 475.5 371.4 473.1z"
-                                />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-                <div class="settings">
-                    <h3 class="settings-heading">Settings</h3>
-                    <div class="field">
-                        <label for="tuner-note">
-                            Note (<span
-                                data-output="tuner-note-frequency"
-                            ></span
-                            >)
-                        </label>
-
-                        <div class="control-row">
-                            <select
-                                id="tuner-note"
-                                data-control="shared-note"
-                                data-note="tuner"
-                            ></select>
+                            <div class="control-row">
+                                <select
+                                    id="tuner-tuning-waveform"
+                                    data-setting="shared-waveform"
+                                    data-waveform="tuner-tuning"
+                                >
+                                    <option value="triangle">triangle</option>
+                                    <option value="sine" selected>sine</option>
+                                </select>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="field">
-                        <label for="tuner-waveform">
-                            Wave type
-
-                            <span
-                                class="info-tip"
-                                tabindex="0"
-                                aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
-                                data-tooltip="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
+                        <div class="field">
+                            <label for="tuner-tuning-instrument"
+                                >Instrument</label
                             >
-                                ⓘ
-                            </span>
-                        </label>
-
-                        <div class="control-row">
-                            <select
-                                id="tuner-waveform"
-                                data-control="shared-waveform"
-                                data-waveform="tuner"
-                            >
-                                <option value="triangle">triangle</option>
-                                <option value="sine" selected>sine</option>
-                            </select>
+                            <div class="control-row">
+                                <select
+                                    id="tuner-tuning-instrument"
+                                    data-setting="tuner-tuning-instrument"
+                                >
+                                    <option value=""></option>
+                                </select>
+                            </div>
                         </div>
-                    </div>
-
-                    <div class="field">
-                        <label for="tuner-instrument">Instrument</label>
-                        <div class="control-row">
-                            <select
-                                id="tuner-instrument"
-                                data-control="tuner-instrument"
-                            >
-                                <option value=""></option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label for="tuner-variation">Tuning variation</label>
-                        <div class="control-row">
-                            <select
-                                id="tuner-variation"
-                                data-control="tuner-variation"
-                                disabled
-                            ></select>
+                        <div class="field">
+                            <label for="tuner-tuning-tuning">Tuning</label>
+                            <div class="control-row">
+                                <select
+                                    id="tuner-tuning-tuning"
+                                    data-setting="tuner-tuning-tuning"
+                                    disabled
+                                ></select>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1133,26 +1120,16 @@
                 <h2 class="sr-only">Rhythm</h2>
                 <div data-mode-panel="metronome">
                     <h3 class="blurb">
-                        Keep a steady beat while you practice. Tap tempo sets
-                        the BPM by feel; the first click in each group is
-                        accented.
+                        Match the moving beat with Space or a tap. See how early
+                        or late you respond and how consistent your timing is.
                     </h3>
                     <div class="practice">
-                        <div class="practice-content-column-2">
-                            <div class="rhythm-beat-track" aria-hidden="true">
-                                <span class="rhythm-beat-target"></span>
-                                <span
-                                    id="rhythm-metronome-dot"
-                                    class="rhythm-beat-dot"
-                                ></span>
-                            </div>
-                        </div>
                         <div class="practice-buttons">
                             <button
                                 class="icon-button"
                                 data-action="rhythm-metronome-play"
                                 type="button"
-                                aria-label="Play rhythm"
+                                aria-label="Start metronome"
                                 title="Play"
                             >
                                 <span aria-hidden="true">▶</span>
@@ -1162,14 +1139,92 @@
                                 class="icon-button"
                                 data-action="global-stop"
                                 type="button"
-                                aria-label="Stop rhythm"
+                                aria-label="Stop metronome"
                                 title="Stop"
                             >
                                 <span aria-hidden="true">■</span>
                             </button>
                         </div>
+                        <div class="practice-content-column-2">
+                            <div
+                                id="rhythm-metronome-feedback"
+                                class="practice-result"
+                            >
+                                <div class="indicator-track" aria-hidden="true">
+                                    <span class="rhythm-beat-target"></span>
+                                    <span
+                                        id="rhythm-metronome-dot"
+                                        class="rhythm-beat-dot"
+                                    ></span>
+                                    <span
+                                        id="rhythm-metronome-mark"
+                                        class="rhythm-metronome-mark"
+                                        hidden
+                                    ></span>
+                                </div>
+                            </div>
+                            <div class="rhythm-beat-labels" aria-hidden="true">
+                                <span>- Early</span>
+                                <span>On beat</span>
+                                <span>Late +</span>
+                            </div>
+                        </div>
+                        <div
+                            class="practice-responses practice-content-column-2"
+                        >
+                            <button
+                                id="rhythm-metronome-tap"
+                                class="rhythm-metronome-tap"
+                                type="button"
+                                disabled
+                            >
+                                Press
+                            </button>
+                        </div>
+                        <p
+                            id="rhythm-metronome-result"
+                            class="practice-result rhythm-metronome-result"
+                            role="status"
+                        ></p>
+                        <dl class="practice-stats">
+                            <div class="stats-with-action">
+                                <dt>Streak</dt>
+                                <dd>
+                                    <strong
+                                        data-output="rhythm-metronome-streak"
+                                        >0</strong
+                                    >
+                                    <button
+                                        class="link-button"
+                                        data-action="rhythm-metronome-stats-clear"
+                                        type="button"
+                                        title="Clear metronome statistics"
+                                    >
+                                        Clear
+                                    </button>
+                                </dd>
+                            </div>
+                            <div>
+                                <dt>Mean error</dt>
+                                <dd
+                                    data-output="rhythm-metronome-mean-error"
+                                    data-unit="ms"
+                                >
+                                    --
+                                </dd>
+                            </div>
+                            <div>
+                                <dt>Best</dt>
+                                <dd
+                                    data-output="rhythm-metronome-best"
+                                    data-unit="ms"
+                                >
+                                    --
+                                </dd>
+                            </div>
+                        </dl>
                     </div>
-                    <div class="settings">
+                    <div class="settings field-grid">
                         <h3 class="settings-heading">Settings</h3>
                         <div class="field">
                             <label for="rhythm-metronome-bpm">
@@ -1178,15 +1233,14 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Beats per minute. Higher numbers are faster. 60 BPM is one beat per second."
-                                    data-tooltip="Beats per minute. Higher numbers are faster. 60 BPM is one beat per second."
                                 >
                                     ⓘ
                                 </span>
                             </label>
-                            <div class="control-row input-button-row">
+                            <div class="control-row control-group">
                                 <input
                                     id="rhythm-metronome-bpm"
-                                    data-control="shared-bpm"
+                                    data-setting="shared-rhythm-bpm"
                                     type="number"
                                     min="30"
                                     max="240"
@@ -1194,7 +1248,7 @@
                                     value="100"
                                 />
                                 <button
-                                    data-action="rhythm-metronome-tempo-tap"
+                                    data-action="rhythm-tempo-tap"
                                     type="button"
                                     title="Tap tempo"
                                     aria-label="Tap tempo"
@@ -1210,7 +1264,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="How beats are grouped. The first beat is accented. Compound meters such as 6/8 are grouped into sets of three."
-                                    data-tooltip="How beats are grouped. The first beat is accented. Compound meters such as 6/8 are grouped into sets of three."
                                 >
                                     ⓘ
                                 </span>
@@ -1219,151 +1272,7 @@
                                 <select
                                     id="rhythm-metronome-time-signature"
                                     class="rhythm-time-signature"
-                                    data-control="shared-time-signature"
-                                >
-                                    <option value="2/4">2/4 - 𝅘𝅥</option>
-                                    <option value="3/4">3/4 - 𝅘𝅥</option>
-                                    <option value="4/4" selected>
-                                        4/4 - 𝄴 (common)
-                                    </option>
-                                    <option value="2/2">
-                                        2/2 - 𝄵 (cut time)
-                                    </option>
-                                    <option value="3/8">3/8 - 𝅘𝅥𝅮</option>
-                                    <option value="6/8">6/8 - 𝅘𝅥.</option>
-                                    <option value="9/8">9/8 - 𝅘𝅥.</option>
-                                    <option value="12/8">12/8 - 𝅘𝅥.</option>
-                                    <option value="5/4">5/4 - 𝅘𝅥</option>
-                                    <option value="7/8">7/8 - 𝅘𝅥𝅮</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div data-mode-panel="timing" hidden>
-                    <h3 class="blurb">
-                        Match the moving beat with Space or a tap. See how early
-                        or late you respond and how consistent your timing is.
-                    </h3>
-                    <div class="practice">
-                        <div
-                            id="rhythm-timing-practice"
-                            class="practice-content-column-2"
-                        >
-                            <div
-                                id="rhythm-timing-feedback"
-                                class="practice-result"
-                            >
-                                <div
-                                    class="rhythm-beat-track"
-                                    aria-hidden="true"
-                                >
-                                    <span class="rhythm-beat-target"></span>
-                                    <span
-                                        id="rhythm-timing-dot"
-                                        class="rhythm-beat-dot"
-                                    ></span>
-                                    <span
-                                        id="rhythm-timing-mark"
-                                        class="rhythm-timing-mark"
-                                        hidden
-                                    ></span>
-                                </div>
-                            </div>
-                            <div class="rhythm-beat-labels" aria-hidden="true">
-                                <span>- Early</span>
-                                <span>On beat</span>
-                                <span>Late +</span>
-                            </div>
-                        </div>
-                        <div class="practice-buttons">
-                            <button
-                                class="icon-button"
-                                data-action="rhythm-timing-play"
-                                type="button"
-                                aria-label="Play rhythm"
-                                title="Play"
-                            >
-                                <span aria-hidden="true">▶</span>
-                            </button>
-
-                            <button
-                                class="icon-button"
-                                data-action="global-stop"
-                                type="button"
-                                aria-label="Stop rhythm"
-                                title="Stop"
-                            >
-                                <span aria-hidden="true">■</span>
-                            </button>
-                        </div>
-                        <div class="practice-responses">
-                            <button
-                                id="rhythm-timing-tap"
-                                class="rhythm-timing-tap"
-                                type="button"
-                                disabled
-                            >
-                                Press
-                            </button>
-                        </div>
-                        <p
-                            id="rhythm-timing-result"
-                            class="practice-result tabular-numbers"
-                            role="status"
-                        ></p>
-                    </div>
-                    <div class="settings">
-                        <h3 class="settings-heading">Settings</h3>
-                        <div class="field">
-                            <label for="rhythm-timing-bpm">
-                                BPM
-                                <span
-                                    class="info-tip"
-                                    tabindex="0"
-                                    aria-label="Beats per minute. Higher numbers are faster. 60 BPM is one beat per second."
-                                    data-tooltip="Beats per minute. Higher numbers are faster. 60 BPM is one beat per second."
-                                >
-                                    ⓘ
-                                </span>
-                            </label>
-                            <div class="control-row input-button-row">
-                                <input
-                                    id="rhythm-timing-bpm"
-                                    data-control="shared-bpm"
-                                    type="number"
-                                    min="30"
-                                    max="240"
-                                    step="1"
-                                    value="100"
-                                />
-                                <button
-                                    data-action="rhythm-timing-tempo-tap"
-                                    type="button"
-                                    title="Tap tempo"
-                                    aria-label="Tap tempo"
-                                >
-                                    Tap
-                                </button>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label for="rhythm-timing-time-signature">
-                                Time signature
-                                <span
-                                    class="info-tip"
-                                    tabindex="0"
-                                    aria-label="How beats are grouped. The first beat is accented. Compound meters such as 6/8 are grouped into sets of three."
-                                    data-tooltip="How beats are grouped. The first beat is accented. Compound meters such as 6/8 are grouped into sets of three."
-                                >
-                                    ⓘ
-                                </span>
-                            </label>
-                            <div class="control-row">
-                                <select
-                                    id="rhythm-timing-time-signature"
-                                    class="rhythm-time-signature"
-                                    data-control="shared-time-signature"
+                                    data-setting="shared-rhythm-time-signature"
                                 >
                                     <option value="2/4">2/4 - 𝅘𝅥</option>
                                     <option value="3/4">3/4 - 𝅘𝅥</option>
@@ -1385,7 +1294,7 @@
                     </div>
 
                     <details class="practice-guide">
-                        <summary>How timing practice works</summary>
+                        <summary>How metronome practice works</summary>
                         <p>
                             Press Play, then press Space or tap as the dot
                             crosses the center line. Match every click,
@@ -1412,7 +1321,7 @@
                             <div class="control-row">
                                 <select
                                     id="rhythm-sheet-soundfont"
-                                    data-control="shared-soundfont"
+                                    data-setting="shared-soundfont"
                                     title="Choose a SoundFont, or drop an SF2 or SF3 file in this view"
                                 ></select>
                             </div>
@@ -1466,7 +1375,9 @@
                                 aria-describedby="rhythm-sheet-description"
                             ></div>
                         </div>
-                        <div class="practice-responses practice-content-column">
+                        <div
+                            class="practice-responses practice-content-column-4"
+                        >
                             <button
                                 id="rhythm-sheet-hold"
                                 class="rhythm-sheet-hold"
@@ -1486,7 +1397,7 @@
                         </div>
                         <div
                             id="rhythm-sheet-practice-results"
-                            class="practice-results practice-content-column-2 tabular-numbers"
+                            class="practice-results practice-content-column-2"
                             hidden
                         >
                             <p id="rhythm-sheet-result" role="status"></p>
@@ -1506,7 +1417,7 @@
                         </div>
                         <p id="rhythm-sheet-description" class="sr-only"></p>
                     </div>
-                    <div class="settings">
+                    <div class="settings field-grid">
                         <h3 class="settings-heading">Settings</h3>
                         <div class="field">
                             <label for="rhythm-sheet-bpm">
@@ -1516,16 +1427,15 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Beats per minute. Higher numbers are faster. 60 BPM is one beat per second."
-                                    data-tooltip="Beats per minute. Higher numbers are faster. 60 BPM is one beat per second."
                                 >
                                     ⓘ
                                 </span>
                             </label>
 
-                            <div class="control-row input-button-row">
+                            <div class="control-row control-group">
                                 <input
                                     id="rhythm-sheet-bpm"
-                                    data-control="shared-bpm"
+                                    data-setting="shared-rhythm-bpm"
                                     type="number"
                                     min="30"
                                     max="240"
@@ -1533,7 +1443,7 @@
                                     value="100"
                                 />
                                 <button
-                                    data-action="rhythm-sheet-tempo-tap"
+                                    data-action="rhythm-tempo-tap"
                                     type="button"
                                     title="Tap tempo"
                                     aria-label="Tap tempo"
@@ -1551,7 +1461,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="How beats are grouped. The first beat is accented. Compound meters such as 6/8 are grouped into sets of three."
-                                    data-tooltip="How beats are grouped. The first beat is accented. Compound meters such as 6/8 are grouped into sets of three."
                                 >
                                     ⓘ
                                 </span>
@@ -1561,7 +1470,7 @@
                                 <select
                                     id="rhythm-sheet-time-signature"
                                     class="rhythm-time-signature"
-                                    data-control="shared-time-signature"
+                                    data-setting="shared-rhythm-time-signature"
                                 >
                                     <option value="2/4">2/4 - 𝅘𝅥</option>
                                     <option value="3/4">3/4 - 𝅘𝅥</option>
@@ -1587,7 +1496,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="All uses whole, half, quarter, eighth, and sixteenth notes and rests. All + dotted may also use dotted quarter and half values. A dot adds half the note's duration."
-                                    data-tooltip="All uses whole, half, quarter, eighth, and sixteenth notes and rests. All + dotted may also use dotted quarter and half values. A dot adds half the note's duration."
                                 >
                                     ⓘ
                                 </span>
@@ -1595,7 +1503,7 @@
                             <div class="control-row">
                                 <select
                                     id="rhythm-sheet-note-values"
-                                    data-control="rhythm-sheet-note-values"
+                                    data-setting="rhythm-sheet-note-values"
                                 >
                                     <option value="all" selected>all</option>
                                     <option value="all-dotted">
@@ -1609,7 +1517,7 @@
                             <div class="control-row">
                                 <select
                                     id="rhythm-sheet-bars"
-                                    data-control="rhythm-sheet-bars"
+                                    data-setting="rhythm-sheet-bars"
                                 >
                                     <option value="2">2</option>
                                     <option value="4" selected>4</option>
@@ -1623,7 +1531,7 @@
                             <div class="control-row">
                                 <select
                                     id="rhythm-sheet-clef"
-                                    data-control="rhythm-sheet-clef"
+                                    data-setting="rhythm-sheet-clef"
                                 >
                                     <option value="treble" selected>
                                         treble
@@ -1639,7 +1547,7 @@
                             <div class="control-row">
                                 <select
                                     id="rhythm-sheet-pitches"
-                                    data-control="rhythm-sheet-pitches"
+                                    data-setting="rhythm-sheet-pitches"
                                 >
                                     <option value="natural" selected>
                                         natural
@@ -1727,48 +1635,50 @@
                         >.
                     </p>
                     <div class="practice">
-                        <div class="field">
-                            <label for="midi-sheet-library">MIDI file</label>
-                            <div class="control-row midi-file-controls">
-                                <button
-                                    class="icon-button"
-                                    data-action="midi-sheet-attach"
-                                    type="button"
-                                    aria-controls="midi-sheet-file"
-                                    aria-label="Choose local MIDI file"
-                                    title="Choose local MIDI file"
+                        <div class="practice-content-column-2 field-grid">
+                            <div class="field">
+                                <label for="midi-sheet-library"
+                                    >MIDI file</label
                                 >
-                                    <span aria-hidden="true">📎</span>
-                                </button>
-                                <select
-                                    id="midi-sheet-library"
-                                    data-control="shared-midi-library"
-                                ></select>
+                                <div class="control-row control-group">
+                                    <button
+                                        class="icon-button"
+                                        data-action="midi-attach"
+                                        type="button"
+                                        aria-controls="midi-sheet-file"
+                                        aria-label="Choose local MIDI file"
+                                        title="Choose local MIDI file"
+                                    >
+                                        <span aria-hidden="true">📎</span>
+                                    </button>
+                                    <select
+                                        id="midi-sheet-library"
+                                        data-input="shared-midi-library"
+                                    ></select>
+                                </div>
+                                <input
+                                    id="midi-sheet-file"
+                                    class="sr-only"
+                                    data-input="midi-file-input"
+                                    type="file"
+                                    accept=".mid,.midi,audio/midi,audio/x-midi"
+                                    tabindex="-1"
+                                />
                             </div>
-                            <input
-                                id="midi-sheet-file"
-                                class="sr-only"
-                                data-control="midi-file"
-                                type="file"
-                                accept=".mid,.midi,audio/midi,audio/x-midi"
-                                tabindex="-1"
-                            />
-                        </div>
-                        <div class="field">
-                            <label for="midi-sheet-soundfont">
-                                SoundFont
-                            </label>
-                            <div class="control-row">
-                                <select
-                                    id="midi-sheet-soundfont"
-                                    data-control="shared-soundfont"
-                                    title="Choose a SoundFont, or drop an SF2 or SF3 file in this view"
-                                ></select>
+                            <div class="field">
+                                <label for="midi-sheet-soundfont">
+                                    SoundFont
+                                </label>
+                                <div class="control-row">
+                                    <select
+                                        id="midi-sheet-soundfont"
+                                        data-setting="shared-soundfont"
+                                        title="Choose a SoundFont, or drop an SF2 or SF3 file in this view"
+                                    ></select>
+                                </div>
                             </div>
                         </div>
-                        <p
-                            class="practice-note practice-content-column-3 midi-player-status-group"
-                        >
+                        <p class="practice-note practice-content-column-3">
                             <span
                                 class="midi-player-status"
                                 data-output="midi-player-status"
@@ -1786,7 +1696,7 @@
                         <div class="practice-buttons">
                             <button
                                 class="icon-button"
-                                data-action="midi-sheet-rewind"
+                                data-action="midi-rewind"
                                 type="button"
                                 aria-label="Rewind"
                                 title="Rewind"
@@ -1797,7 +1707,7 @@
 
                             <button
                                 class="icon-button"
-                                data-action="midi-sheet-play"
+                                data-action="midi-play"
                                 type="button"
                                 aria-label="Play"
                                 title="Play"
@@ -1816,7 +1726,7 @@
                             >
                             <input
                                 class="midi-player-seek"
-                                data-control="shared-midi-seek"
+                                data-input="shared-midi-seek"
                                 type="range"
                                 min="0"
                                 max="0"
@@ -1844,61 +1754,51 @@
                         an SF2 or SF3 SoundFont into this view to use its
                         instruments for playback.
                     </h3>
-                    <p class="practice-note">
-                        This module is a work in progress and is likely to have
-                        bugs. Please report bugs on
-                        <a
-                            href="https://github.com/qwell/440lab/issues"
-                            target="_blank"
-                            rel="noopener"
-                            >GitHub</a
-                        >.
-                    </p>
                     <div class="practice">
-                        <div class="field">
-                            <label for="midi-piano-roll-library"
-                                >MIDI file</label
-                            >
-                            <div class="control-row midi-file-controls">
-                                <button
-                                    class="icon-button"
-                                    data-action="midi-piano-roll-attach"
-                                    type="button"
-                                    aria-controls="midi-piano-roll-file"
-                                    aria-label="Choose local MIDI file"
-                                    title="Choose local MIDI file"
+                        <div class="practice-content-column-2 field-grid">
+                            <div class="field">
+                                <label for="midi-piano-roll-library"
+                                    >MIDI file</label
                                 >
-                                    <span aria-hidden="true">📎</span>
-                                </button>
-                                <select
-                                    id="midi-piano-roll-library"
-                                    data-control="shared-midi-library"
-                                ></select>
+                                <div class="control-row control-group">
+                                    <button
+                                        class="icon-button"
+                                        data-action="midi-attach"
+                                        type="button"
+                                        aria-controls="midi-piano-roll-file"
+                                        aria-label="Choose local MIDI file"
+                                        title="Choose local MIDI file"
+                                    >
+                                        <span aria-hidden="true">📎</span>
+                                    </button>
+                                    <select
+                                        id="midi-piano-roll-library"
+                                        data-input="shared-midi-library"
+                                    ></select>
+                                </div>
+                                <input
+                                    id="midi-piano-roll-file"
+                                    class="sr-only"
+                                    data-input="midi-file-input"
+                                    type="file"
+                                    accept=".mid,.midi,audio/midi,audio/x-midi"
+                                    tabindex="-1"
+                                />
                             </div>
-                            <input
-                                id="midi-piano-roll-file"
-                                class="sr-only"
-                                data-control="midi-file"
-                                type="file"
-                                accept=".mid,.midi,audio/midi,audio/x-midi"
-                                tabindex="-1"
-                            />
-                        </div>
-                        <div class="field">
-                            <label for="midi-piano-roll-soundfont">
-                                SoundFont
-                            </label>
-                            <div class="control-row">
-                                <select
-                                    id="midi-piano-roll-soundfont"
-                                    data-control="shared-soundfont"
-                                    title="Choose a SoundFont, or drop an SF2 or SF3 file in this view"
-                                ></select>
+                            <div class="field">
+                                <label for="midi-piano-roll-soundfont">
+                                    SoundFont
+                                </label>
+                                <div class="control-row">
+                                    <select
+                                        id="midi-piano-roll-soundfont"
+                                        data-setting="shared-soundfont"
+                                        title="Choose a SoundFont, or drop an SF2 or SF3 file in this view"
+                                    ></select>
+                                </div>
                             </div>
                         </div>
-                        <p
-                            class="practice-note practice-content-column-3 midi-player-status-group"
-                        >
+                        <p class="practice-note practice-content-column-3">
                             <span
                                 class="midi-player-status"
                                 data-output="midi-player-status"
@@ -1916,7 +1816,7 @@
                         <div class="practice-buttons">
                             <button
                                 class="icon-button"
-                                data-action="midi-piano-roll-rewind"
+                                data-action="midi-rewind"
                                 type="button"
                                 aria-label="Rewind"
                                 title="Rewind"
@@ -1927,7 +1827,7 @@
 
                             <button
                                 class="icon-button"
-                                data-action="midi-piano-roll-play"
+                                data-action="midi-play"
                                 type="button"
                                 aria-label="Play"
                                 title="Play"
@@ -1946,7 +1846,7 @@
                             >
                             <input
                                 class="midi-player-seek"
-                                data-control="shared-midi-seek"
+                                data-input="shared-midi-seek"
                                 type="range"
                                 min="0"
                                 max="0"
@@ -2078,18 +1978,26 @@
 
                             <div>
                                 <dt>Mean error</dt>
-                                <dd data-output="pitch-placement-mean-error">
+                                <dd
+                                    data-output="pitch-placement-mean-error"
+                                    data-unit="cents"
+                                >
                                     0.0 cents
                                 </dd>
                             </div>
 
                             <div>
                                 <dt>Best</dt>
-                                <dd data-output="pitch-placement-best">--</dd>
+                                <dd
+                                    data-output="pitch-placement-best"
+                                    data-unit="cents"
+                                >
+                                    --
+                                </dd>
                             </div>
                         </dl>
                     </div>
-                    <div class="settings">
+                    <div class="settings field-grid">
                         <h3 class="settings-heading">Settings</h3>
                         <div class="field">
                             <label for="pitch-placement-note">
@@ -2102,7 +2010,7 @@
                             <div class="control-row">
                                 <select
                                     id="pitch-placement-note"
-                                    data-control="shared-note"
+                                    data-setting="shared-note"
                                     data-note="pitch-placement"
                                 ></select>
                             </div>
@@ -2116,7 +2024,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
-                                    data-tooltip="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
                                 >
                                     ⓘ
                                 </span>
@@ -2125,7 +2032,7 @@
                             <div class="control-row">
                                 <select
                                     id="pitch-placement-waveform"
-                                    data-control="shared-waveform"
+                                    data-setting="shared-waveform"
                                     data-waveform="pitch-placement"
                                 >
                                     <option value="sine" selected>sine</option>
@@ -2143,7 +2050,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Minimum and maximum mistuning. Each trial is randomly flat or sharp within this range."
-                                    data-tooltip="Minimum and maximum mistuning. Each trial is randomly flat or sharp within this range."
                                 >
                                     ⓘ
                                 </span>
@@ -2152,7 +2058,7 @@
                             <div class="range-controls">
                                 <input
                                     id="pitch-placement-range-min"
-                                    data-control="pitch-placement-range-min"
+                                    data-setting="pitch-placement-range-min"
                                     type="number"
                                     min="0.1"
                                     max="200"
@@ -2165,7 +2071,7 @@
 
                                 <input
                                     id="pitch-placement-range-max"
-                                    data-control="pitch-placement-range-max"
+                                    data-setting="pitch-placement-range-max"
                                     type="number"
                                     min="0.1"
                                     max="200"
@@ -2184,7 +2090,7 @@
                             <div class="control-row">
                                 <input
                                     id="pitch-placement-duration"
-                                    data-control="pitch-placement-duration"
+                                    data-setting="pitch-placement-duration"
                                     type="number"
                                     min="0.1"
                                     max="10"
@@ -2202,7 +2108,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Equal-tempered distance from the reference note to the correctly tuned target before mistuning is applied."
-                                    data-tooltip="Equal-tempered distance from the reference note to the correctly tuned target before mistuning is applied."
                                 >
                                     ⓘ
                                 </span>
@@ -2211,7 +2116,7 @@
                             <div class="control-row">
                                 <select
                                     id="pitch-placement-interval"
-                                    data-control="pitch-placement-interval"
+                                    data-setting="pitch-placement-interval"
                                 >
                                     <option value="0" selected>unison</option>
 
@@ -2240,7 +2145,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="After every five answers, the cents range narrows when four or more are correct and widens when two or fewer are correct."
-                                    data-tooltip="After every five answers, the cents range narrows when four or more are correct and widens when two or fewer are correct."
                                     >ⓘ</span
                                 >
                             </label>
@@ -2248,10 +2152,10 @@
                             <div class="control-row">
                                 <select
                                     id="pitch-placement-adaptive"
-                                    data-control="shared-adaptive"
+                                    data-setting="shared-adaptive"
                                 >
-                                    <option value="off" selected>off</option>
-                                    <option value="on">on</option>
+                                    <option value="off">off</option>
+                                    <option value="on" selected>on</option>
                                 </select>
                             </div>
                         </div>
@@ -2266,61 +2170,6 @@
                         note names or familiar recordings are used.
                     </h3>
                     <div class="practice">
-                        <div class="practice-content-column-3">
-                            <p
-                                class="practice-status"
-                                data-output="pitch-memory-status"
-                                aria-live="polite"
-                            >
-                                Ready for a new trial.
-                            </p>
-                            <p class="practice-note">
-                                Microphone responses accept the nearest octave.
-                                Slider adjustments within 50 cents keep octave
-                                matching; larger adjustments use the selected
-                                pitch.
-                            </p>
-
-                            <div id="pitch-memory-pitch-response" hidden>
-                                <label for="pitch-memory-pitch">
-                                    Response pitch (<span
-                                        data-output="pitch-memory-response-pitch"
-                                    ></span
-                                    >)
-                                    <span
-                                        class="info-tip"
-                                        tabindex="0"
-                                        aria-label="Sing, hum, or play a pitch to move the control, then fine-tune it manually if needed. The control adjusts continuously without snapping to musical notes."
-                                        data-tooltip="Sing, hum, or play a pitch to move the control, then fine-tune it manually if needed. The control adjusts continuously without snapping to musical notes."
-                                    >
-                                        ⓘ
-                                    </span>
-                                </label>
-                                <div class="pitch-memory-pitch-scale">
-                                    <input
-                                        id="pitch-memory-pitch"
-                                        data-control="pitch-memory-pitch"
-                                        type="range"
-                                        step="any"
-                                    />
-                                    <span class="pitch-memory-pitch-markers">
-                                        <span
-                                            class="pitch-memory-pitch-marker state-background is-target"
-                                            data-output="pitch-memory-target-marker"
-                                            title="Target pitch"
-                                            hidden
-                                        ></span>
-                                        <span
-                                            class="pitch-memory-pitch-marker state-background"
-                                            data-output="pitch-memory-response-marker"
-                                            title="Your response"
-                                            hidden
-                                        ></span>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
                         <div class="practice-buttons">
                             <button
                                 class="icon-button"
@@ -2351,6 +2200,59 @@
                             >
                                 <span aria-hidden="true">↻</span>
                             </button>
+                        </div>
+                        <div class="practice-content-column-3">
+                            <p
+                                class="practice-status"
+                                data-output="pitch-memory-status"
+                                aria-live="polite"
+                            >
+                                Ready for a new trial.
+                            </p>
+                            <p class="practice-note">
+                                Microphone responses accept the nearest octave.
+                                Slider adjustments within 50 cents keep octave
+                                matching; larger adjustments use the selected
+                                pitch.
+                            </p>
+
+                            <div id="pitch-memory-pitch-response" hidden>
+                                <label for="pitch-memory-pitch">
+                                    Response pitch (<span
+                                        data-output="pitch-memory-response-pitch"
+                                    ></span
+                                    >)
+                                    <span
+                                        class="info-tip"
+                                        tabindex="0"
+                                        aria-label="Sing, hum, or play a pitch to move the control, then fine-tune it manually if needed. The control adjusts continuously without snapping to musical notes."
+                                    >
+                                        ⓘ
+                                    </span>
+                                </label>
+                                <div class="pitch-memory-pitch-scale">
+                                    <input
+                                        id="pitch-memory-pitch"
+                                        data-input="pitch-memory-pitch"
+                                        type="range"
+                                        step="any"
+                                    />
+                                    <span class="pitch-memory-pitch-markers">
+                                        <span
+                                            class="pitch-memory-pitch-marker state-background is-target"
+                                            data-output="pitch-memory-target-marker"
+                                            title="Target pitch"
+                                            hidden
+                                        ></span>
+                                        <span
+                                            class="pitch-memory-pitch-marker state-background"
+                                            data-output="pitch-memory-response-marker"
+                                            title="Your response"
+                                            hidden
+                                        ></span>
+                                    </span>
+                                </div>
+                            </div>
                         </div>
 
                         <div
@@ -2411,17 +2313,25 @@
                             </div>
                             <div>
                                 <dt>Mean error</dt>
-                                <dd data-output="pitch-memory-mean-error">
+                                <dd
+                                    data-output="pitch-memory-mean-error"
+                                    data-unit="cents"
+                                >
                                     --
                                 </dd>
                             </div>
                             <div>
                                 <dt>Best</dt>
-                                <dd data-output="pitch-memory-best">--</dd>
+                                <dd
+                                    data-output="pitch-memory-best"
+                                    data-unit="cents"
+                                >
+                                    --
+                                </dd>
                             </div>
                         </dl>
                     </div>
-                    <div class="settings">
+                    <div class="settings field-grid">
                         <h3 class="settings-heading">Settings</h3>
                         <div class="field">
                             <label for="pitch-memory-type">
@@ -2430,7 +2340,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Novel melody tests recall of an unfamiliar melody's opening pitch after a delay. Interference tests recall of a single target after unrelated tones."
-                                    data-tooltip="Novel melody tests recall of an unfamiliar melody's opening pitch after a delay. Interference tests recall of a single target after unrelated tones."
                                 >
                                     ⓘ
                                 </span>
@@ -2438,7 +2347,7 @@
                             <div class="control-row">
                                 <select
                                     id="pitch-memory-type"
-                                    data-control="pitch-memory-type"
+                                    data-setting="pitch-memory-type"
                                 >
                                     <option value="novel">novel melody</option>
                                     <option value="interference">
@@ -2455,7 +2364,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Sets the delay after the generated melody finishes. Delayed trials are saved in this browser."
-                                    data-tooltip="Sets the delay after the generated melody finishes. Delayed trials are saved in this browser."
                                 >
                                     ⓘ
                                 </span>
@@ -2463,7 +2371,7 @@
                             <div class="control-row">
                                 <select
                                     id="pitch-memory-delay"
-                                    data-control="pitch-memory-delay"
+                                    data-setting="pitch-memory-delay"
                                 >
                                     <option value="10">10 seconds</option>
                                     <option value="60">1 minute</option>
@@ -2485,7 +2393,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Sets how many unrelated tones play between the target and your response. More tones create stronger interference."
-                                    data-tooltip="Sets how many unrelated tones play between the target and your response. More tones create stronger interference."
                                 >
                                     ⓘ
                                 </span>
@@ -2493,7 +2400,7 @@
                             <div class="control-row">
                                 <select
                                     id="pitch-memory-distractors"
-                                    data-control="pitch-memory-distractors"
+                                    data-setting="pitch-memory-distractors"
                                 >
                                     <option value="0">0</option>
                                     <option value="11">11</option>
@@ -2577,17 +2484,25 @@
 
                             <div>
                                 <dt>Mean error</dt>
-                                <dd data-output="match-target-mean-error">
+                                <dd
+                                    data-output="match-target-mean-error"
+                                    data-unit="cents"
+                                >
                                     0.0 cents
                                 </dd>
                             </div>
                             <div>
                                 <dt>Best</dt>
-                                <dd data-output="match-target-best">--</dd>
+                                <dd
+                                    data-output="match-target-best"
+                                    data-unit="cents"
+                                >
+                                    --
+                                </dd>
                             </div>
                         </dl>
                     </div>
-                    <div class="settings">
+                    <div class="settings field-grid">
                         <h3 class="settings-heading">Settings</h3>
                         <div class="field">
                             <label for="match-target-note">
@@ -2600,7 +2515,7 @@
                             <div class="control-row">
                                 <select
                                     id="match-target-note"
-                                    data-control="shared-note"
+                                    data-setting="shared-note"
                                     data-note="match-target"
                                 ></select>
                             </div>
@@ -2614,7 +2529,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
-                                    data-tooltip="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
                                 >
                                     ⓘ
                                 </span>
@@ -2623,7 +2537,7 @@
                             <div class="control-row">
                                 <select
                                     id="match-target-waveform"
-                                    data-control="shared-waveform"
+                                    data-setting="shared-waveform"
                                     data-waveform="match-target"
                                 >
                                     <option value="sine" selected>sine</option>
@@ -2641,7 +2555,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Minimum and maximum distance from the target to answer tones."
-                                    data-tooltip="Minimum and maximum distance from the target to answer tones."
                                 >
                                     ⓘ
                                 </span>
@@ -2650,7 +2563,7 @@
                             <div class="range-controls">
                                 <input
                                     id="match-target-range-min"
-                                    data-control="match-target-range-min"
+                                    data-setting="match-target-range-min"
                                     type="number"
                                     min="0.1"
                                     max="1200"
@@ -2663,7 +2576,7 @@
 
                                 <input
                                     id="match-target-range-max"
-                                    data-control="match-target-range-max"
+                                    data-setting="match-target-range-max"
                                     type="number"
                                     min="0.1"
                                     max="1200"
@@ -2682,7 +2595,7 @@
                             <div class="control-row">
                                 <input
                                     id="match-target-duration"
-                                    data-control="match-target-duration"
+                                    data-setting="match-target-duration"
                                     type="number"
                                     min="0.1"
                                     max="10"
@@ -2700,7 +2613,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Number of choices. Exactly one answer is the selected target note."
-                                    data-tooltip="Number of choices. Exactly one answer is the selected target note."
                                 >
                                     ⓘ
                                 </span>
@@ -2709,7 +2621,7 @@
                             <div class="control-row">
                                 <select
                                     id="match-target-count"
-                                    data-control="match-target-count"
+                                    data-setting="match-target-count"
                                 >
                                     <option value="2">2</option>
                                     <option value="3">3</option>
@@ -2734,7 +2646,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="After every five answers, the cents range narrows when four or more are correct and widens when two or fewer are correct."
-                                    data-tooltip="After every five answers, the cents range narrows when four or more are correct and widens when two or fewer are correct."
                                     >ⓘ</span
                                 >
                             </label>
@@ -2742,10 +2653,10 @@
                             <div class="control-row">
                                 <select
                                     id="match-target-adaptive"
-                                    data-control="shared-adaptive"
+                                    data-setting="shared-adaptive"
                                 >
-                                    <option value="off" selected>off</option>
-                                    <option value="on">on</option>
+                                    <option value="off">off</option>
+                                    <option value="on" selected>on</option>
                                 </select>
                             </div>
                         </div>
@@ -2838,7 +2749,7 @@
                             </div>
                         </dl>
                     </div>
-                    <div class="settings">
+                    <div class="settings field-grid">
                         <h3 class="settings-heading">Settings</h3>
                         <div class="field">
                             <label for="match-identification-octave"
@@ -2847,7 +2758,7 @@
                             <div class="control-row">
                                 <select
                                     id="match-identification-octave"
-                                    data-control="match-identification-octave"
+                                    data-setting="match-identification-octave"
                                 >
                                     <option value="random">random (3–5)</option>
                                     <option value="3">3</option>
@@ -2863,14 +2774,13 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
-                                    data-tooltip="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
                                     >ⓘ</span
                                 >
                             </label>
                             <div class="control-row">
                                 <select
                                     id="match-identification-waveform"
-                                    data-control="shared-waveform"
+                                    data-setting="shared-waveform"
                                     data-waveform="match-identification"
                                 >
                                     <option value="sine" selected>sine</option>
@@ -2885,7 +2795,7 @@
                             <div class="control-row">
                                 <input
                                     id="match-identification-duration"
-                                    data-control="match-identification-duration"
+                                    data-setting="match-identification-duration"
                                     type="number"
                                     min="0.1"
                                     max="10"
@@ -2997,7 +2907,7 @@
                         </dl>
                     </div>
 
-                    <div class="settings">
+                    <div class="settings field-grid">
                         <h3 class="settings-heading">Settings</h3>
                         <div class="field">
                             <label for="interval-recognition-level">
@@ -3007,7 +2917,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Controls which intervals can be requested and which recognition choices are shown."
-                                    data-tooltip="Controls which intervals can be requested and which recognition choices are shown."
                                 >
                                     ⓘ
                                 </span>
@@ -3015,7 +2924,7 @@
                             <div class="control-row">
                                 <select
                                     id="interval-recognition-level"
-                                    data-control="shared-interval-set"
+                                    data-setting="shared-interval-set"
                                 >
                                     <option value="starter" selected>
                                         starter - 4
@@ -3033,7 +2942,7 @@
                             <div class="control-row">
                                 <select
                                     id="interval-recognition-direction"
-                                    data-control="shared-interval-direction"
+                                    data-setting="shared-interval-direction"
                                 >
                                     <option value="random" selected>
                                         random
@@ -3054,7 +2963,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="After every five answers, the interval set moves up when four or more are correct and down when two or fewer are correct."
-                                    data-tooltip="After every five answers, the interval set moves up when four or more are correct and down when two or fewer are correct."
                                     >ⓘ</span
                                 >
                             </label>
@@ -3062,10 +2970,10 @@
                             <div class="control-row">
                                 <select
                                     id="interval-recognition-adaptive"
-                                    data-control="shared-adaptive"
+                                    data-setting="shared-adaptive"
                                 >
-                                    <option value="off" selected>off</option>
-                                    <option value="on">on</option>
+                                    <option value="off">off</option>
+                                    <option value="on" selected>on</option>
                                 </select>
                             </div>
                         </div>
@@ -3078,7 +2986,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
-                                    data-tooltip="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
                                 >
                                     ⓘ
                                 </span>
@@ -3086,7 +2993,7 @@
                             <div class="control-row">
                                 <select
                                     id="interval-recognition-waveform"
-                                    data-control="shared-waveform"
+                                    data-setting="shared-waveform"
                                     data-waveform="interval-recognition"
                                 >
                                     <option value="sine" selected>sine</option>
@@ -3102,7 +3009,7 @@
                             <div class="control-row">
                                 <input
                                     id="interval-recognition-duration"
-                                    data-control="shared-interval-duration"
+                                    data-setting="shared-interval-duration"
                                     type="number"
                                     min="0.1"
                                     max="3"
@@ -3212,7 +3119,7 @@
                         </dl>
                     </div>
 
-                    <div class="settings">
+                    <div class="settings field-grid">
                         <h3 class="settings-heading">Settings</h3>
                         <div class="field">
                             <label for="interval-construction-level">
@@ -3222,7 +3129,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Controls which intervals can be requested. Construction always shows 13 destination notes."
-                                    data-tooltip="Controls which intervals can be requested. Construction always shows 13 destination notes."
                                 >
                                     ⓘ
                                 </span>
@@ -3230,7 +3136,7 @@
                             <div class="control-row">
                                 <select
                                     id="interval-construction-level"
-                                    data-control="shared-interval-set"
+                                    data-setting="shared-interval-set"
                                 >
                                     <option value="starter" selected>
                                         starter - 4
@@ -3248,7 +3154,7 @@
                             <div class="control-row">
                                 <select
                                     id="interval-construction-direction"
-                                    data-control="shared-interval-direction"
+                                    data-setting="shared-interval-direction"
                                 >
                                     <option value="random" selected>
                                         random
@@ -3269,7 +3175,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="After every five answers, the interval set moves up when four or more are correct and down when two or fewer are correct."
-                                    data-tooltip="After every five answers, the interval set moves up when four or more are correct and down when two or fewer are correct."
                                     >ⓘ</span
                                 >
                             </label>
@@ -3277,10 +3182,10 @@
                             <div class="control-row">
                                 <select
                                     id="interval-construction-adaptive"
-                                    data-control="shared-adaptive"
+                                    data-setting="shared-adaptive"
                                 >
-                                    <option value="off" selected>off</option>
-                                    <option value="on">on</option>
+                                    <option value="off">off</option>
+                                    <option value="on" selected>on</option>
                                 </select>
                             </div>
                         </div>
@@ -3293,7 +3198,6 @@
                                     class="info-tip"
                                     tabindex="0"
                                     aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
-                                    data-tooltip="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
                                 >
                                     ⓘ
                                 </span>
@@ -3301,7 +3205,7 @@
                             <div class="control-row">
                                 <select
                                     id="interval-construction-waveform"
-                                    data-control="shared-waveform"
+                                    data-setting="shared-waveform"
                                     data-waveform="interval-construction"
                                 >
                                     <option value="sine" selected>sine</option>
@@ -3317,7 +3221,7 @@
                             <div class="control-row">
                                 <input
                                     id="interval-construction-duration"
-                                    data-control="shared-interval-duration"
+                                    data-setting="shared-interval-duration"
                                     type="number"
                                     min="0.1"
                                     max="3"
@@ -3421,143 +3325,147 @@
 
             <!-- Chords -->
             <section
-                id="chord-panel"
+                id="chord-quality-panel"
                 class="section-panel"
                 data-panel="chord"
                 hidden
             >
                 <h2 class="sr-only">Chords</h2>
-                <h3 class="blurb">
-                    Hear a triad and identify its chord quality.
-                </h3>
+                <div data-mode-panel="quality">
+                    <h3 class="blurb">
+                        Hear a triad and identify its chord quality.
+                    </h3>
 
-                <div class="practice">
-                    <div class="practice-buttons">
-                        <button
-                            class="icon-button"
-                            data-action="chord-play"
-                            type="button"
-                            aria-label="Play chord"
-                            title="Play"
-                        >
-                            <span aria-hidden="true">▶</span>
-                        </button>
+                    <div class="practice">
+                        <div class="practice-buttons">
+                            <button
+                                class="icon-button"
+                                data-action="chord-quality-play"
+                                type="button"
+                                aria-label="Play chord"
+                                title="Play"
+                            >
+                                <span aria-hidden="true">▶</span>
+                            </button>
 
-                        <button
-                            class="icon-button"
-                            data-action="global-stop"
-                            type="button"
-                            aria-label="Stop chord"
-                            title="Stop"
-                        >
-                            <span aria-hidden="true">■</span>
-                        </button>
+                            <button
+                                class="icon-button"
+                                data-action="global-stop"
+                                type="button"
+                                aria-label="Stop chord"
+                                title="Stop"
+                            >
+                                <span aria-hidden="true">■</span>
+                            </button>
 
-                        <button
-                            class="icon-button auto-refresh"
-                            data-action="chord-new"
-                            type="button"
-                            aria-label="New chord and play"
-                            title="New chord and play"
-                        >
-                            <span aria-hidden="true">↻</span>
-                        </button>
-                    </div>
+                            <button
+                                class="icon-button auto-refresh"
+                                data-action="chord-quality-new"
+                                type="button"
+                                aria-label="New chord and play"
+                                title="New chord and play"
+                            >
+                                <span aria-hidden="true">↻</span>
+                            </button>
+                        </div>
 
-                    <div class="practice-responses practice-content-column">
+                        <div class="practice-responses practice-content-column">
+                            <div
+                                class="answer-options answer-grid"
+                                data-chord-quality-answers
+                                role="group"
+                                aria-label="Chord quality"
+                            ></div>
+                        </div>
+
                         <div
-                            class="answer-options answer-grid"
-                            data-chord-answers
-                            role="group"
-                            aria-label="Chord quality"
+                            class="practice-result"
+                            data-output="chord-quality-result"
+                            aria-live="polite"
                         ></div>
+
+                        <dl class="practice-stats">
+                            <div class="stats-with-action">
+                                <dt>Streak</dt>
+                                <dd>
+                                    <strong data-output="chord-quality-streak"
+                                        >0</strong
+                                    >
+                                    <button
+                                        class="link-button"
+                                        data-action="chord-quality-stats-clear"
+                                        type="button"
+                                        title="Clear chord-quality statistics"
+                                    >
+                                        Clear
+                                    </button>
+                                </dd>
+                            </div>
+
+                            <div>
+                                <dt>Accuracy</dt>
+                                <dd data-output="chord-quality-accuracy">0%</dd>
+                            </div>
+                            <div>
+                                <dt>Best</dt>
+                                <dd data-output="chord-quality-best">--</dd>
+                            </div>
+                        </dl>
                     </div>
+                    <div class="settings field-grid">
+                        <h3 class="settings-heading">Settings</h3>
+                        <div class="field">
+                            <label for="chord-quality-waveform">
+                                Wave type
 
-                    <div
-                        class="practice-result"
-                        data-output="chord-result"
-                        aria-live="polite"
-                    ></div>
-
-                    <dl class="practice-stats">
-                        <div class="stats-with-action">
-                            <dt>Streak</dt>
-                            <dd>
-                                <strong data-output="chord-streak">0</strong>
-                                <button
-                                    class="link-button"
-                                    data-action="chord-stats-clear"
-                                    type="button"
-                                    title="Clear chord-quality statistics"
+                                <span
+                                    class="info-tip"
+                                    tabindex="0"
+                                    aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
                                 >
-                                    Clear
-                                </button>
-                            </dd>
+                                    ⓘ
+                                </span>
+                            </label>
+
+                            <div class="control-row">
+                                <select
+                                    id="chord-quality-waveform"
+                                    data-setting="shared-waveform"
+                                    data-waveform="chord-quality"
+                                >
+                                    <option value="sine" selected>sine</option>
+                                    <option value="triangle">triangle</option>
+                                </select>
+                            </div>
                         </div>
 
-                        <div>
-                            <dt>Accuracy</dt>
-                            <dd data-output="chord-accuracy">0%</dd>
-                        </div>
-                        <div>
-                            <dt>Best</dt>
-                            <dd data-output="chord-best">--</dd>
-                        </div>
-                    </dl>
-                </div>
-                <div class="settings">
-                    <h3 class="settings-heading">Settings</h3>
-                    <div class="field">
-                        <label for="chord-waveform">
-                            Wave type
+                        <div class="field">
+                            <label for="chord-quality-playback">
+                                Playback
 
-                            <span
-                                class="info-tip"
-                                tabindex="0"
-                                aria-label="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
-                                data-tooltip="Sine is a pure tone. Triangle adds odd harmonics and sounds richer."
-                            >
-                                ⓘ
-                            </span>
-                        </label>
+                                <span
+                                    class="info-tip"
+                                    tabindex="0"
+                                    aria-label="Together plays all chord tones at once. Ascending plays them one at a time from lowest to highest; descending plays them from highest to lowest."
+                                >
+                                    ⓘ
+                                </span>
+                            </label>
 
-                        <div class="control-row">
-                            <select
-                                id="chord-waveform"
-                                data-control="shared-waveform"
-                                data-waveform="chord"
-                            >
-                                <option value="sine" selected>sine</option>
-                                <option value="triangle">triangle</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="field">
-                        <label for="chord-playback">
-                            Playback
-
-                            <span
-                                class="info-tip"
-                                tabindex="0"
-                                aria-label="Together plays all chord tones at once. Ascending plays them one at a time from lowest to highest; descending plays them from highest to lowest."
-                                data-tooltip="Together plays all chord tones at once. Ascending plays them one at a time from lowest to highest; descending plays them from highest to lowest."
-                            >
-                                ⓘ
-                            </span>
-                        </label>
-
-                        <div class="control-row">
-                            <select
-                                id="chord-playback"
-                                data-control="chord-playback"
-                            >
-                                <option value="together" selected>
-                                    together
-                                </option>
-                                <option value="ascending">ascending</option>
-                                <option value="descending">descending</option>
-                            </select>
+                            <div class="control-row">
+                                <select
+                                    id="chord-quality-playback"
+                                    data-setting="chord-quality-playback"
+                                >
+                                    <option value="together" selected>
+                                        together
+                                    </option>
+                                    <option value="ascending">ascending</option>
+                                    <option value="descending">
+                                        descending
+                                    </option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -3593,13 +3501,12 @@
 
                     <h4>Metronome and rhythm practice</h4>
                     <p>
-                        Use the metronome for a steady beat while practicing,
-                        choose from common simple, compound, and odd meters, or
-                        tap a tempo to set the BPM by feel. Timing practice
-                        measures early and late taps. Sheet-music practice
-                        generates pitched phrases in four clefs and scores the
-                        timing and intonation of notes performed through a
-                        microphone.
+                        Use the metronome to measure early and late taps while
+                        practicing, choose from common simple, compound, and odd
+                        meters, or tap a tempo to set the BPM by feel.
+                        Sheet-music practice generates pitched phrases in four
+                        clefs and scores the timing and intonation of notes
+                        performed through a microphone.
                     </p>
 
                     <h4>MIDI playback and visualization</h4>
@@ -3713,6 +3620,14 @@
                 }
             }
         </script>
+
         <script defer src="assets/js/index.js"></script>
+        <script defer src="assets/js/music.js"></script>
+        <script defer src="assets/js/notation.js"></script>
+        <script defer src="assets/js/engine.js"></script>
+        <script defer src="assets/js/dom.js"></script>
+        <script defer src="assets/js/render.js"></script>
+        <script defer src="assets/js/practice.js"></script>
+        <script defer src="assets/js/application.js"></script>
     </body>
 </html>

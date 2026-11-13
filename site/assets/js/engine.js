@@ -1,20 +1,19 @@
 'use strict';
-const PREFERENCES_KEY = '440Lab.preferences.v1';
-
-const STATS_KEYS = {
-    pitch: '440Lab.pitchStats.v1',
-    match: '440Lab.matchStats.v1',
-    interval: '440Lab.intervalStats.v1',
-    chord: '440Lab.chordStats.v1',
-};
-
-const TRIAL_KEYS = {
-    pitchMemory: '440Lab.pitchMemoryTrial.v2',
-};
+const SETTINGS_KEY = '440Lab.settings.v1';
+const STATS_KEY = '440Lab.stats.v1';
+const STATE_KEY = '440Lab.state.v1';
 
 const TRIAL_ADVANCE_DELAY = 3000;
+let referenceFrequency = DEFAULT_A4_FREQUENCY;
+
 function getReferenceFrequency() {
-    return readNumber(getControl('global-reference-a4'), DEFAULT_A4_FREQUENCY);
+    return referenceFrequency;
+}
+
+function setReferenceFrequency(frequency) {
+    referenceFrequency = Number.isFinite(frequency)
+        ? frequency
+        : DEFAULT_A4_FREQUENCY;
 }
 
 function frequencyFromMidi(midi) {
@@ -55,94 +54,10 @@ function noteNameFromMidi(midi, accidental = null) {
     return `${noteName}${octave}`;
 }
 
-function getControl(name, root = document) {
-    return root.querySelector(`[data-control="${name}"]`);
-}
-
-function getControls(names, root = document) {
-    const controlNames = Array.isArray(names) ? names : [names];
-    const selector = controlNames
-        .map((name) => `[data-control="${name}"]`)
-        .join(', ');
-
-    return root.querySelectorAll(selector);
-}
-
-function getOutput(name, root = document) {
-    return root.querySelector(`[data-output="${name}"]`);
-}
-
-function getOutputs(name, root = document) {
-    return root.querySelectorAll(`[data-output="${name}"]`);
-}
-
-function getAction(name, root = document) {
-    return root.querySelector(`[data-action="${name}"]`);
-}
-
-function getActions(name, root = document) {
-    return root.querySelectorAll(`[data-action="${name}"]`);
-}
-
-function getModuleActions(module, action, root = document) {
-    return root.querySelectorAll(
-        `[data-action^="${module}-"][data-action$="-${action}"]`
-    );
-}
-
-function getNoteControl(name) {
-    return document.querySelector(`[data-note="${name}"]`);
-}
-
-function getWaveform(name) {
-    return document.querySelector(`[data-waveform="${name}"]`);
-}
-
-function synchronizeSharedControl(control) {
-    const name = control?.dataset?.control;
-
-    if (!name?.startsWith('shared-')) {
-        return;
-    }
-
-    for (const peer of getControls(name)) {
-        if (control instanceof HTMLInputElement && control.type === 'radio') {
-            peer.checked = peer.value === control.value;
-        } else if (
-            control instanceof HTMLInputElement &&
-            control.type === 'checkbox'
-        ) {
-            peer.checked = control.checked;
-        } else {
-            peer.value = control.value;
-        }
-    }
-}
-
-function getModePanels(name) {
-    return document.querySelectorAll(
-        `[data-panel="${name}"] > [data-mode-panel]`
-    );
-}
-
 const storage = {
     load(key, fallback) {
         try {
-            let serialized = localStorage.getItem(key);
-
-            if (serialized === null) {
-                const suffix = key.slice(key.indexOf('.'));
-                const previousKey = Object.keys(localStorage).find(
-                    (candidate) =>
-                        candidate !== key && candidate.endsWith(suffix)
-                );
-
-                if (previousKey) {
-                    serialized = localStorage.getItem(previousKey);
-                    localStorage.setItem(key, serialized);
-                }
-            }
-
+            const serialized = localStorage.getItem(key);
             const value = JSON.parse(serialized || 'null');
 
             return value === null ? fallback : value;
@@ -161,123 +76,213 @@ const storage = {
 
     remove(key) {
         try {
-            const suffix = key.slice(key.indexOf('.'));
-
-            for (const candidate of Object.keys(localStorage)) {
-                if (candidate === key || candidate.endsWith(suffix)) {
-                    localStorage.removeItem(candidate);
-                }
-            }
+            localStorage.removeItem(key);
         } catch {
             // Storage is optional.
         }
     },
 };
 
-function savePreferences() {
-    storage.save(PREFERENCES_KEY, {
-        a4: getReferenceFrequency(),
-        volume: Number(getControl('global-volume').value),
-    });
+function saveSettings(settings) {
+    storage.save(SETTINGS_KEY, settings);
 }
 
-function restorePreferences() {
-    const preferences = storage.load(PREFERENCES_KEY, {});
-    const referenceFrequencyInput = getControl('global-reference-a4');
-    const volumeInput = getControl('global-volume');
+function loadSettings() {
+    return storage.load(SETTINGS_KEY, {});
+}
 
-    if (Number.isFinite(preferences.a4)) {
-        referenceFrequencyInput.value = clamp(
-            preferences.a4,
-            Number(referenceFrequencyInput.min),
-            Number(referenceFrequencyInput.max)
-        ).toFixed(3);
+function removeSettings() {
+    storage.remove(SETTINGS_KEY);
+}
+
+function defaultStats(module = null, mode = null, type = null) {
+    const base = {
+        streak: 0,
+        trials: 0,
+        correct: 0,
+    };
+    const path = [module, mode, type].filter(Boolean).join('/');
+
+    switch (path) {
+        case '':
+            return {
+                chord: defaultStats('chord'),
+                interval: defaultStats('interval'),
+                match: defaultStats('match'),
+                pitch: defaultStats('pitch'),
+                rhythm: defaultStats('rhythm'),
+            };
+
+        case 'chord':
+            return { quality: defaultStats('chord', 'quality') };
+        case 'interval':
+            return {
+                recognition: defaultStats('interval', 'recognition'),
+                construction: defaultStats('interval', 'construction'),
+            };
+        case 'match':
+            return {
+                identification: defaultStats('match', 'identification'),
+                target: defaultStats('match', 'target'),
+            };
+        case 'pitch':
+            return {
+                placement: defaultStats('pitch', 'placement'),
+                memory: defaultStats('pitch', 'memory'),
+            };
+        case 'rhythm':
+            return { metronome: defaultStats('rhythm', 'metronome') };
+
+        case 'pitch/memory':
+            return {
+                novel: defaultStats('pitch', 'memory', 'novel'),
+                interference: defaultStats('pitch', 'memory', 'interference'),
+            };
+
+        case 'chord/quality':
+        case 'interval/construction':
+        case 'interval/recognition':
+        case 'match/identification':
+            return { ...base, bestStreak: null };
+
+        case 'pitch/memory/interference':
+        case 'pitch/memory/novel':
+        case 'pitch/placement':
+        case 'rhythm/metronome':
+            return { ...base, bestError: null, errorTotal: 0 };
+
+        case 'match/target':
+            return { ...base, bestStreak: null, errorTotal: 0 };
+
+        default:
+            throw new TypeError(`Invalid stats path: ${path}`);
+    }
+}
+
+function statsWithDefaults(defaults, stored) {
+    if (defaults === null || typeof defaults === 'number') {
+        return Number.isFinite(stored) ? stored : defaults;
     }
 
-    if (Number.isFinite(preferences.volume)) {
-        volumeInput.value = String(
-            clamp(
-                preferences.volume,
-                Number(volumeInput.min),
-                Number(volumeInput.max)
-            )
-        );
-    }
+    return Object.fromEntries(
+        Object.entries(defaults).map(([key, value]) => [
+            key,
+            statsWithDefaults(value, stored?.[key]),
+        ])
+    );
 }
 
-const stats = {};
-
-function loadStats(name) {
-    return storage.load(STATS_KEYS[name], null);
+function loadStats() {
+    return statsWithDefaults(defaultStats(), storage.load(STATS_KEY, {}));
 }
 
-function saveStats(name) {
-    const moduleStats = stats[name];
+const stats = loadStats();
 
-    for (const typeStats of Object.values(moduleStats)) {
-        if (Number.isFinite(typeStats.errorTotal)) {
-            typeStats.errorTotal = Number(typeStats.errorTotal.toFixed(3));
-        }
-
-        if (Number.isFinite(typeStats.best)) {
-            typeStats.best = Number(typeStats.best.toFixed(3));
-        }
-    }
-
-    storage.save(STATS_KEYS[name], moduleStats);
+function saveStats() {
+    storage.save(STATS_KEY, stats);
 }
 
-function createAutoAdvance(elements, advance) {
-    let timer = null;
+function resetStats(module, mode, type = null) {
+    const parent = type === null ? stats[module] : stats[module][mode];
+    const key = type ?? mode;
 
-    function cancel() {
-        if (timer !== null) {
-            clearTimeout(timer);
-            timer = null;
-        }
+    parent[key] = defaultStats(module, mode, type);
+    saveStats();
+}
 
-        for (const button of elements) {
-            button.classList.remove('is-counting-down');
-        }
+function updateStats(stats, { correct, error = null, bestError = error }) {
+    stats.trials += 1;
+    stats.correct += correct ? 1 : 0;
+    stats.streak = correct ? stats.streak + 1 : 0;
+
+    if (error !== null) {
+        stats.errorTotal += error;
     }
 
-    function schedule() {
-        cancel();
-
-        const refreshButton = [...elements].find(
-            (button) => !button.closest('[hidden]')
-        );
-        if (!refreshButton) {
-            return;
+    if ('bestError' in stats) {
+        if (
+            bestError !== null &&
+            (stats.bestError === null || bestError < stats.bestError)
+        ) {
+            stats.bestError = bestError;
         }
-
-        void refreshButton.offsetWidth;
-        refreshButton.classList.add('is-counting-down');
-
-        timer = window.setTimeout(() => {
-            timer = null;
-            refreshButton.classList.remove('is-counting-down');
-            advance();
-        }, TRIAL_ADVANCE_DELAY);
+    } else if (
+        correct &&
+        (stats.bestStreak === null || stats.streak > stats.bestStreak)
+    ) {
+        stats.bestStreak = stats.streak;
     }
 
-    return { cancel, schedule };
+    saveStats();
 }
 
-function clearPracticeResult(outputName) {
-    const result = getOutput(outputName);
+function loadState() {
+    const stored = storage.load(STATE_KEY, {});
 
-    result.classList.remove('is-correct', 'is-incorrect');
-    result.replaceChildren();
+    if (!stored || typeof stored !== 'object' || Array.isArray(stored)) {
+        return {};
+    }
+
+    return Object.fromEntries(
+        Object.entries(stored).filter(
+            ([, moduleState]) =>
+                moduleState &&
+                typeof moduleState === 'object' &&
+                !Array.isArray(moduleState)
+        )
+    );
 }
 
-function renderPracticeResult(outputName, correct, text) {
-    const result = getOutput(outputName);
-    const icon = document.createElement('strong');
+const state = loadState();
+let statePersistenceEnabled = true;
 
-    result.classList.add(correct ? 'is-correct' : 'is-incorrect');
-    icon.textContent = correct ? '✓' : '✕';
-    result.replaceChildren(icon, document.createTextNode(` ${text}`));
+function getState(module) {
+    const moduleState = state[module];
+
+    if (
+        !moduleState ||
+        typeof moduleState !== 'object' ||
+        Array.isArray(moduleState)
+    ) {
+        state[module] = {};
+    }
+
+    return state[module];
+}
+
+function saveState() {
+    if (!statePersistenceEnabled) {
+        return;
+    }
+    storage.save(STATE_KEY, state);
+}
+
+function clearState() {
+    statePersistenceEnabled = false;
+    for (const moduleState of Object.values(state)) {
+        for (const name of Object.keys(moduleState)) {
+            delete moduleState[name];
+        }
+    }
+    storage.remove(STATE_KEY);
+}
+
+function removeState(module, name) {
+    delete state[module]?.[name];
+
+    if (!statePersistenceEnabled) {
+        return;
+    }
+
+    if (
+        Object.values(state).every(
+            (moduleState) => Object.keys(moduleState).length === 0
+        )
+    ) {
+        storage.remove(STATE_KEY);
+    } else {
+        saveState();
+    }
 }
 
 function answerStateClass(answer, selected, correct) {
@@ -292,23 +297,47 @@ function answerStateClass(answer, selected, correct) {
     return answer === selected ? 'is-incorrect' : null;
 }
 
-function setAnswerOptionState(button, answer, selected, correct) {
-    button.classList.remove('is-correct', 'is-incorrect', 'is-target');
-
-    const stateClass = answerStateClass(answer, selected, correct);
-
-    if (stateClass) {
-        button.classList.add(stateClass);
-    }
-}
-
 // Audio
 
 const audio = (() => {
     let context = null;
     let masterGain = null;
 
+    const continuousVoices = new Set();
     const transientVoices = new Set();
+    const playbackStateListeners = new Set();
+
+    function isPlaying() {
+        return continuousVoices.size > 0 || transientVoices.size > 0;
+    }
+
+    function notifyPlaybackStateChange(wasPlaying) {
+        const playing = isPlaying();
+        if (playing === wasPlaying) {
+            return;
+        }
+        for (const listener of playbackStateListeners) {
+            listener(playing);
+        }
+    }
+
+    function addPlaybackVoice(voices, voice) {
+        const wasPlaying = isPlaying();
+        voices.add(voice);
+        notifyPlaybackStateChange(wasPlaying);
+    }
+
+    function removePlaybackVoice(voices, voice) {
+        const wasPlaying = isPlaying();
+        if (voices.delete(voice)) {
+            notifyPlaybackStateChange(wasPlaying);
+        }
+    }
+
+    function addPlaybackStateListener(listener) {
+        playbackStateListeners.add(listener);
+        return () => playbackStateListeners.delete(listener);
+    }
 
     function ensureContext() {
         if (!context) {
@@ -327,7 +356,7 @@ const audio = (() => {
         }
 
         if (context.state === 'suspended') {
-            void context.resume();
+            context.resume();
         }
 
         return context;
@@ -413,7 +442,7 @@ const audio = (() => {
 
         let stopped = false;
 
-        return {
+        const voice = {
             setFrequency(frequency) {
                 if (stopped) {
                     return;
@@ -432,6 +461,7 @@ const audio = (() => {
                 }
 
                 stopped = true;
+                removePlaybackVoice(continuousVoices, voice);
 
                 fadeTo(gain.gain, 0);
 
@@ -454,6 +484,9 @@ const audio = (() => {
                 );
             },
         };
+
+        addPlaybackVoice(continuousVoices, voice);
+        return voice;
     }
 
     function playTransient(
@@ -501,6 +534,7 @@ const audio = (() => {
                 }
 
                 stopped = true;
+                removePlaybackVoice(transientVoices, voice);
 
                 const now = audioContext.currentTime;
 
@@ -510,12 +544,12 @@ const audio = (() => {
             },
         };
 
-        transientVoices.add(voice);
+        addPlaybackVoice(transientVoices, voice);
 
         oscillator.addEventListener(
             'ended',
             () => {
-                transientVoices.delete(voice);
+                removePlaybackVoice(transientVoices, voice);
 
                 oscillator.disconnect();
                 gain.disconnect();
@@ -533,8 +567,6 @@ const audio = (() => {
         for (const voice of transientVoices) {
             voice.stop();
         }
-
-        transientVoices.clear();
     }
 
     function createAnalyser(stream, sampleWindowSize = 2048) {
@@ -556,6 +588,8 @@ const audio = (() => {
 
     return {
         currentTime,
+        isPlaying,
+        addPlaybackStateListener,
         getContext,
         getDestination,
         playContinuous,
@@ -601,8 +635,28 @@ let microphoneConnection = null;
 let microphoneAnalysis = null;
 let microphoneAnalysisFrame = null;
 let microphoneInputRequestId = 0;
+const microphoneStateListeners = new Set();
 
-function microphoneStreamConnected() {
+function notifyMicrophoneStateChange() {
+    for (const listener of microphoneStateListeners) {
+        listener();
+    }
+}
+
+function setMicrophoneRequestState(state) {
+    if (microphoneRequestState === state) {
+        return;
+    }
+    microphoneRequestState = state;
+    notifyMicrophoneStateChange();
+}
+
+function addMicrophoneStateListener(listener) {
+    microphoneStateListeners.add(listener);
+    return () => microphoneStateListeners.delete(listener);
+}
+
+function isMicrophoneStreamConnected() {
     return Boolean(
         microphoneStream
             ?.getAudioTracks()
@@ -624,28 +678,15 @@ function microphoneErrorMessage(error) {
     return MICROPHONE_MESSAGES.FAILED;
 }
 
-function renderMicrophoneState(state, failureMessage = null) {
+function applyMicrophoneState(state, failureMessage = null) {
+    const changed = microphoneState !== state;
     microphoneState = state;
     if (state === MICROPHONE_STATES.DENIED) {
         microphoneFailureMessage = failureMessage ?? MICROPHONE_MESSAGES.DENIED;
     }
 
-    const labels = {
-        [MICROPHONE_STATES.UNPROMPTED]: 'Enable microphone',
-        [MICROPHONE_STATES.DENIED]: 'Retry microphone access',
-        [MICROPHONE_STATES.LISTENING]: 'Pause microphone',
-        [MICROPHONE_STATES.PAUSED]: 'Start microphone',
-    };
-    const label = labels[state];
-
-    for (const button of getActions('global-microphone-toggle')) {
-        button.dataset.microphoneState = state;
-        button.setAttribute(
-            'aria-pressed',
-            String(state === MICROPHONE_STATES.LISTENING)
-        );
-        button.setAttribute('aria-label', label);
-        button.title = label;
+    if (changed) {
+        notifyMicrophoneStateChange();
     }
 }
 
@@ -669,7 +710,7 @@ async function microphonePermissionState() {
 }
 
 async function requestMicrophoneStream() {
-    if (microphoneStreamConnected()) {
+    if (isMicrophoneStreamConnected()) {
         return microphoneStream;
     }
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -697,14 +738,14 @@ async function setMicrophoneState(requestedState) {
         throw new TypeError(`Invalid microphone state: ${requestedState}`);
     }
 
-    microphoneRequestState = requestedState;
+    setMicrophoneRequestState(requestedState);
 
     if (requestedState === MICROPHONE_STATES.PAUSED) {
         deactivateActiveMicrophoneInput('microphone-paused');
         setMicrophoneTracksEnabled(false);
 
-        if (microphoneStreamConnected()) {
-            renderMicrophoneState(MICROPHONE_STATES.PAUSED);
+        if (isMicrophoneStreamConnected()) {
+            applyMicrophoneState(MICROPHONE_STATES.PAUSED);
             return microphoneState;
         }
 
@@ -715,7 +756,7 @@ async function setMicrophoneState(requestedState) {
         }
 
         if (permission === 'denied') {
-            renderMicrophoneState(
+            applyMicrophoneState(
                 MICROPHONE_STATES.DENIED,
                 MICROPHONE_MESSAGES.DENIED
             );
@@ -723,7 +764,7 @@ async function setMicrophoneState(requestedState) {
         }
 
         if (permission !== 'granted') {
-            renderMicrophoneState(MICROPHONE_STATES.UNPROMPTED);
+            applyMicrophoneState(MICROPHONE_STATES.UNPROMPTED);
             return microphoneState;
         }
     }
@@ -732,9 +773,9 @@ async function setMicrophoneState(requestedState) {
         await requestMicrophoneStream();
     } catch (error) {
         if (microphoneRequestState === MICROPHONE_STATES.LISTENING) {
-            microphoneRequestState = MICROPHONE_STATES.PAUSED;
+            setMicrophoneRequestState(MICROPHONE_STATES.PAUSED);
         }
-        renderMicrophoneState(
+        applyMicrophoneState(
             MICROPHONE_STATES.DENIED,
             microphoneErrorMessage(error)
         );
@@ -743,7 +784,7 @@ async function setMicrophoneState(requestedState) {
 
     const listening = microphoneRequestState === MICROPHONE_STATES.LISTENING;
     setMicrophoneTracksEnabled(listening);
-    renderMicrophoneState(
+    applyMicrophoneState(
         listening ? MICROPHONE_STATES.LISTENING : MICROPHONE_STATES.PAUSED
     );
 
@@ -769,7 +810,7 @@ function createMicrophoneInput({
 
     return Object.assign(input, {
         activate: () => activateMicrophoneInput(input),
-        active: () => activeMicrophoneInput === input,
+        isActive: () => activeMicrophoneInput === input,
         deactivate: (reason) => deactivateMicrophoneInput(input, reason),
     });
 }
@@ -909,49 +950,10 @@ function deactivateActiveMicrophoneInput(reason) {
     activeMicrophoneInput?.deactivate(reason);
 }
 
-function pauseMicrophone() {
-    void setMicrophoneState(MICROPHONE_STATES.PAUSED);
-}
-
 let masterVolume = DEFAULT_VOLUME;
-let volumeBeforeMute = DEFAULT_VOLUME;
 
-function updateVolume() {
-    const input = getControl('global-volume');
-
-    const volume = clamp(Number(input.value), 0, 1);
-
-    let icon = '🔊';
-
-    if (volume === 0) {
-        icon = '🔇';
-    } else if (volume <= 0.2) {
-        icon = '🔈';
-    } else if (volume <= 0.6) {
-        icon = '🔉';
-    }
-
-    if (volume > 0) {
-        volumeBeforeMute = volume;
-    }
-
-    getOutput('global-volume-percent').textContent =
-        `${Math.round(volume * 100)}%`;
-    getOutput('global-volume-icon').textContent = icon;
-
-    const button = getAction('global-volume-toggle');
-    const label = volume === 0 ? 'Restore volume' : 'Mute volume';
-    button.setAttribute('aria-label', label);
-    button.title = label;
-
+function setVolume(volume) {
     audio.setMasterVolume(volume);
-    savePreferences();
-}
-
-function toggleVolume() {
-    const input = getControl('global-volume');
-    input.value = Number(input.value) === 0 ? String(volumeBeforeMute) : '0';
-    updateVolume();
 }
 
 const musicEngine = Object.freeze({
@@ -959,42 +961,30 @@ const musicEngine = Object.freeze({
     ...musicNotation,
     MICROPHONE_MESSAGES,
     MICROPHONE_STATES,
-    TRIAL_KEYS,
     answerStateClass,
     audio,
-    clearPracticeResult,
-    createAutoAdvance,
+    addMicrophoneStateListener,
+    clearState,
     createMicrophoneInput,
     deactivateActiveMicrophoneInput,
     frequencyFromMidi,
-    getAction,
-    getActions,
-    getControl,
-    getControls,
-    getModePanels,
-    getModuleActions,
-    getNoteControl,
-    getOutput,
-    getOutputs,
-    getWaveform,
-    loadStats,
+    getState,
+    loadSettings,
     midiFromFrequency,
     noteNameFromMidi,
     pitchClassFromMidi,
     pitchClassName,
-    renderMicrophoneState,
-    renderPracticeResult,
-    restorePreferences,
-    savePreferences,
-    saveStats,
-    setAnswerOptionState,
+    removeSettings,
+    removeState,
+    resetStats,
+    saveSettings,
+    saveState,
+    setReferenceFrequency,
     setMicrophoneState,
+    setVolume,
+    state,
     stats,
-    pauseMicrophone,
-    storage,
-    synchronizeSharedControl,
-    toggleVolume,
-    updateVolume,
+    updateStats,
     get microphoneFailureMessage() {
         return microphoneFailureMessage;
     },

@@ -134,94 +134,8 @@ body.nav-open .nav-toggle-icon::after {
     min-width: 0;
 }
 
-.global-volume > label,
-.global-reference > label {
-    display: block;
-
-    margin-bottom: 5px;
-
-    color: var(--muted);
-
-    font-size: 12px;
-    line-height: 1.2;
-}
-
-.global-volume-controls {
-    width: var(--control-width);
-    max-width: 100%;
-
-    display: flex;
-    align-items: center;
-
-    gap: 6px;
-}
-
-.global-volume-button,
-.global-mic-button {
-    width: 24px;
-    height: 24px;
-    padding: 0;
-
-    display: inline-grid;
-    flex: none;
-    place-items: center;
-}
-
-.global-volume-button {
+.global-volume [data-output='global-volume-icon'] {
     font-size: 16px;
-}
-
-.global-volume-controls input {
-    width: 0;
-    min-width: 0;
-    height: 32px;
-    margin: 0;
-
-    flex: 1;
-}
-
-.global-mic-button[aria-pressed='true'] {
-    border-color: var(--mic-accent);
-    color: var(--mic-accent);
-}
-
-.global-mic-icon {
-    width: 18px;
-    height: 18px;
-
-    display: block;
-}
-
-.global-mic-icon-on,
-.global-mic-button[aria-pressed='true'] .global-mic-icon-off {
-    display: none;
-}
-
-.global-mic-button[aria-pressed='true'] .global-mic-icon-on {
-    display: block;
-}
-
-.global-reference-controls {
-    width: var(--control-width);
-    max-width: 100%;
-
-    display: flex;
-    align-items: center;
-
-    gap: 6px;
-}
-
-.global-reference-controls input {
-    width: 0;
-    min-width: 0;
-
-    flex: 1;
-}
-
-.global-reference-controls button {
-    flex: none;
-
-    padding-inline: 8px;
 }
 
 /* Navigation drawer */
@@ -301,12 +215,6 @@ body.nav-open .site-nav {
     color: var(--text);
 }
 
-.site-nav .nav-item:hover:not(:disabled),
-.nav-modes button:hover:not(:disabled) {
-    background: var(--button-hover-background);
-    color: var(--text);
-}
-
 .nav-group {
     width: 100%;
 }
@@ -352,8 +260,13 @@ main {
     padding-block: var(--main-padding);
 }
 
-.section-panel[hidden] {
-    display: none;
+.svg-symbols {
+    position: absolute;
+
+    width: 0;
+    height: 0;
+
+    overflow: hidden;
 }
 
 .sr-only {
@@ -425,8 +338,9 @@ footer a:hover {
 }
 
 @media (hover: hover) {
-    .nav-item:hover:not(:disabled) {
-        background: transparent;
+    .site-nav .nav-item:hover:not(:disabled),
+    .nav-modes button:hover:not(:disabled) {
+        background: var(--button-hover-background);
         color: var(--text);
     }
 }
@@ -463,10 +377,6 @@ footer a:hover {
 
         font-size: clamp(18px, 5.5vw, 28px);
         white-space: nowrap;
-    }
-
-    .global-reference-controls button {
-        padding-inline: 6px;
     }
 
     footer {

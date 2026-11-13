@@ -56,20 +56,8 @@
     );
 }
 
-.practice-content-column-2 input,
-.practice-content-column-2 select,
-.practice-content-column-2 textarea,
-.practice-content-column-2 button,
-.practice-content-column-3 input,
-.practice-content-column-3 select,
-.practice-content-column-3 textarea,
-.practice-content-column-3 button,
-.practice-content-column-4 input,
-.practice-content-column-4 select,
-.practice-content-column-4 textarea,
-.practice-content-column-4 button {
-    width: 100%;
-    max-width: 100%;
+.practice > .field-grid {
+    --field-grid-row-gap: var(--practice-row-gap);
 }
 
 .practice-buttons {
@@ -152,7 +140,7 @@
 
     margin-top: 24px;
 
-    color: #bbb;
+    color: var(--control-label);
 }
 
 .practice-guide summary {
@@ -176,7 +164,7 @@
     display: flex;
     align-items: center;
 
-    color: #bbb;
+    color: var(--control-label);
     line-height: 1.4;
 }
 
@@ -318,7 +306,7 @@
 
     margin: 0;
 
-    color: #bbb;
+    color: var(--control-label);
 
     font-size: 13px;
     line-height: 18px;
@@ -531,12 +519,5 @@
         white-space: normal;
 
         overflow-wrap: anywhere;
-    }
-}
-
-@media (max-width: 340px) {
-    .practice-content-column-3,
-    .practice-content-column-4 {
-        width: 100%;
     }
 }
