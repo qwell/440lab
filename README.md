@@ -85,7 +85,7 @@ The MIDI tab includes a selection of MIDI files and parses local files in the br
 - `site/assets/css/tools.css` - tool-specific tuner, rhythm, MIDI, pitch, and interval displays
 - `site/assets/css/layout.css` - page and panel layout
 - `site/assets/css/practice.css` - practice-tool styles
-- `site/assets/js/index.js` - service worker registration
+- `site/assets/js/index.js` - shared browser utilities and service worker registration
 - `site/assets/js/application.js` - interface, MIDI playback and visualization, microphone pitch detection, and application logic
 - `site/assets/js/render.js` - application rendering and display updates
 - `site/assets/js/practice.js` - ear-training exercises and practice statistics

@@ -1239,9 +1239,7 @@ async function changeMidiTrackInstrument(track, value) {
         updateMidiTrackLabels();
         syncMidiInstrumentSelections();
         setMidiPlayerStatus(
-            error instanceof Error
-                ? error.message
-                : 'Unable to change the instrument.'
+            getErrorString(error, 'Unable to change the instrument.')
         );
     } finally {
         if (resumeMidi) {
@@ -2683,10 +2681,10 @@ function addSoundBank(soundBankManager, soundFontBuffer, soundFontId) {
             'soundBankError',
             eventId,
             (error) => {
-                const message =
-                    error instanceof Error
-                        ? error.message
-                        : (error?.message ?? String(error));
+                const message = getErrorString(
+                    error,
+                    error?.message ?? String(error)
+                );
                 reject(new Error(message || `Unable to load ${soundFontId}.`));
             }
         );
@@ -2837,10 +2835,7 @@ async function loadLocalSoundFont(file, reportControl) {
         } catch {
             // Preserve the original SoundFont error below.
         }
-        const message =
-            error instanceof Error
-                ? error.message
-                : 'Unable to load the SoundFont.';
+        const message = getErrorString(error, 'Unable to load the SoundFont.');
         renderSettingError(reportControl, message);
     } finally {
         await resumePlayback?.();
@@ -2907,10 +2902,7 @@ async function changeSoundFont(setting) {
         await reloadMidiSequence();
         saveMidiPianoRollState();
     } catch (error) {
-        const message =
-            error instanceof Error
-                ? error.message
-                : 'Unable to load the SoundFont.';
+        const message = getErrorString(error, 'Unable to load the SoundFont.');
         renderSettingError(setting, message);
     } finally {
         await resumePlayback?.();
@@ -3080,9 +3072,7 @@ async function playMidi() {
         drawMidiPlayer();
     } catch (error) {
         setMidiPlayerStatus(
-            error instanceof Error
-                ? error.message
-                : 'Unable to start MIDI playback.'
+            getErrorString(error, 'Unable to start MIDI playback.')
         );
     } finally {
         midiPlayer.loading = false;
@@ -3175,9 +3165,7 @@ async function loadMidiPlayer(file, source = null) {
         saveMidiPianoRollState();
         prepareSoundFontPlayback().catch((error) => {
             setMidiPlayerStatus(
-                error instanceof Error
-                    ? error.message
-                    : 'Unable to load the SoundFont.'
+                getErrorString(error, 'Unable to load the SoundFont.')
             );
         });
     } catch (error) {
@@ -3199,9 +3187,7 @@ async function loadMidiPlayer(file, source = null) {
         updateMidiMode();
         updateMidiPlayerTransport();
         setMidiPlayerStatus(
-            error instanceof Error
-                ? error.message
-                : 'Unable to read the MIDI file.'
+            getErrorString(error, 'Unable to read the MIDI file.')
         );
     } finally {
         finishLoading();

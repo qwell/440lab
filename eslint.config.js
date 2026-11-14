@@ -50,8 +50,7 @@ export default defineConfig(
     },
 
     {
-        files: ['site/assets/js/*.js'],
-        ignores: ['site/assets/js/index.js'],
+        files: ['site/assets/js/**/*.js'],
         rules: {
             'no-undef': 'off',
             'no-unused-vars': 'off',

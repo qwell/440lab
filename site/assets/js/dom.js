@@ -85,7 +85,7 @@ function readSettingSelectedText(name) {
 }
 
 function isSetting(element) {
-    return element instanceof Element && element.matches('[data-setting]');
+    return isElement(element) && element.matches('[data-setting]');
 }
 
 function readSettings(storedSettings = {}) {
@@ -104,7 +104,7 @@ function readSettings(storedSettings = {}) {
             continue;
         }
 
-        if (element instanceof HTMLSelectElement && !element.options.length) {
+        if (isHtmlSelectElement(element) && !element.options.length) {
             if (Object.hasOwn(storedSettings[group] ?? {}, setting)) {
                 settings[group][setting] = storedSettings[group][setting];
             }
@@ -113,7 +113,7 @@ function readSettings(storedSettings = {}) {
 
         readNames.add(name);
         settings[group][setting] =
-            element instanceof HTMLInputElement &&
+            isHtmlInputElement(element) &&
             ['checkbox', 'radio'].includes(element.type)
                 ? element.checked
                 : element.value;

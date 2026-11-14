@@ -1,5 +1,6 @@
 import express from 'express';
 import nodeHttp from 'node:http';
+import { isNativeError } from 'node:util';
 
 const app = express();
 const port = 3000;
@@ -46,8 +47,9 @@ app.use((err, req, res, next) => {
         return;
     }
 
-    const error =
-        err instanceof Error ? (err.stack ?? err.message) : 'Unknown error';
+    const error = isNativeError(err)
+        ? (err.stack ?? err.message)
+        : 'Unknown error';
     console.error(error);
     res.status(500).send('Internal server error');
 });

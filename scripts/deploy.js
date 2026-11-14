@@ -1,10 +1,9 @@
-#!/usr/bin/env node
-
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs/promises';
 import { isIP } from 'node:net';
 import path from 'node:path';
 import { domainToASCII, fileURLToPath } from 'node:url';
+import { isNativeError } from 'node:util';
 
 const hostPlaceholder = '<< HOST >>';
 const localhostCertificateDirectory = '/etc/nginx/ssl';
@@ -549,7 +548,7 @@ importing the public server certificate separately as a trusted authority.`);
 try {
     process.exitCode = await main();
 } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error));
+    console.error(isNativeError(error) ? error.message : String(error));
     usage(process.stderr);
     process.exitCode = 1;
 }

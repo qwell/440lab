@@ -918,12 +918,9 @@ function syncSharedField(field) {
     }
     const peers = field.dataset.setting ? getSettings(name) : getInputs(name);
     for (const peer of peers) {
-        if (field instanceof HTMLInputElement && field.type === 'radio') {
+        if (isHtmlInputElement(field) && field.type === 'radio') {
             peer.checked = peer.value === field.value;
-        } else if (
-            field instanceof HTMLInputElement &&
-            field.type === 'checkbox'
-        ) {
+        } else if (isHtmlInputElement(field) && field.type === 'checkbox') {
             peer.checked = field.checked;
         } else {
             peer.value = field.value;
@@ -934,7 +931,7 @@ function syncSharedField(field) {
 function renderSetting(name, value) {
     for (const element of getSettings(name)) {
         if (
-            element instanceof HTMLInputElement &&
+            isHtmlInputElement(element) &&
             ['checkbox', 'radio'].includes(element.type)
         ) {
             element.checked = Boolean(value);
@@ -942,7 +939,7 @@ function renderSetting(name, value) {
         }
 
         if (
-            element instanceof HTMLSelectElement &&
+            isHtmlSelectElement(element) &&
             ![...element.options].some(
                 (option) => option.value === String(value)
             )
