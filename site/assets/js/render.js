@@ -1,9 +1,17 @@
 'use strict';
 
 const MIDI_PIANO_ROLL_MAX_BARLINES = 10000;
+const MIDI_PIANO_ROLL_BLACK_KEY_WIDTH = 0.625;
+const MIDI_PIANO_ROLL_BLACK_PITCH_CLASSES = new Set([1, 3, 6, 8, 10]);
+const MIDI_PIANO_ROLL_EDGE_KEY_SIZE = 0.5;
+const MIDI_PIANO_ROLL_KEY_OFFSETS = [
+    0, 0.6875, 1, 1.6875, 2, 3, 3.6875, 4, 4.6875, 5, 5.6875, 6,
+];
 const MIDI_PIANO_ROLL_NOTE_GAP_REM = 0.125;
+const MIDI_PIANO_ROLL_MAX_COLUMN_WIDTH_REM = 2.5;
+const MIDI_PIANO_ROLL_MIN_COLUMN_WIDTH_REM = 1.5;
 const MIDI_PIANO_ROLL_REM_PER_QUARTER = 7.5;
-const MIDI_PIANO_ROLL_ROW_HEIGHT_REM = 1;
+const MIDI_PIANO_ROLL_ROW_HEIGHT_REM = 1.5;
 const RHYTHM_SHEET_CORRECT_CENTS = 25;
 const RHYTHM_SHEET_SCORE_SELECTOR = '#rhythm-sheet-score';
 const SHEET_BAR_PADDING_REM = 1.25;
@@ -2815,18 +2823,110 @@ function midiMeasureDurationAtPosition(position) {
         : midiPlayer.unitsPerQuarter * 4;
 }
 
+function isMidiPianoRollBlackKey(midi) {
+    return MIDI_PIANO_ROLL_BLACK_PITCH_CLASSES.has(
+        music.pitchClassFromMidi(midi)
+    );
+}
+
+function midiPianoRollPitchLayout(minimumNote, maximumNote) {
+    const pitches = new Map();
+    const startEdgeSize = isMidiPianoRollBlackKey(minimumNote)
+        ? MIDI_PIANO_ROLL_EDGE_KEY_SIZE
+        : 0;
+    const endEdgeSize = isMidiPianoRollBlackKey(maximumNote)
+        ? MIDI_PIANO_ROLL_EDGE_KEY_SIZE
+        : 0;
+    const startPadding = startEdgeSize
+        ? startEdgeSize - MIDI_PIANO_ROLL_BLACK_KEY_WIDTH / 2
+        : 0;
+    const endPadding = endEdgeSize
+        ? endEdgeSize - MIDI_PIANO_ROLL_BLACK_KEY_WIDTH / 2
+        : 0;
+    let minimum = Infinity;
+    let maximum = -Infinity;
+
+    for (let midi = minimumNote; midi <= maximumNote; midi += 1) {
+        const pitchClass = music.pitchClassFromMidi(midi);
+        const octave = Math.floor(midi / music.SEMITONES_PER_OCTAVE);
+        const size = isMidiPianoRollBlackKey(midi)
+            ? MIDI_PIANO_ROLL_BLACK_KEY_WIDTH
+            : 1;
+        const start = octave * 7 + MIDI_PIANO_ROLL_KEY_OFFSETS[pitchClass];
+        const end = start + size;
+        pitches.set(midi, { key: { start, end, size } });
+        minimum = Math.min(minimum, start);
+        maximum = Math.max(maximum, end);
+    }
+
+    for (const { key } of pitches.values()) {
+        key.start += startPadding - minimum;
+        key.end += startPadding - minimum;
+    }
+    const extent = maximum - minimum + startPadding + endPadding;
+    const startEdge = startEdgeSize
+        ? { midi: minimumNote - 1, start: 0, size: startEdgeSize }
+        : isMidiPianoRollBlackKey(minimumNote - 1)
+          ? {
+                midi: minimumNote - 1,
+                start: -MIDI_PIANO_ROLL_BLACK_KEY_WIDTH / 2,
+                size: MIDI_PIANO_ROLL_BLACK_KEY_WIDTH,
+                isBlack: true,
+            }
+          : null;
+    const endEdge = endEdgeSize
+        ? {
+              midi: maximumNote + 1,
+              start: extent - endEdgeSize,
+              size: endEdgeSize,
+          }
+        : isMidiPianoRollBlackKey(maximumNote + 1)
+          ? {
+                midi: maximumNote + 1,
+                start: extent - MIDI_PIANO_ROLL_BLACK_KEY_WIDTH / 2,
+                size: MIDI_PIANO_ROLL_BLACK_KEY_WIDTH,
+                isBlack: true,
+            }
+          : null;
+    for (let midi = minimumNote; midi <= maximumNote; midi += 1) {
+        const layout = pitches.get(midi);
+        const center = (layout.key.start + layout.key.end) / 2;
+        const previousKey = pitches.get(midi - 1)?.key;
+        const nextKey = pitches.get(midi + 1)?.key;
+        const start = previousKey
+            ? ((previousKey.start + previousKey.end) / 2 + center) / 2
+            : startEdge
+              ? center / 2
+              : 0;
+        const end = nextKey
+            ? (center + (nextKey.start + nextKey.end) / 2) / 2
+            : endEdge
+              ? (center + extent) / 2
+              : extent;
+        layout.lane = { start, end, size: end - start };
+    }
+    return {
+        pitches,
+        edges: [startEdge, endEdge].filter(Boolean),
+        extent,
+    };
+}
+
 function createMidiPianoRollNote(segment) {
     const track = midiPlayer.tracks.find(
         (candidate) => candidate.trackIndex === segment.trackIndex
     );
-    const laneHeight = MIDI_PIANO_ROLL_ROW_HEIGHT_REM / segment.count;
-    const inset = Math.min(0.06, laneHeight * 0.12);
+    const vertical = midiPlayer.pianoRollOrientation === 'vertical';
+    const pianoRollPitchLayout = midiPlayer.pianoRollPitchLayout;
+    const pitchLayout = pianoRollPitchLayout.pitches.get(segment.midi).lane;
+    const laneSize = pitchLayout.size / segment.count;
+    const laneSizeRem = laneSize * MIDI_PIANO_ROLL_ROW_HEIGHT_REM;
+    const inset = vertical ? 0 : Math.min(0.06, laneSizeRem * 0.12);
     const bar = document.createElement('span');
-    const rowIndex = midiPlayer.pianoRollMaximumNote - segment.midi;
-    const left =
+    const timeOffset =
         (segment.start / midiPlayer.unitsPerQuarter) *
         MIDI_PIANO_ROLL_REM_PER_QUARTER;
-    const baseWidth = Math.max(
+    const timeSize = Math.max(
         0.125,
         (segment.duration / midiPlayer.unitsPerQuarter) *
             MIDI_PIANO_ROLL_REM_PER_QUARTER
@@ -2839,17 +2939,24 @@ function createMidiPianoRollNote(segment) {
         : 0;
     const requestedInset = requestedLeftInset + requestedRightInset;
     const insetScale = requestedInset
-        ? Math.min(1, (baseWidth - 0.0625) / requestedInset)
+        ? Math.min(1, (timeSize - 0.0625) / requestedInset)
         : 1;
     const leftInset = requestedLeftInset * insetScale;
     const rightInset = requestedRightInset * insetScale;
     bar.className = `midi-piano-roll-note${track.enabled ? '' : ' is-disabled'}${track.previewed ? ' is-previewed' : ''}`;
     bar.dataset.midiTrackIndex = String(track.trackIndex);
     bar.style.setProperty('--midi-track-color', track.color);
-    bar.style.left = `${left + leftInset}rem`;
-    bar.style.width = `${baseWidth - leftInset - rightInset}rem`;
-    bar.style.top = `${rowIndex * MIDI_PIANO_ROLL_ROW_HEIGHT_REM + segment.lane * laneHeight + inset}rem`;
-    bar.style.height = `${laneHeight - inset * 2}rem`;
+    if (vertical) {
+        bar.style.left = `${((pitchLayout.start + segment.lane * laneSize) / pianoRollPitchLayout.extent) * 100}%`;
+        bar.style.width = `${(laneSize / pianoRollPitchLayout.extent) * 100}%`;
+        bar.style.top = `${timeOffset + leftInset}rem`;
+        bar.style.height = `${timeSize - leftInset - rightInset}rem`;
+    } else {
+        bar.style.left = `${timeOffset + leftInset}rem`;
+        bar.style.width = `${timeSize - leftInset - rightInset}rem`;
+        bar.style.top = `${(pianoRollPitchLayout.extent - pitchLayout.end + segment.lane * laneSize) * MIDI_PIANO_ROLL_ROW_HEIGHT_REM + inset}rem`;
+        bar.style.height = `${laneSizeRem - inset * 2}rem`;
+    }
     const noteLabel = track.channels.every(
         (channel) => channel === music.MIDI_PERCUSSION_CHANNEL
     )
@@ -2943,7 +3050,10 @@ function renderMidiPianoRollNotes(
         if (!midiPlayer.pianoRollMarkerElements.has(index)) {
             const element = document.createElement('span');
             element.className = marker.className;
-            element.style.left = `${(marker.position / midiPlayer.unitsPerQuarter) * MIDI_PIANO_ROLL_REM_PER_QUARTER}rem`;
+            const offset = `${(marker.position / midiPlayer.unitsPerQuarter) * MIDI_PIANO_ROLL_REM_PER_QUARTER}rem`;
+            element.style[
+                midiPlayer.pianoRollOrientation === 'vertical' ? 'top' : 'left'
+            ] = offset;
             element.textContent = marker.textContent;
             element.setAttribute('aria-hidden', 'true');
             midiPlayer.pianoRollMarkerElements.set(index, element);
@@ -2967,7 +3077,11 @@ function updateMidiPianoRoll(
         return;
     }
     const quarterPosition = position / midiPlayer.unitsPerQuarter;
-    timeline.style.transform = `translateX(${-quarterPosition * MIDI_PIANO_ROLL_REM_PER_QUARTER}rem)`;
+    const offset = -quarterPosition * MIDI_PIANO_ROLL_REM_PER_QUARTER;
+    timeline.style.transform =
+        midiPlayer.pianoRollOrientation === 'vertical'
+            ? `translateY(${offset}rem)`
+            : `translateX(${offset}rem)`;
     renderMidiPianoRollNotes(position);
 
     const enabledTrackIndexes = new Set(
@@ -3109,6 +3223,7 @@ function clearMidiPianoRoll() {
     midiPlayer.pianoRollSegments = [];
     midiPlayer.pianoRollSegmentElements = new Map();
     midiPlayer.pianoRollKeyElements = new Map();
+    midiPlayer.pianoRollPitchLayout = null;
     midiPlayer.pianoRollMarkers = [];
     midiPlayer.pianoRollMarkerElements = new Map();
     midiPlayer.pianoRollTrackElements = new Map();
@@ -3158,28 +3273,31 @@ function createMidiPianoRollMarkers() {
     );
 }
 
-function createMidiPianoRollKeyboard(minimumNote, maximumNote, height) {
+function createMidiPianoRollKeyboard(minimumNote, maximumNote, pitchLayout) {
     const keyboard = document.createElement('div');
     const rows = document.createElement('div');
-    const blackPitchClasses = new Set([1, 3, 6, 8, 10]);
+    const vertical = midiPlayer.pianoRollOrientation === 'vertical';
     keyboard.className = 'midi-piano-roll-keyboard';
-    keyboard.style.height = `${height}rem`;
+    if (!vertical) {
+        keyboard.style.height = `${pitchLayout.extent * MIDI_PIANO_ROLL_ROW_HEIGHT_REM}rem`;
+    }
     rows.className = 'midi-piano-roll-rows';
 
-    for (let midi = maximumNote; midi >= minimumNote; midi -= 1) {
-        const rowIndex = maximumNote - midi;
-        const top = rowIndex * MIDI_PIANO_ROLL_ROW_HEIGHT_REM;
-        const pitchClass = music.pitchClassFromMidi(midi);
-        const isBlack = blackPitchClasses.has(pitchClass);
-        const key = document.createElement('button');
-        const row = document.createElement('span');
+    const positionPitchElement = (element, layout) => {
+        if (vertical) {
+            element.style.left = `${(layout.start / pitchLayout.extent) * 100}%`;
+            element.style.width = `${(layout.size / pitchLayout.extent) * 100}%`;
+        } else {
+            element.style.top = `${(pitchLayout.extent - layout.end) * MIDI_PIANO_ROLL_ROW_HEIGHT_REM}rem`;
+            element.style.height = `${layout.size * MIDI_PIANO_ROLL_ROW_HEIGHT_REM}rem`;
+        }
+    };
+    const initializeKey = (key, midi) => {
         key.type = 'button';
-        key.className = `midi-piano-roll-key${isBlack ? ' is-black' : ''}`;
         key.dataset.midiPianoRollKey = String(midi);
-        midiPlayer.pianoRollKeyElements.set(midi, key);
-        key.style.top = `${top}rem`;
         key.title = music.noteNameFromMidi(midi, 'sharp');
         key.setAttribute('aria-label', `Play ${key.title}`);
+        midiPlayer.pianoRollKeyElements.set(midi, key);
         key.addEventListener('keydown', (event) => {
             if (!event.repeat && ['Enter', ' '].includes(event.key)) {
                 event.preventDefault();
@@ -3198,11 +3316,33 @@ function createMidiPianoRollKeyboard(minimumNote, maximumNote, height) {
         key.addEventListener('animationend', () => {
             key.classList.remove('is-struck');
         });
-        if (pitchClass === 0) {
-            key.textContent = music.noteNameFromMidi(midi);
-        }
-        row.className = `midi-piano-roll-row${isBlack ? ' is-black' : ''}`;
-        row.style.top = `${top}rem`;
+    };
+    const appendEdge = ({ midi, start, size, isBlack = false }) => {
+        const edge = document.createElement('button');
+        edge.className = `midi-piano-roll-key is-edge${isBlack ? ' is-black' : ''}`;
+        initializeKey(edge, midi);
+        positionPitchElement(edge, { start, end: start + size, size });
+        keyboard.append(edge);
+    };
+    for (const edge of pitchLayout.edges) {
+        appendEdge(edge);
+    }
+
+    for (let midi = minimumNote; midi <= maximumNote; midi += 1) {
+        const { key: keyLayout, lane: laneLayout } =
+            pitchLayout.pitches.get(midi);
+        const isBlack = isMidiPianoRollBlackKey(midi);
+        const key = document.createElement('button');
+        const label = document.createElement('span');
+        const row = document.createElement('span');
+        key.className = `midi-piano-roll-key${isBlack ? ' is-black' : ''}`;
+        initializeKey(key, midi);
+        positionPitchElement(key, keyLayout);
+        label.className = 'midi-piano-roll-key-label';
+        label.textContent = key.title;
+        key.append(label);
+        row.className = `midi-piano-roll-row${isBlack ? ' is-black' : ''}${midi === minimumNote ? ' is-first-pitch' : ''}${midi === maximumNote ? ' is-last-pitch' : ''}`;
+        positionPitchElement(row, laneLayout);
         keyboard.append(key);
         rows.append(row);
     }
@@ -3270,20 +3410,34 @@ function renderMidiPianoRoll() {
 
     const minimumNote = Math.min(...midiPlayer.notes.map((note) => note.midi));
     const maximumNote = Math.max(...midiPlayer.notes.map((note) => note.midi));
-    const pitchCount = maximumNote - minimumNote + 1;
-    const height = pitchCount * MIDI_PIANO_ROLL_ROW_HEIGHT_REM;
+    const orientation = readSettingValue('midi-piano-roll-orientation');
+    const vertical = orientation === 'vertical';
+    const timeRow = pianoRoll
+        .closest('[data-mode-panel="piano-roll"]')
+        ?.querySelector('.midi-player-time-row');
+    if (!vertical) {
+        timeRow?.style.removeProperty('width');
+    }
+    const pitchLayout = midiPianoRollPitchLayout(minimumNote, maximumNote);
+    const rotateKeyLabels =
+        vertical &&
+        [...pitchLayout.pitches.keys()].some(
+            (midi) => music.noteNameFromMidi(midi, 'sharp').length > 2
+        );
+    const pitchExtent = pitchLayout.extent * MIDI_PIANO_ROLL_ROW_HEIGHT_REM;
     const stage = document.createElement('div');
     const viewport = document.createElement('div');
     const timeline = document.createElement('div');
     const segments = midiPianoRollSegments(midiPlayer.notes);
+    midiPlayer.pianoRollOrientation = orientation;
+    midiPlayer.pianoRollPitchLayout = pitchLayout;
     const { keyboard, rows } = createMidiPianoRollKeyboard(
         minimumNote,
         maximumNote,
-        height
+        pitchLayout
     );
     const legend = createMidiPianoRollLegend();
     midiPlayer.pianoRollSegments = segments;
-    midiPlayer.pianoRollMaximumNote = maximumNote;
     let maximumSegmentEnd = -Infinity;
     midiPlayer.pianoRollSegmentPrefixEnds = segments.map((segment) => {
         maximumSegmentEnd = Math.max(
@@ -3292,17 +3446,22 @@ function renderMidiPianoRoll() {
         );
         return maximumSegmentEnd;
     });
-    stage.className = 'midi-piano-roll-stage';
+    stage.className = `midi-piano-roll-stage is-${orientation}${rotateKeyLabels ? ' has-rotated-key-labels' : ''}`;
     stage.setAttribute('role', 'group');
     stage.setAttribute(
         'aria-label',
-        'Interactive piano roll with notes moving from right to left'
+        `Interactive piano roll with notes moving ${vertical ? 'from bottom to top' : 'from right to left'}`
     );
     viewport.className = 'midi-piano-roll-viewport';
-    viewport.style.height = `${height}rem`;
+    if (!vertical) {
+        viewport.style.height = `${pitchExtent}rem`;
+    }
     timeline.className = 'midi-piano-roll-timeline';
-    timeline.style.height = `${height}rem`;
-    timeline.style.width = `calc(100% + ${(midiPlayer.total / midiPlayer.unitsPerQuarter) * MIDI_PIANO_ROLL_REM_PER_QUARTER}rem)`;
+    if (!vertical) {
+        timeline.style.height = `${pitchExtent}rem`;
+    }
+    timeline.style[vertical ? 'height' : 'width'] =
+        `calc(100% + ${(midiPlayer.total / midiPlayer.unitsPerQuarter) * MIDI_PIANO_ROLL_REM_PER_QUARTER}rem)`;
     timeline.style.setProperty(
         '--midi-piano-roll-quarter-width',
         `${MIDI_PIANO_ROLL_REM_PER_QUARTER}rem`
@@ -3312,26 +3471,60 @@ function renderMidiPianoRoll() {
     viewport.append(rows, timeline);
     stage.append(keyboard, viewport, legend);
     pianoRoll.append(stage);
+    const updateVerticalPitchWidth = (width) => {
+        if (!vertical) {
+            return;
+        }
+        const remPixels = Number.parseFloat(
+            getComputedStyle(document.documentElement).fontSize
+        );
+        const columnWidth = clamp(
+            width / remPixels / pitchLayout.extent,
+            MIDI_PIANO_ROLL_MIN_COLUMN_WIDTH_REM,
+            MIDI_PIANO_ROLL_MAX_COLUMN_WIDTH_REM
+        );
+        const keyboardWidth = `${columnWidth * pitchLayout.extent}rem`;
+        stage.style.width = keyboardWidth;
+        keyboard.style.width = keyboardWidth;
+        viewport.style.width = keyboardWidth;
+        if (timeRow) {
+            timeRow.style.width = keyboardWidth;
+        }
+    };
+    updateVerticalPitchWidth(pianoRoll.clientWidth);
     updateMidiInstrumentControls();
     midiPlayer.pianoRollLegendResizeObserver = new ResizeObserver(() => {
         balanceMidiPianoRollLegend(legend);
     });
     midiPlayer.pianoRollLegendResizeObserver.observe(legend);
     midiPlayer.pianoRollTimeline = timeline;
-    const updateVisibleDuration = (width) => {
+    const updateVisibleDuration = (size) => {
         const remPixels = Number.parseFloat(
             getComputedStyle(document.documentElement).fontSize
         );
         midiPlayer.pianoRollVisibleDuration =
-            (width / remPixels / MIDI_PIANO_ROLL_REM_PER_QUARTER) *
+            (size / remPixels / MIDI_PIANO_ROLL_REM_PER_QUARTER) *
             midiPlayer.unitsPerQuarter;
         renderMidiPianoRollNotes(midiPlayer.position, true);
     };
-    updateVisibleDuration(viewport.clientWidth);
-    midiPlayer.pianoRollResizeObserver = new ResizeObserver(([entry]) => {
-        updateVisibleDuration(entry.contentRect.width);
+    updateVisibleDuration(
+        vertical ? viewport.clientHeight : viewport.clientWidth
+    );
+    midiPlayer.pianoRollResizeObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+            if (entry.target === pianoRoll) {
+                updateVerticalPitchWidth(entry.contentRect.width);
+            } else {
+                updateVisibleDuration(
+                    vertical
+                        ? entry.contentRect.height
+                        : entry.contentRect.width
+                );
+            }
+        }
     });
     midiPlayer.pianoRollResizeObserver.observe(viewport);
+    midiPlayer.pianoRollResizeObserver.observe(pianoRoll);
     for (const track of midiPlayer.tracks) {
         updateMidiTrackToggle(track);
     }

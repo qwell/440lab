@@ -495,7 +495,7 @@ main.is-drag-over::after {
 
 .midi-piano-roll {
     --midi-piano-roll-keyboard-width: 6rem;
-    --midi-piano-roll-row-height: 1rem;
+    --midi-piano-roll-row-height: 1.5rem;
     --midi-piano-roll-header-clearance: 5rem;
 }
 
@@ -524,7 +524,9 @@ main.is-drag-over::after {
 }
 
 .midi-piano-roll-keyboard {
-    border-right: 2px solid #777;
+    overflow: hidden;
+
+    border-right: 1px solid #777;
 
     background: var(--surface);
 
@@ -551,6 +553,12 @@ main.is-drag-over::after {
     width: 100%;
     padding-right: 0.35rem;
 
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+
+    overflow: hidden;
+
     border: 0;
     border-bottom: 1px solid #777;
     border-radius: 0;
@@ -560,33 +568,53 @@ main.is-drag-over::after {
 
     font-family: inherit;
     font-size: 0.625rem;
-    line-height: var(--midi-piano-roll-row-height);
+    line-height: 1;
     text-align: right;
 
     cursor: pointer;
 }
 
+.midi-piano-roll-key:not(.is-black) {
+    padding-right: 0.15rem;
+}
+
 .midi-piano-roll-key.is-black {
+    right: auto;
+    left: 0;
+    z-index: 3;
+
+    width: 85%;
+
     border-color: #000;
 
     color: #ddd;
     background: #000;
+    box-shadow: none;
 }
 
 .midi-piano-roll-key:hover {
-    background: #f6f6f6;
-}
-
-.midi-piano-roll-key.is-black:hover {
+    color: #ddd;
     background: #333;
 }
 
-.midi-piano-roll-key.is-active {
-    background: linear-gradient(to right, #eee 35%, var(--target) 35%);
+.midi-piano-roll-key.is-active::after {
+    content: '';
+
+    position: absolute;
+    inset: 0 0 0 auto;
+    z-index: 1;
+
+    width: 50%;
+
+    background: var(--target);
+
+    pointer-events: none;
 }
 
-.midi-piano-roll-key.is-black.is-active {
-    background: linear-gradient(to right, #000 35%, var(--target) 35%);
+.midi-piano-roll-key.is-black.is-active::after {
+    inset: 0 auto 0 58.823529%;
+
+    width: 41.176471%;
 }
 
 .midi-piano-roll-key.is-auditioned,
@@ -595,12 +623,9 @@ main.is-drag-over::after {
     background: var(--warning);
 }
 
-.midi-piano-roll-key.is-auditioned.is-active {
-    background: linear-gradient(
-        to right,
-        var(--warning) 35%,
-        var(--target) 35%
-    );
+.midi-piano-roll-key-label {
+    position: relative;
+    z-index: 2;
 }
 
 .midi-piano-roll-key.is-struck {
@@ -624,7 +649,11 @@ main.is-drag-over::after {
 }
 
 .midi-piano-roll-rows {
+    z-index: 0;
+
     width: 100%;
+
+    border-top: 1px solid #3b3b3b;
 }
 
 .midi-piano-roll-row {
@@ -640,6 +669,8 @@ main.is-drag-over::after {
 }
 
 .midi-piano-roll-timeline {
+    z-index: 1;
+
     will-change: transform;
 
     background-image: linear-gradient(to right, #555 1px, transparent 1px);
@@ -669,6 +700,134 @@ main.is-drag-over::after {
     line-height: 1rem;
 
     transform: translateX(2px);
+}
+
+.midi-piano-roll-stage.is-vertical {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows:
+        var(--midi-piano-roll-keyboard-width) minmax(0, 1fr)
+        auto;
+
+    height: calc(
+        100dvh - var(--midi-piano-roll-header-clearance) -
+            var(--footer-height) - var(--main-padding) - 0.5rem
+    );
+    min-height: 18rem;
+
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.midi-piano-roll-stage.is-vertical .midi-piano-roll-keyboard {
+    height: var(--midi-piano-roll-keyboard-width);
+
+    border-right: 0;
+    border-bottom: 1px solid #777;
+}
+
+.midi-piano-roll-stage.is-vertical .midi-piano-roll-key,
+.midi-piano-roll-stage.is-vertical .midi-piano-roll-row {
+    top: 0;
+    right: auto;
+
+    height: 100%;
+}
+
+.midi-piano-roll-stage.is-vertical .midi-piano-roll-key {
+    padding: 0;
+
+    align-items: flex-end;
+    justify-content: center;
+
+    border-right: 1px solid #777;
+    border-bottom: 0;
+
+    text-align: center;
+    text-overflow: clip;
+}
+
+.midi-piano-roll-stage.is-vertical .midi-piano-roll-key.is-black {
+    height: 85%;
+}
+
+.midi-piano-roll-stage.is-vertical .midi-piano-roll-key-label {
+    position: absolute;
+    bottom: 0.35rem;
+    left: 50%;
+
+    transform: translateX(-50%);
+}
+
+.midi-piano-roll-stage.is-vertical
+    .midi-piano-roll-key:not(.is-black)
+    .midi-piano-roll-key-label {
+    bottom: 0.15rem;
+}
+
+.midi-piano-roll-stage.is-vertical.has-rotated-key-labels
+    .midi-piano-roll-key-label {
+    writing-mode: vertical-rl;
+    text-orientation: sideways;
+}
+
+.midi-piano-roll-stage.is-vertical .midi-piano-roll-key.is-active::after {
+    inset: auto 0 0;
+
+    width: 100%;
+    height: 50%;
+}
+
+.midi-piano-roll-stage.is-vertical
+    .midi-piano-roll-key.is-black.is-active::after {
+    inset: 58.823529% 0 auto;
+
+    width: 100%;
+    height: 41.176471%;
+}
+
+.midi-piano-roll-stage.is-vertical .midi-piano-roll-rows {
+    height: 100%;
+
+    border-top: 0;
+    border-left: 1px solid #3b3b3b;
+}
+
+.midi-piano-roll-stage.is-vertical .midi-piano-roll-row {
+    border-right: 1px solid #3b3b3b;
+    border-bottom: 0;
+}
+
+.midi-piano-roll-stage.is-vertical .midi-piano-roll-row.is-first-pitch {
+    border-left: 1px solid #3b3b3b;
+}
+
+.midi-piano-roll-stage.is-horizontal .midi-piano-roll-row.is-last-pitch {
+    border-top: 1px solid #3b3b3b;
+}
+
+.midi-piano-roll-stage.is-vertical .midi-piano-roll-timeline {
+    width: 100%;
+
+    background-image: linear-gradient(to bottom, #555 1px, transparent 1px);
+    background-size: 100% var(--midi-piano-roll-quarter-width);
+}
+
+.midi-piano-roll-stage.is-vertical .midi-piano-roll-barline {
+    right: 0;
+    bottom: auto;
+
+    width: auto;
+    height: 2px;
+}
+
+.midi-piano-roll-stage.is-vertical .midi-piano-roll-signature {
+    left: 0.125rem;
+
+    transform: translateY(2px);
+}
+
+.midi-piano-roll-stage.is-vertical .midi-piano-roll-note {
+    min-width: 1px;
 }
 
 .midi-piano-roll-note {

@@ -55,6 +55,21 @@ function saveCurrentSettings() {
     engine.saveSettings(currentSettings());
 }
 
+function initializeMidiPianoRollOrientation() {
+    const orientation = window.matchMedia('(orientation: landscape)');
+    const renderOrientation = ({ matches }) =>
+        renderSettingValue(
+            'midi-piano-roll-orientation',
+            matches ? 'vertical' : 'horizontal'
+        );
+    renderOrientation(orientation);
+    orientation.addEventListener('change', (event) => {
+        renderOrientation(event);
+        renderMidiPianoRoll();
+        saveCurrentSettings();
+    });
+}
+
 function restoreSettings() {
     renderSettings(engine.loadSettings());
     saveCurrentSettings();
@@ -784,7 +799,8 @@ const midiPlayer = {
     pianoRollMarkers: [],
     pianoRollMarkerElements: new Map(),
     pianoRollTrackElements: new Map(),
-    pianoRollMaximumNote: 0,
+    pianoRollOrientation: 'horizontal',
+    pianoRollPitchLayout: null,
     pianoRollSegmentPrefixEnds: [],
     pianoRollResizeObserver: null,
     pianoRollLegendResizeObserver: null,
@@ -4079,6 +4095,7 @@ function initialize() {
         })
     );
     initializeTunerInstruments();
+    initializeMidiPianoRollOrientation();
     restoreSettings();
     updateTunerInstrument();
     restoreSetting('tuner-tuning-tuning');

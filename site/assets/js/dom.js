@@ -520,6 +520,10 @@ function initializeEvents() {
             }
         });
     }
+    getSetting('midi-piano-roll-orientation').addEventListener(
+        'change',
+        renderMidiPianoRoll
+    );
     const dropSurface = document.querySelector('main');
     const activeFileDropPanel = () => {
         const panel = dropSurface.querySelector('.section-panel:not([hidden])');
