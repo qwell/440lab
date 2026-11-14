@@ -1,5 +1,74 @@
 'use strict';
 
+const TRIAL_ADVANCE_DELAY = 3000;
+const ADAPTIVE_NARROW_FACTOR = 0.8;
+const ADAPTIVE_WIDEN_FACTOR = 1.25;
+const ADAPTIVE_WINDOW_SIZE = 5;
+const INTERVAL_LEVELS = {
+    starter: new Set([2, 4, 5, 7]),
+    common: new Set([0, 1, 2, 3, 4, 5, 6, 7]),
+    all: new Set(music.INTERVALS.map(({ semitones }) => semitones)),
+};
+const PITCH_MEMORY_ANALYSIS_INTERVAL_MS = 50;
+const PITCH_MEMORY_CORRECT_CENTS = 25;
+const PITCH_MEMORY_FREQUENCY_SAMPLE_LIMIT = 9;
+const PITCH_MEMORY_MAXIMUM_MIDI = music.MIDI_NOTES.B6;
+const PITCH_MEMORY_MICROPHONE_ADJUSTMENT_CENTS = 50;
+const PITCH_MEMORY_MINIMUM_MIDI = music.MIDI_NOTES.C3;
+const PITCH_MEMORY_RANGE_CENTS =
+    (PITCH_MEMORY_MAXIMUM_MIDI - PITCH_MEMORY_MINIMUM_MIDI) * 100;
+
+function shuffle(items) {
+    const result = [...items];
+
+    for (let index = result.length - 1; index > 0; index -= 1) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+
+        [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
+    }
+
+    return result;
+}
+
+function createAutoAdvance(module, advance) {
+    const elements = getModuleActions(module, 'new');
+    let timer = null;
+    function cancel() {
+        if (timer !== null) {
+            clearTimeout(timer);
+            timer = null;
+        }
+        for (const button of elements) {
+            button.classList.remove('is-counting-down');
+        }
+    }
+    function schedule() {
+        cancel();
+        const refreshButton = [...elements].find(
+            (button) => !button.closest('[hidden]')
+        );
+        if (!refreshButton) {
+            return;
+        }
+        void refreshButton.offsetWidth;
+        refreshButton.classList.add('is-counting-down');
+        timer = window.setTimeout(() => {
+            timer = null;
+            refreshButton.classList.remove('is-counting-down');
+            advance();
+        }, TRIAL_ADVANCE_DELAY);
+    }
+    return { cancel, schedule };
+}
+
+function focusVisibleModuleAction(module, action) {
+    focusElement(
+        [...getModuleActions(module, action)].find(
+            (button) => !button.closest('[hidden]')
+        )
+    );
+}
+
 let practiceConfigurationProvider = null;
 
 function configurePractice(provider) {
@@ -131,11 +200,11 @@ function updateAdaptiveDifficulty(exercise, correct) {
 
     state.adaptiveResults.push(correct);
 
-    if (state.adaptiveResults.length < music.ADAPTIVE_WINDOW_SIZE) {
+    if (state.adaptiveResults.length < ADAPTIVE_WINDOW_SIZE) {
         renderAdaptiveStatus(
             exercise,
             `${state.adaptiveResults.length} of ` +
-                `${music.ADAPTIVE_WINDOW_SIZE} answers`
+                `${ADAPTIVE_WINDOW_SIZE} answers`
         );
         return;
     }
@@ -146,17 +215,17 @@ function updateAdaptiveDifficulty(exercise, correct) {
     let direction = '';
 
     if (correctCount >= 4) {
-        factor = music.ADAPTIVE_NARROW_FACTOR;
+        factor = ADAPTIVE_NARROW_FACTOR;
         direction = 'Narrowed';
     } else if (correctCount <= 2) {
-        factor = music.ADAPTIVE_WIDEN_FACTOR;
+        factor = ADAPTIVE_WIDEN_FACTOR;
         direction = 'Widened';
     }
 
     if (factor === 1) {
         renderAdaptiveStatus(
             exercise,
-            `Unchanged ${correctCount}/${music.ADAPTIVE_WINDOW_SIZE}`
+            `Unchanged ${correctCount}/${ADAPTIVE_WINDOW_SIZE}`
         );
         return;
     }
@@ -387,9 +456,9 @@ function notifyPitchMemoryDelayStateChange() {
 }
 
 const pitchMemoryMicrophoneInput = engine.createMicrophoneInput({
-    minimumMidi: music.PITCH_MEMORY_MINIMUM_MIDI,
-    maximumMidi: music.PITCH_MEMORY_MAXIMUM_MIDI,
-    sampleIntervalMs: music.TUNER_ANALYSIS_INTERVAL_MS,
+    minimumMidi: PITCH_MEMORY_MINIMUM_MIDI,
+    maximumMidi: PITCH_MEMORY_MAXIMUM_MIDI,
+    sampleIntervalMs: PITCH_MEMORY_ANALYSIS_INTERVAL_MS,
     processFrame: processPitchMemoryMicrophoneFrame,
     onDeactivate: handlePitchMemoryMicrophoneDeactivation,
     initialState: {
@@ -438,10 +507,10 @@ function seededRandom(seed) {
 
 function randomPitchMemoryFrequency(random = Math.random) {
     const minimumFrequency = engine.frequencyFromMidi(
-        music.PITCH_MEMORY_MINIMUM_MIDI
+        PITCH_MEMORY_MINIMUM_MIDI
     );
     const maximumFrequency = engine.frequencyFromMidi(
-        music.PITCH_MEMORY_MAXIMUM_MIDI
+        PITCH_MEMORY_MAXIMUM_MIDI
     );
 
     return minimumFrequency * (maximumFrequency / minimumFrequency) ** random();
@@ -449,7 +518,7 @@ function randomPitchMemoryFrequency(random = Math.random) {
 
 function pitchMemoryResponseFrequency(cents) {
     return (
-        engine.frequencyFromMidi(music.PITCH_MEMORY_MINIMUM_MIDI) *
+        engine.frequencyFromMidi(PITCH_MEMORY_MINIMUM_MIDI) *
         2 ** (cents / music.CENTS_PER_OCTAVE)
     );
 }
@@ -464,23 +533,16 @@ function pitchMemorySliderValueForFrequency(frequency) {
     return clamp(
         music.CENTS_PER_OCTAVE *
             Math.log2(
-                frequency /
-                    engine.frequencyFromMidi(music.PITCH_MEMORY_MINIMUM_MIDI)
+                frequency / engine.frequencyFromMidi(PITCH_MEMORY_MINIMUM_MIDI)
             ),
         0,
-        music.PITCH_MEMORY_RANGE_CENTS
+        PITCH_MEMORY_RANGE_CENTS
     );
 }
 
 function initializePitchMemorySlider() {
     engine.getState('pitch');
     renderPitchMemorySliderInitialized();
-}
-
-function formatPitchAndCents(frequency) {
-    const note = nearestNoteFromFrequency(frequency);
-
-    return `${music.noteNameFromMidi(note.midi, 'sharp')} ${signed(note.cents, 0)}¢`;
 }
 
 function clearPitchMemoryTimers() {
@@ -523,7 +585,7 @@ function processPitchMemoryMicrophoneFrame({
     const microphone = pitchMemoryMicrophoneInput;
 
     if (samplesUpdated && engine.state.pitch.memory?.state === 'responding') {
-        const frequency = detectPitchYin(
+        const frequency = engine.audio.detectPitchYin(
             samples,
             sampleRate,
             engine.frequencyFromMidi(microphone.minimumMidi),
@@ -536,7 +598,7 @@ function processPitchMemoryMicrophoneFrame({
             addRollingSample(
                 microphone.detectedFrequencies,
                 frequency,
-                music.PITCH_MEMORY_FREQUENCY_SAMPLE_LIMIT
+                PITCH_MEMORY_FREQUENCY_SAMPLE_LIMIT
             );
 
             microphone.detectedFrequency = median(
@@ -613,7 +675,7 @@ function showPitchMemoryResponse() {
     const sliderValue = clamp(
         targetCents + offset,
         0,
-        music.PITCH_MEMORY_RANGE_CENTS
+        PITCH_MEMORY_RANGE_CENTS
     );
     renderPitchMemoryResponse(
         sliderValue,
@@ -905,7 +967,7 @@ function updatePitchMemoryResponseTone() {
     pitchMemory.responseMethod =
         Number.isFinite(detectedFrequency) &&
         Math.abs(music.centsBetween(responseFrequency, detectedFrequency)) <=
-            music.PITCH_MEMORY_MICROPHONE_ADJUSTMENT_CENTS
+            PITCH_MEMORY_MICROPHONE_ADJUSTMENT_CENTS
             ? 'microphone'
             : 'oscillator';
     renderPitchMemoryResponsePitch(responseFrequency);
@@ -954,8 +1016,7 @@ function submitPitchMemoryResponse() {
         seed: engine.state.pitch.memory.seed,
     };
 
-    const correct =
-        result.absoluteErrorCents < music.PITCH_MEMORY_CORRECT_CENTS;
+    const correct = result.absoluteErrorCents < PITCH_MEMORY_CORRECT_CENTS;
 
     engine.updateStats(engine.stats.pitch.memory[result.type], {
         correct,
@@ -1017,10 +1078,10 @@ function updatePitchMode() {
 function restorePitchMemoryState() {
     const state = engine.state.pitch.memory;
     const minimumFrequency = engine.frequencyFromMidi(
-        music.PITCH_MEMORY_MINIMUM_MIDI
+        PITCH_MEMORY_MINIMUM_MIDI
     );
     const maximumFrequency = engine.frequencyFromMidi(
-        music.PITCH_MEMORY_MAXIMUM_MIDI
+        PITCH_MEMORY_MAXIMUM_MIDI
     );
 
     if (
@@ -1178,31 +1239,6 @@ function newMatchTargetTrial() {
     matchTarget.selectedAnswerIndex = null;
 
     renderMatchTargetAnswers();
-}
-
-function getMatchTargetAnswerResult(index) {
-    if (!matchTarget.committed) {
-        return null;
-    }
-
-    const targetIndex = matchTarget.answers.findIndex(
-        (answer) => answer.isTarget
-    );
-    const className = answerStateClass(
-        index,
-        matchTarget.selectedAnswerIndex,
-        targetIndex
-    );
-
-    return {
-        icon:
-            {
-                'is-correct': '✓',
-                'is-incorrect': '✕',
-                'is-target': '◎',
-            }[className] ?? '',
-        className,
-    };
 }
 
 function playMatchTargetAnswer(index) {
@@ -1378,10 +1414,9 @@ function scheduleIntervalAdvance() {
 
 function enabledIntervals() {
     const levelName = practiceConfiguration().interval.level;
-    const level =
-        music.INTERVAL_LEVELS[levelName] ?? music.INTERVAL_LEVELS['starter'];
+    const level = INTERVAL_LEVELS[levelName] ?? INTERVAL_LEVELS['starter'];
 
-    return music.INTERVALS.filter((interval) => interval.level <= level);
+    return music.INTERVALS.filter(({ semitones }) => level.has(semitones));
 }
 
 function updateIntervalMode() {

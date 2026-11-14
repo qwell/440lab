@@ -1,8 +1,5 @@
 'use strict';
 
-const ADAPTIVE_WINDOW_SIZE = 5;
-const ADAPTIVE_NARROW_FACTOR = 0.8;
-const ADAPTIVE_WIDEN_FACTOR = 1.25;
 const SEMITONES_PER_OCTAVE = 12;
 const CENTS_PER_SEMITONE = 100;
 const CENTS_PER_OCTAVE = SEMITONES_PER_OCTAVE * CENTS_PER_SEMITONE;
@@ -115,29 +112,20 @@ const MIDI_NOTES = {
 const DEFAULT_A4_FREQUENCY = 440;
 const MINIMUM_SUPPORTED_MIDI = MIDI_NOTES.A0;
 const MAXIMUM_SUPPORTED_MIDI = MIDI_NOTES.B7;
-const DEFAULT_VOLUME = 0.8;
-const VOICE_GAIN = 0.25;
-
-const INTERVAL_LEVELS = {
-    starter: 0,
-    common: 1,
-    all: 2,
-};
-
 const INTERVALS = [
-    { semitones: 0, name: 'Unison', level: INTERVAL_LEVELS['common'] },
-    { semitones: 1, name: 'Minor 2nd', level: INTERVAL_LEVELS['common'] },
-    { semitones: 2, name: 'Major 2nd', level: INTERVAL_LEVELS['starter'] },
-    { semitones: 3, name: 'Minor 3rd', level: INTERVAL_LEVELS['common'] },
-    { semitones: 4, name: 'Major 3rd', level: INTERVAL_LEVELS['starter'] },
-    { semitones: 5, name: 'Perfect 4th', level: INTERVAL_LEVELS['starter'] },
-    { semitones: 6, name: 'Tritone', level: INTERVAL_LEVELS['common'] },
-    { semitones: 7, name: 'Perfect 5th', level: INTERVAL_LEVELS['starter'] },
-    { semitones: 8, name: 'Minor 6th', level: INTERVAL_LEVELS['all'] },
-    { semitones: 9, name: 'Major 6th', level: INTERVAL_LEVELS['all'] },
-    { semitones: 10, name: 'Minor 7th', level: INTERVAL_LEVELS['all'] },
-    { semitones: 11, name: 'Major 7th', level: INTERVAL_LEVELS['all'] },
-    { semitones: 12, name: 'Octave', level: INTERVAL_LEVELS['all'] },
+    { semitones: 0, name: 'Unison' },
+    { semitones: 1, name: 'Minor 2nd' },
+    { semitones: 2, name: 'Major 2nd' },
+    { semitones: 3, name: 'Minor 3rd' },
+    { semitones: 4, name: 'Major 3rd' },
+    { semitones: 5, name: 'Perfect 4th' },
+    { semitones: 6, name: 'Tritone' },
+    { semitones: 7, name: 'Perfect 5th' },
+    { semitones: 8, name: 'Minor 6th' },
+    { semitones: 9, name: 'Major 6th' },
+    { semitones: 10, name: 'Minor 7th' },
+    { semitones: 11, name: 'Major 7th' },
+    { semitones: 12, name: 'Octave' },
 ];
 
 const CHORD_QUALITIES = {
@@ -146,16 +134,6 @@ const CHORD_QUALITIES = {
     diminished: [0, 3, 6],
     augmented: [0, 4, 8],
 };
-
-const TUNER_ANALYSIS_INTERVAL_MS = 50;
-const TUNER_CENTS_SMOOTHING = 0.18;
-const TUNER_MIN_RMS = 0.006;
-const TUNER_STABLE_FRAMES = 3;
-const TUNER_YIN_THRESHOLD = 0.15;
-const TUNER_FREQUENCY_SAMPLE_LIMIT = 5;
-const TUNER_ANALYSIS_SAMPLE_STRIDE = 2;
-const TUNER_PLOT_SECONDS = 8;
-const TUNER_PLOT_PADDING_SEMITONES = 7;
 
 const TUNER_INSTRUMENTS = [
     {
@@ -386,47 +364,7 @@ const TUNER_INSTRUMENTS = [
     },
 ];
 
-const PLAYBACK_LOOKAHEAD_MS = 25;
-const PLAYBACK_SCHEDULE_AHEAD_SECONDS = 0.1;
-const MIDI_GENERATED_TONE_VOLUME = 0.08;
-
-const RHYTHM_CLICK_DURATION = 0.035;
-const RHYTHM_CLICK_FREQUENCIES = [800, 1000, 1200];
-
-const RHYTHM_SHEET_EIGHTH_PATTERN_RATE = 0.2;
-const RHYTHM_SHEET_SIXTEENTH_PATTERN_RATE = 0.05;
-const RHYTHM_SHEET_SIXTEENTH_PAIR_RATE = 0.7;
-const RHYTHM_SHEET_SUSTAINED_PATTERN_RATE = 0.6;
-const RHYTHM_SHEET_TIE_RATE = 0.35;
-
-const RHYTHM_SHEET_COUNT_IN_LEAD_UNITS = 0.125;
-
-const MIDI_PIANO_ROLL_PROGRAM = 0;
-const MIDI_PIANO_ROLL_VELOCITY = 127;
-const MIDI_PIANO_ROLL_QUICK_PRESS_MS = 250;
-const MIDI_PIANO_ROLL_QUICK_DURATION_MS = 750;
-const MIDI_PIANO_ROLL_VOLUME = 1;
 const MIDI_PERCUSSION_CHANNEL = 9;
-const RHYTHM_SHEET_SCORE_SELECTOR = '#rhythm-sheet-score';
-
-const RHYTHM_SHEET_CORRECT_CENTS = 25;
-const RHYTHM_SHEET_ANALYSIS_INTERVAL_MS = 50;
-const RHYTHM_SHEET_FREQUENCY_SAMPLE_LIMIT = 3;
-const RHYTHM_SHEET_NOTE_RELEASE_GAP_SECONDS = 0.05;
-const RHYTHM_SHEET_NOTE_RELEASE_GAP_RATIO = 0.1;
-const RHYTHM_SHEET_NOTE_CUE_VOLUME = 0.45;
-const RHYTHM_SHEET_NOTE_CUE_VELOCITY = 96;
-const RHYTHM_SHEET_MIDI_CHANNEL = 0;
-const RHYTHM_SHEET_MIDI_PROGRAM = 3; // Honky-tonk Piano (don't judge me, it sounds good)
-
-const PITCH_MEMORY_CORRECT_CENTS = 25;
-const PITCH_MEMORY_MICROPHONE_ADJUSTMENT_CENTS = 50;
-const PITCH_MEMORY_FREQUENCY_SAMPLE_LIMIT = 9;
-const PITCH_MEMORY_MINIMUM_MIDI = MIDI_NOTES.C3;
-const PITCH_MEMORY_MAXIMUM_MIDI = MIDI_NOTES.B6;
-const PITCH_MEMORY_RANGE_CENTS =
-    (PITCH_MEMORY_MAXIMUM_MIDI - PITCH_MEMORY_MINIMUM_MIDI) *
-    CENTS_PER_SEMITONE;
 
 function pitchClassFromMidi(midi) {
     return (
@@ -466,16 +404,36 @@ function nearestOctaveFrequency(frequency, referenceFrequency) {
     return frequency * 2 ** octaveOffset;
 }
 
+function nearestNoteFromFrequency(
+    frequency,
+    referenceFrequency = DEFAULT_A4_FREQUENCY
+) {
+    const exactMidi =
+        MIDI_NOTES.A4 +
+        SEMITONES_PER_OCTAVE * Math.log2(frequency / referenceFrequency);
+    const midi = Math.round(exactMidi);
+    const targetFrequency =
+        referenceFrequency *
+        2 ** ((midi - MIDI_NOTES.A4) / SEMITONES_PER_OCTAVE);
+
+    return {
+        midi,
+        noteName: noteNameFromMidi(midi),
+        targetFrequency,
+        cents: centsBetween(frequency, targetFrequency),
+    };
+}
+
 const music = Object.freeze({
     centsBetween,
     frequencyFromCents,
+    nearestNoteFromFrequency,
     nearestOctaveFrequency,
     noteNameFromMidi,
     pitchClassFromMidi,
     pitchClassName,
 
     CENTS_PER_OCTAVE,
-    CENTS_PER_SEMITONE,
     DEFAULT_A4_FREQUENCY,
     MAXIMUM_SUPPORTED_MIDI,
     MIDI_NOTES,
@@ -483,59 +441,8 @@ const music = Object.freeze({
     PITCH_CLASS_NAMES,
     SEMITONES_PER_OCTAVE,
 
-    DEFAULT_VOLUME,
-    PLAYBACK_LOOKAHEAD_MS,
-    PLAYBACK_SCHEDULE_AHEAD_SECONDS,
-    VOICE_GAIN,
-
-    TUNER_ANALYSIS_INTERVAL_MS,
-    TUNER_ANALYSIS_SAMPLE_STRIDE,
-    TUNER_CENTS_SMOOTHING,
-    TUNER_FREQUENCY_SAMPLE_LIMIT,
-    TUNER_INSTRUMENTS,
-    TUNER_MIN_RMS,
-    TUNER_PLOT_PADDING_SEMITONES,
-    TUNER_PLOT_SECONDS,
-    TUNER_STABLE_FRAMES,
-    TUNER_YIN_THRESHOLD,
-
-    ADAPTIVE_NARROW_FACTOR,
-    ADAPTIVE_WIDEN_FACTOR,
-    ADAPTIVE_WINDOW_SIZE,
     CHORD_QUALITIES,
-    INTERVAL_LEVELS,
     INTERVALS,
-    PITCH_MEMORY_CORRECT_CENTS,
-    PITCH_MEMORY_FREQUENCY_SAMPLE_LIMIT,
-    PITCH_MEMORY_MAXIMUM_MIDI,
-    PITCH_MEMORY_MICROPHONE_ADJUSTMENT_CENTS,
-    PITCH_MEMORY_MINIMUM_MIDI,
-    PITCH_MEMORY_RANGE_CENTS,
-
-    RHYTHM_CLICK_DURATION,
-    RHYTHM_CLICK_FREQUENCIES,
-    RHYTHM_SHEET_ANALYSIS_INTERVAL_MS,
-    RHYTHM_SHEET_CORRECT_CENTS,
-    RHYTHM_SHEET_COUNT_IN_LEAD_UNITS,
-    RHYTHM_SHEET_EIGHTH_PATTERN_RATE,
-    RHYTHM_SHEET_FREQUENCY_SAMPLE_LIMIT,
-    RHYTHM_SHEET_MIDI_CHANNEL,
-    RHYTHM_SHEET_MIDI_PROGRAM,
-    RHYTHM_SHEET_NOTE_CUE_VELOCITY,
-    RHYTHM_SHEET_NOTE_CUE_VOLUME,
-    RHYTHM_SHEET_NOTE_RELEASE_GAP_RATIO,
-    RHYTHM_SHEET_NOTE_RELEASE_GAP_SECONDS,
-    RHYTHM_SHEET_SCORE_SELECTOR,
-    RHYTHM_SHEET_SIXTEENTH_PAIR_RATE,
-    RHYTHM_SHEET_SIXTEENTH_PATTERN_RATE,
-    RHYTHM_SHEET_SUSTAINED_PATTERN_RATE,
-    RHYTHM_SHEET_TIE_RATE,
-
-    MIDI_GENERATED_TONE_VOLUME,
     MIDI_PERCUSSION_CHANNEL,
-    MIDI_PIANO_ROLL_PROGRAM,
-    MIDI_PIANO_ROLL_QUICK_DURATION_MS,
-    MIDI_PIANO_ROLL_QUICK_PRESS_MS,
-    MIDI_PIANO_ROLL_VELOCITY,
-    MIDI_PIANO_ROLL_VOLUME,
+    TUNER_INSTRUMENTS,
 });

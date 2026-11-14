@@ -3,7 +3,6 @@ const SETTINGS_KEY = '440Lab.settings.v1';
 const STATS_KEY = '440Lab.stats.v1';
 const STATE_KEY = '440Lab.state.v1';
 
-const TRIAL_ADVANCE_DELAY = 3000;
 let referenceFrequency = music.DEFAULT_A4_FREQUENCY;
 
 function getReferenceFrequency() {
@@ -265,13 +264,120 @@ function removeState(module, name) {
 // Audio
 
 const audio = (() => {
+    const DEFAULT_VOLUME = 0.8;
+    const VOICE_GAIN = 0.25;
     let context = null;
     let masterGain = null;
-    let masterVolume = music.DEFAULT_VOLUME;
+    let masterVolume = DEFAULT_VOLUME;
 
     const continuousVoices = new Set();
     const transientVoices = new Set();
     const playbackStateListeners = new Set();
+
+    function detectPitchYin(
+        samples,
+        sampleRate,
+        minimumFrequency,
+        maximumFrequency,
+        { minimumRms = 0.006, sampleStride = 1, threshold = 0.15 } = {}
+    ) {
+        let squareTotal = 0;
+        const sampleLength = Math.floor(samples.length / sampleStride);
+        const analysisSampleRate = sampleRate / sampleStride;
+
+        for (let index = 0; index < sampleLength; index += 1) {
+            const sample = samples[index * sampleStride];
+            squareTotal += sample * sample;
+        }
+
+        const rms = Math.sqrt(squareTotal / sampleLength);
+        if (rms < minimumRms) {
+            return null;
+        }
+
+        const minimumPeriod = Math.max(
+            2,
+            Math.floor(analysisSampleRate / maximumFrequency)
+        );
+        const maximumPeriod = Math.min(
+            Math.floor(analysisSampleRate / minimumFrequency),
+            Math.floor(sampleLength / 2)
+        );
+        if (maximumPeriod <= minimumPeriod + 2) {
+            return null;
+        }
+
+        const difference = new Float32Array(maximumPeriod + 1);
+        const windowLength = sampleLength - maximumPeriod;
+        for (let period = 1; period <= maximumPeriod; period += 1) {
+            let total = 0;
+            for (let index = 0; index < windowLength; index += 1) {
+                const delta =
+                    samples[index * sampleStride] -
+                    samples[(index + period) * sampleStride];
+                total += delta * delta;
+            }
+            difference[period] = total;
+        }
+
+        difference[0] = 1;
+        let runningTotal = 0;
+        for (let period = 1; period <= maximumPeriod; period += 1) {
+            runningTotal += difference[period];
+            difference[period] =
+                runningTotal === 0
+                    ? 1
+                    : (difference[period] * period) / runningTotal;
+        }
+
+        let bestPeriod = -1;
+        for (let period = minimumPeriod; period <= maximumPeriod; period += 1) {
+            if (difference[period] >= threshold) {
+                continue;
+            }
+            while (
+                period + 1 <= maximumPeriod &&
+                difference[period + 1] < difference[period]
+            ) {
+                period += 1;
+            }
+            bestPeriod = period;
+            break;
+        }
+
+        if (bestPeriod === -1) {
+            let bestValue = Infinity;
+            for (
+                let period = minimumPeriod;
+                period <= maximumPeriod;
+                period += 1
+            ) {
+                if (difference[period] < bestValue) {
+                    bestValue = difference[period];
+                    bestPeriod = period;
+                }
+            }
+            if (bestPeriod === -1 || bestValue > 0.25) {
+                return null;
+            }
+        }
+
+        let refinedPeriod = bestPeriod;
+        if (bestPeriod > 1 && bestPeriod < maximumPeriod) {
+            const left = difference[bestPeriod - 1];
+            const center = difference[bestPeriod];
+            const right = difference[bestPeriod + 1];
+            const denominator = left - 2 * center + right;
+            if (Math.abs(denominator) > 1e-12) {
+                refinedPeriod += (0.5 * (left - right)) / denominator;
+            }
+        }
+
+        if (!Number.isFinite(refinedPeriod) || refinedPeriod <= 0) {
+            return null;
+        }
+        return analysisSampleRate / refinedPeriod;
+    }
 
     function isPlaying() {
         return continuousVoices.size > 0 || transientVoices.size > 0;
@@ -404,7 +510,7 @@ const audio = (() => {
 
         oscillator.start();
 
-        fadeTo(gain.gain, music.VOICE_GAIN * clamp(volume, 0, 1));
+        fadeTo(gain.gain, VOICE_GAIN * clamp(volume, 0, 1));
 
         let stopped = false;
 
@@ -473,7 +579,7 @@ const audio = (() => {
 
         const releaseTime = startTime + durationSeconds;
 
-        const targetGain = music.VOICE_GAIN * clamp(volume, 0, 1);
+        const targetGain = VOICE_GAIN * clamp(volume, 0, 1);
 
         oscillator.frequency.setValueAtTime(frequency, startTime);
 
@@ -553,16 +659,18 @@ const audio = (() => {
     }
 
     return {
-        currentTime,
-        isPlaying,
+        DEFAULT_VOLUME,
         addPlaybackStateListener,
+        createAnalyser,
+        currentTime,
+        detectPitchYin,
         getContext,
         getDestination,
+        isPlaying,
         playContinuous,
         playTransient,
-        stopTransient,
-        createAnalyser,
         setVolume,
+        stopTransient,
     };
 })();
 
@@ -921,6 +1029,9 @@ const engine = Object.freeze({
 
     frequencyFromMidi,
     midiFromFrequency,
+    get referenceFrequency() {
+        return getReferenceFrequency();
+    },
     setReferenceFrequency,
 
     loadSettings,

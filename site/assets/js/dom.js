@@ -443,6 +443,23 @@ function initializeNavigation() {
     syncModeNavigation();
 }
 
+function syncSharedField(field) {
+    const name = field?.dataset?.setting ?? field?.dataset?.input;
+    if (!name?.startsWith('shared-')) {
+        return;
+    }
+    const peers = field.dataset.setting ? getSettings(name) : getInputs(name);
+    for (const peer of peers) {
+        if (isHtmlInputElement(field) && field.type === 'radio') {
+            peer.checked = peer.value === field.value;
+        } else if (isHtmlInputElement(field) && field.type === 'checkbox') {
+            peer.checked = field.checked;
+        } else {
+            peer.value = field.value;
+        }
+    }
+}
+
 // Application events
 
 function initializeEvents() {
@@ -633,9 +650,7 @@ function initializeEvents() {
     }
     const rhythmHold = document.getElementById('rhythm-sheet-hold');
     getAction('rhythm-sheet-new').addEventListener('click', newTrial);
-    const rhythmScore = document.querySelector(
-        music.RHYTHM_SHEET_SCORE_SELECTOR
-    );
+    const rhythmScore = document.querySelector(RHYTHM_SHEET_SCORE_SELECTOR);
     for (const target of [rhythmHold, rhythmScore]) {
         target.addEventListener('pointerdown', (event) => {
             if (

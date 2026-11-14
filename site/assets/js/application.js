@@ -1,5 +1,38 @@
 'use strict';
 
+const MIDI_GENERATED_TONE_VOLUME = 0.08;
+const MIDI_PIANO_ROLL_PROGRAM = 0;
+const MIDI_PIANO_ROLL_QUICK_DURATION_MS = 750;
+const MIDI_PIANO_ROLL_QUICK_PRESS_MS = 250;
+const MIDI_PIANO_ROLL_VELOCITY = 127;
+const MIDI_PIANO_ROLL_VOLUME = 1;
+const MIDI_SHEET_LEAD_IN_QUARTERS = 1;
+const MIDI_SHEET_REM_PER_QUARTER = 7.5;
+const PLAYBACK_LOOKAHEAD_MS = 25;
+const PLAYBACK_SCHEDULE_AHEAD_SECONDS = 0.1;
+const RHYTHM_CLICK_DURATION = 0.035;
+const RHYTHM_CLICK_FREQUENCIES = [800, 1000, 1200];
+const RHYTHM_SHEET_ANALYSIS_INTERVAL_MS = 50;
+const RHYTHM_SHEET_COUNT_IN_LEAD_UNITS = 0.125;
+const RHYTHM_SHEET_EIGHTH_PATTERN_RATE = 0.2;
+const RHYTHM_SHEET_FREQUENCY_SAMPLE_LIMIT = 3;
+const RHYTHM_SHEET_MIDI_CHANNEL = 0;
+const RHYTHM_SHEET_MIDI_PROGRAM = 3; // Honky-tonk Piano (don't judge me, it sounds good)
+const RHYTHM_SHEET_NOTE_CUE_VELOCITY = 96;
+const RHYTHM_SHEET_NOTE_CUE_VOLUME = 0.45;
+const RHYTHM_SHEET_NOTE_RELEASE_GAP_RATIO = 0.1;
+const RHYTHM_SHEET_NOTE_RELEASE_GAP_SECONDS = 0.05;
+const RHYTHM_SHEET_SIXTEENTH_PAIR_RATE = 0.7;
+const RHYTHM_SHEET_SIXTEENTH_PATTERN_RATE = 0.05;
+const RHYTHM_SHEET_SUSTAINED_PATTERN_RATE = 0.6;
+const RHYTHM_SHEET_TIE_RATE = 0.35;
+const TUNER_ANALYSIS_INTERVAL_MS = 50;
+const TUNER_ANALYSIS_SAMPLE_STRIDE = 2;
+const TUNER_CENTS_SMOOTHING = 0.18;
+const TUNER_FREQUENCY_SAMPLE_LIMIT = 5;
+const TUNER_PLOT_SECONDS = 8;
+const TUNER_STABLE_FRAMES = 3;
+
 function tunerTargetNoteName() {
     const instrument = selectedTunerInstrument();
     const tuning = selectedTunerTuning(instrument);
@@ -12,7 +45,7 @@ function selectedNoteFrequency(name) {
     return engine.frequencyFromMidi(Number(readNoteValue(name)));
 }
 
-let volumeBeforeMute = music.DEFAULT_VOLUME;
+let volumeBeforeMute = engine.audio.DEFAULT_VOLUME;
 
 function currentSettings() {
     return readSettings(engine.loadSettings());
@@ -336,7 +369,7 @@ function activateSection(
 const tunerMicrophoneInput = engine.createMicrophoneInput({
     minimumMidi: music.MINIMUM_SUPPORTED_MIDI,
     maximumMidi: music.MAXIMUM_SUPPORTED_MIDI,
-    sampleIntervalMs: music.TUNER_ANALYSIS_INTERVAL_MS,
+    sampleIntervalMs: TUNER_ANALYSIS_INTERVAL_MS,
     processFrame: processTunerMicrophoneFrame,
     onDeactivate: handleTunerMicrophoneDeactivation,
     initialState: {
@@ -382,155 +415,6 @@ function handleTunerMicrophoneDeactivation({ reason }) {
     }
 }
 
-function detectPitchYin(
-    samples,
-    sampleRate,
-    minimumFrequency,
-    maximumFrequency,
-    threshold = music.TUNER_YIN_THRESHOLD,
-    sampleStride = 1
-) {
-    let squareTotal = 0;
-    const sampleLength = Math.floor(samples.length / sampleStride);
-    const analysisSampleRate = sampleRate / sampleStride;
-
-    for (let index = 0; index < sampleLength; index += 1) {
-        const sample = samples[index * sampleStride];
-        squareTotal += sample * sample;
-    }
-
-    const rms = Math.sqrt(squareTotal / sampleLength);
-
-    if (rms < music.TUNER_MIN_RMS) {
-        return null;
-    }
-
-    const minimumPeriod = Math.max(
-        2,
-        Math.floor(analysisSampleRate / maximumFrequency)
-    );
-
-    const maximumPeriod = Math.min(
-        Math.floor(analysisSampleRate / minimumFrequency),
-        Math.floor(sampleLength / 2)
-    );
-
-    if (maximumPeriod <= minimumPeriod + 2) {
-        return null;
-    }
-
-    const difference = new Float32Array(maximumPeriod + 1);
-
-    const windowLength = sampleLength - maximumPeriod;
-
-    for (let period = 1; period <= maximumPeriod; period += 1) {
-        let total = 0;
-
-        for (let index = 0; index < windowLength; index += 1) {
-            const delta =
-                samples[index * sampleStride] -
-                samples[(index + period) * sampleStride];
-
-            total += delta * delta;
-        }
-
-        difference[period] = total;
-    }
-
-    difference[0] = 1;
-
-    let runningTotal = 0;
-
-    for (let period = 1; period <= maximumPeriod; period += 1) {
-        runningTotal += difference[period];
-
-        difference[period] =
-            runningTotal === 0
-                ? 1
-                : (difference[period] * period) / runningTotal;
-    }
-
-    let bestPeriod = -1;
-
-    for (let period = minimumPeriod; period <= maximumPeriod; period += 1) {
-        if (difference[period] >= threshold) {
-            continue;
-        }
-
-        while (
-            period + 1 <= maximumPeriod &&
-            difference[period + 1] < difference[period]
-        ) {
-            period += 1;
-        }
-
-        bestPeriod = period;
-
-        break;
-    }
-
-    if (bestPeriod === -1) {
-        let bestValue = Infinity;
-
-        for (let period = minimumPeriod; period <= maximumPeriod; period += 1) {
-            if (difference[period] < bestValue) {
-                bestValue = difference[period];
-
-                bestPeriod = period;
-            }
-        }
-
-        if (bestPeriod === -1 || bestValue > 0.25) {
-            return null;
-        }
-    }
-
-    let refinedPeriod = bestPeriod;
-
-    if (bestPeriod > 1 && bestPeriod < maximumPeriod) {
-        const left = difference[bestPeriod - 1];
-
-        const center = difference[bestPeriod];
-
-        const right = difference[bestPeriod + 1];
-
-        const denominator = left - 2 * center + right;
-
-        if (Math.abs(denominator) > 1e-12) {
-            refinedPeriod += (0.5 * (left - right)) / denominator;
-        }
-    }
-
-    if (!Number.isFinite(refinedPeriod) || refinedPeriod <= 0) {
-        return null;
-    }
-
-    return analysisSampleRate / refinedPeriod;
-}
-
-function nearestNoteFromFrequency(frequency) {
-    /*
-     * MIDI 69 is A4.
-     * The user's global A4 reference is
-     * respected here.
-     */
-    const exactMidi = engine.midiFromFrequency(frequency);
-
-    const midi = Math.round(exactMidi);
-
-    const targetFrequency = engine.frequencyFromMidi(midi);
-
-    return {
-        midi,
-
-        noteName: music.noteNameFromMidi(midi),
-
-        targetFrequency,
-
-        cents: music.centsBetween(frequency, targetFrequency),
-    };
-}
-
 function updateTunerDetection(frequency) {
     const targetFrequency =
         tunerTargetMidi === null
@@ -542,7 +426,10 @@ function updateTunerDetection(frequency) {
             : music.nearestOctaveFrequency(frequency, targetFrequency);
     const nearest =
         targetFrequency === null
-            ? nearestNoteFromFrequency(frequency)
+            ? music.nearestNoteFromFrequency(
+                  frequency,
+                  engine.referenceFrequency
+              )
             : {
                   midi: tunerTargetMidi,
                   noteName: tunerTargetNoteName(),
@@ -556,7 +443,7 @@ function updateTunerDetection(frequency) {
     } else {
         tunerMicrophoneInput.smoothedCents +=
             (nearest.cents - tunerMicrophoneInput.smoothedCents) *
-            music.TUNER_CENTS_SMOOTHING;
+            TUNER_CENTS_SMOOTHING;
     }
 
     renderTunerDetection({
@@ -567,7 +454,7 @@ function updateTunerDetection(frequency) {
 }
 
 function updateTunerHistory(time = performance.now()) {
-    const cutoff = time - music.TUNER_PLOT_SECONDS * 1000;
+    const cutoff = time - TUNER_PLOT_SECONDS * 1000;
     tunerMicrophoneInput.plotSamples = tunerMicrophoneInput.plotSamples.filter(
         (sample) => sample.time >= cutoff
     );
@@ -581,17 +468,19 @@ function processTunerMicrophoneFrame({
     samplesUpdated,
 }) {
     if (samplesUpdated) {
-        const frequency = detectPitchYin(
+        const frequency = engine.audio.detectPitchYin(
             samples,
             sampleRate,
             engine.frequencyFromMidi(tunerMicrophoneInput.minimumMidi),
             engine.frequencyFromMidi(tunerMicrophoneInput.maximumMidi),
-            music.TUNER_YIN_THRESHOLD,
-            music.TUNER_ANALYSIS_SAMPLE_STRIDE
+            { sampleStride: TUNER_ANALYSIS_SAMPLE_STRIDE }
         );
 
         if (frequency !== null) {
-            const nearest = nearestNoteFromFrequency(frequency);
+            const nearest = music.nearestNoteFromFrequency(
+                frequency,
+                engine.referenceFrequency
+            );
 
             if (nearest.midi !== tunerMicrophoneInput.pendingMidi) {
                 tunerMicrophoneInput.pendingMidi = nearest.midi;
@@ -603,15 +492,13 @@ function processTunerMicrophoneFrame({
                 tunerMicrophoneInput.pendingFrames += 1;
             }
 
-            if (
-                tunerMicrophoneInput.pendingFrames >= music.TUNER_STABLE_FRAMES
-            ) {
+            if (tunerMicrophoneInput.pendingFrames >= TUNER_STABLE_FRAMES) {
                 tunerMicrophoneInput.lastValidTime = time;
 
                 addRollingSample(
                     tunerMicrophoneInput.detectedFrequencies,
                     frequency,
-                    music.TUNER_FREQUENCY_SAMPLE_LIMIT
+                    TUNER_FREQUENCY_SAMPLE_LIMIT
                 );
 
                 const detectedFrequency = median(
@@ -719,6 +606,19 @@ function initializeSoundFonts() {
     restoreSetting('shared-soundfont');
 }
 
+function midiLibraryOptions() {
+    return [
+        ...(globalThis.midiFiles ?? []).map((file) => ({
+            label: assetName(file),
+            value: file,
+        })),
+        ...[...localMidiFiles.keys()].map((name) => ({
+            label: `Custom (${name})`,
+            value: name,
+        })),
+    ];
+}
+
 function loadSoundFontCatalog() {
     soundFontCatalogPromise ??= loadScript('assets/soundfonts/files.js')
         .then(initializeSoundFonts)
@@ -733,7 +633,9 @@ function loadSoundFontCatalog() {
 function loadMidiAssets() {
     midiAssetsPromise ??= Promise.all([
         loadSoundFontCatalog(),
-        loadScript('assets/midi/files.js').then(initializeMidiLibrary),
+        loadScript('assets/midi/files.js').then(() =>
+            renderMidiLibrary(midiLibraryOptions())
+        ),
     ])
         .then(restoreMidiPianoRollState)
         .catch((error) => {
@@ -892,8 +794,6 @@ const midiPlayer = {
     pianoRollWindowStart: Infinity,
     leadInStartedAt: null,
 };
-const midiSheetHighlightStates = new WeakMap();
-
 function initializeMidiState() {
     engine.getState('midi');
 }
@@ -1017,30 +917,6 @@ function midiPresetName(patch) {
     return midiPresetForPatch(patch)?.name;
 }
 
-function midiTrackLabel(track) {
-    if (track.instrumentOverride) {
-        return track.instrumentOverride.name.localeCompare(
-            track.name,
-            undefined,
-            { sensitivity: 'accent' }
-        ) === 0
-            ? `*${track.name}`
-            : `${track.name} (*${track.instrumentOverride.name})`;
-    }
-    const instruments = [
-        ...new Set(track.patches.map(midiPresetName).filter(Boolean)),
-    ];
-    const distinctInstruments = instruments.filter(
-        (instrument) =>
-            instrument.localeCompare(track.name, undefined, {
-                sensitivity: 'accent',
-            }) !== 0
-    );
-    return distinctInstruments.length
-        ? `${track.name} (${distinctInstruments.join(', ')})`
-        : track.name;
-}
-
 function midiPresetValue(preset) {
     return [
         Number(preset.isDrum),
@@ -1056,19 +932,6 @@ function midiInstrumentPresets(track) {
         (preset) =>
             drumStates.size !== 1 || drumStates.has(Boolean(preset.isDrum))
     );
-}
-
-function midiOriginalPresetValue(
-    track,
-    presets = midiInstrumentPresets(track)
-) {
-    for (const patch of track.patches) {
-        const preset = midiPresetForPatch(patch, presets);
-        if (preset) {
-            return midiPresetValue(preset);
-        }
-    }
-    return '';
 }
 
 function updateMidiInstrumentControls() {
@@ -1264,14 +1127,6 @@ function midiTrackColor(trackIndex) {
 
 // MIDI: piano roll
 
-function midiPianoRollNoteTiming(note) {
-    return {
-        start: note.performanceBeat ?? note.beat,
-        duration:
-            note.soundingDuration ?? note.performanceDuration ?? note.duration,
-    };
-}
-
 function midiPianoRollChannel() {
     const usedChannels = new Set(
         midiPlayer.tracks.flatMap((track) => track.channels)
@@ -1306,11 +1161,11 @@ function stopMidiPianoRollVoices() {
 function scheduleMidiPianoRollRelease(midi, voice) {
     const heldMilliseconds = voice.releasedAt - voice.pressedAt;
     const delay =
-        heldMilliseconds < music.MIDI_PIANO_ROLL_QUICK_PRESS_MS
+        heldMilliseconds < MIDI_PIANO_ROLL_QUICK_PRESS_MS
             ? Math.max(
                   0,
                   voice.startedAt +
-                      music.MIDI_PIANO_ROLL_QUICK_DURATION_MS -
+                      MIDI_PIANO_ROLL_QUICK_DURATION_MS -
                       performance.now()
               )
             : 0;
@@ -1369,14 +1224,14 @@ async function startMidiPianoRollKey(midi, key) {
             'isMuted',
             false
         );
-        synth.programChange(soundFontChannel, music.MIDI_PIANO_ROLL_PROGRAM);
-        synth.noteOn(soundFontChannel, midi, music.MIDI_PIANO_ROLL_VELOCITY);
+        synth.programChange(soundFontChannel, MIDI_PIANO_ROLL_PROGRAM);
+        synth.noteOn(soundFontChannel, midi, MIDI_PIANO_ROLL_VELOCITY);
         voice.stop = () => synth.noteOff(soundFontChannel, midi);
     } else {
         const oscillator = engine.audio.playContinuous(
             engine.frequencyFromMidi(midi),
             'triangle',
-            music.MIDI_PIANO_ROLL_VOLUME
+            MIDI_PIANO_ROLL_VOLUME
         );
         voice.stop = () => oscillator.stop();
     }
@@ -1390,175 +1245,6 @@ async function startMidiPianoRollKey(midi, key) {
 function strikeMidiPianoRollKey(key) {
     const midi = Number(key.dataset.midiPianoRollKey);
     startMidiPianoRollKey(midi, key);
-}
-
-function midiPianoRollSegments(notes) {
-    const eventsByPitch = new Map();
-    for (const note of notes) {
-        const timing = midiPianoRollNoteTiming(note);
-        const events = eventsByPitch.get(note.midi) ?? [];
-        events.push(
-            {
-                position: timing.start,
-                trackIndex: note.trackIndex,
-                change: 1,
-            },
-            {
-                position: timing.start + timing.duration,
-                trackIndex: note.trackIndex,
-                change: -1,
-            }
-        );
-        eventsByPitch.set(note.midi, events);
-    }
-
-    const segments = [];
-    const lastSegments = new Map();
-    for (const [midi, events] of eventsByPitch) {
-        events.sort((left, right) => left.position - right.position);
-        const activeTracks = new Map();
-        let previousPosition = events[0].position;
-        let previousGapStarts = new Set();
-        let index = 0;
-        while (index < events.length) {
-            const position = events[index].position;
-            let groupEnd = index;
-            const eventTypes = new Map();
-            while (
-                groupEnd < events.length &&
-                notation.compareSheetPositions(
-                    events[groupEnd].position,
-                    position
-                ) === 0
-            ) {
-                const event = events[groupEnd];
-                const types = eventTypes.get(event.trackIndex) ?? {
-                    attack: false,
-                    release: false,
-                };
-                types.attack ||= event.change > 0;
-                types.release ||= event.change < 0;
-                eventTypes.set(event.trackIndex, types);
-                groupEnd += 1;
-            }
-            const separatesNotes =
-                [...eventTypes.values()].some((types) => types.attack) &&
-                [...eventTypes.values()].some((types) => types.release);
-            const gapStarts = new Set(
-                separatesNotes
-                    ? [...eventTypes]
-                          .filter(([, types]) => types.attack)
-                          .map(([trackIndex]) => trackIndex)
-                    : []
-            );
-            const gapEnds = new Set(
-                separatesNotes
-                    ? [...eventTypes]
-                          .filter(([, types]) => types.release)
-                          .map(([trackIndex]) => trackIndex)
-                    : []
-            );
-            const trackIndexes = [...activeTracks.keys()].sort(
-                (left, right) => left - right
-            );
-            if (
-                notation.compareSheetPositions(position, previousPosition) >
-                    0 &&
-                trackIndexes.length
-            ) {
-                for (const [lane, trackIndex] of trackIndexes.entries()) {
-                    const gapStart = previousGapStarts.has(trackIndex);
-                    const gapEnd = gapEnds.has(trackIndex);
-                    const key = `${midi}:${trackIndex}:${lane}:${trackIndexes.length}`;
-                    const lastSegment = lastSegments.get(key);
-                    if (
-                        lastSegment &&
-                        !lastSegment.gapEnd &&
-                        !gapStart &&
-                        notation.compareSheetPositions(
-                            lastSegment.start + lastSegment.duration,
-                            previousPosition
-                        ) === 0
-                    ) {
-                        lastSegment.duration = position - lastSegment.start;
-                        lastSegment.gapEnd = gapEnd;
-                    } else {
-                        const segment = {
-                            midi,
-                            trackIndex,
-                            start: previousPosition,
-                            duration: position - previousPosition,
-                            lane,
-                            count: trackIndexes.length,
-                            gapStart,
-                            gapEnd,
-                        };
-                        segments.push(segment);
-                        lastSegments.set(key, segment);
-                    }
-                }
-            }
-
-            while (index < groupEnd) {
-                const event = events[index];
-                const count =
-                    (activeTracks.get(event.trackIndex) ?? 0) + event.change;
-                if (count > 0) {
-                    activeTracks.set(event.trackIndex, count);
-                } else {
-                    activeTracks.delete(event.trackIndex);
-                }
-                index += 1;
-            }
-            previousPosition = position;
-            previousGapStarts = gapStarts;
-        }
-    }
-    return segments.sort(
-        (left, right) => left.start - right.start || left.midi - right.midi
-    );
-}
-
-function midiPianoRollSegmentIndexAtOrAfter(position) {
-    let low = 0;
-    let high = midiPlayer.pianoRollSegments.length;
-    while (low < high) {
-        const middle = Math.floor((low + high) / 2);
-        if (midiPlayer.pianoRollSegments[middle].start < position) {
-            low = middle + 1;
-        } else {
-            high = middle;
-        }
-    }
-    return low;
-}
-
-function midiPianoRollMarkerIndexAtOrAfter(position) {
-    let low = 0;
-    let high = midiPlayer.pianoRollMarkers.length;
-    while (low < high) {
-        const middle = Math.floor((low + high) / 2);
-        if (midiPlayer.pianoRollMarkers[middle].position < position) {
-            low = middle + 1;
-        } else {
-            high = middle;
-        }
-    }
-    return low;
-}
-
-function midiMeasureDurationAtPosition(position) {
-    let signature = midiPlayer.signatureMap[0];
-    for (const candidate of midiPlayer.signatureMap) {
-        if (candidate.position > position) {
-            break;
-        }
-        signature = candidate;
-    }
-    return signature
-        ? (signature.numerator * midiPlayer.unitsPerQuarter * 4) /
-              signature.denominator
-        : midiPlayer.unitsPerQuarter * 4;
 }
 
 // MIDI: parsing
@@ -2328,7 +2014,7 @@ function setMidiPlayer(parsed, fileName, source = null) {
             interval,
             intervalAtPosition: (position) =>
                 midiIntervalAtPosition(parsed, unitsPerQuarter, position),
-            remPerQuarter: notation.MIDI_SHEET_REM_PER_QUARTER,
+            remPerQuarter: MIDI_SHEET_REM_PER_QUARTER,
         };
 
         return [
@@ -2498,65 +2184,10 @@ function midiTimeAtPosition(position) {
     );
 }
 
-function midiSheetHighlightState(score) {
-    const existing = midiSheetHighlightStates.get(score);
-    if (existing) {
-        return existing;
-    }
-
-    const starts = score.phrase
-        .map((note, index) => {
-            const start = note.performanceBeat ?? note.beat;
-            const duration = note.soundingDuration ?? note.duration;
-
-            return { end: start + duration, index, start };
-        })
-        .sort(
-            (left, right) =>
-                left.start - right.start || left.index - right.index
-        );
-    let maximumEnd = -Infinity;
-    const prefixEnds = starts.map(({ end }) => {
-        maximumEnd = Math.max(maximumEnd, end);
-        return maximumEnd;
-    });
-    const ends = [...starts].sort(
-        (left, right) => left.end - right.end || left.index - right.index
-    );
-    const state = {
-        active: new Set(),
-        ends,
-        nextEnd: 0,
-        nextStart: 0,
-        position: -Infinity,
-        prefixEnds,
-        starts,
-    };
-    midiSheetHighlightStates.set(score, state);
-
-    return state;
-}
-
-function midiEventUpperBound(events, position, property) {
-    let low = 0;
-    let high = events.length;
-
-    while (low < high) {
-        const middle = Math.floor((low + high) / 2);
-        if (events[middle][property] <= position) {
-            low = middle + 1;
-        } else {
-            high = middle;
-        }
-    }
-
-    return low;
-}
-
 function resetMidiPlayerViews(position = 0) {
     const sheetPosition =
         position === 0 && !midiPlayer.playing
-            ? -midiPlayer.unitsPerQuarter * notation.MIDI_SHEET_LEAD_IN_QUARTERS
+            ? -midiPlayer.unitsPerQuarter * MIDI_SHEET_LEAD_IN_QUARTERS
             : position;
     for (const track of midiPlayer.tracks) {
         for (const score of track.scores) {
@@ -2906,7 +2537,7 @@ function scheduleMidiGeneratedTones(elapsed) {
         return;
     }
 
-    const scheduleUntil = elapsed + music.PLAYBACK_SCHEDULE_AHEAD_SECONDS;
+    const scheduleUntil = elapsed + PLAYBACK_SCHEDULE_AHEAD_SECONDS;
     while (
         midiPlayback.generatedToneIndex <
             midiPlayback.generatedToneNotes.length &&
@@ -2935,7 +2566,7 @@ function scheduleMidiGeneratedTones(elapsed) {
             engine.frequencyFromMidi(note.midi),
             'triangle',
             duration,
-            music.MIDI_GENERATED_TONE_VOLUME,
+            MIDI_GENERATED_TONE_VOLUME,
             delay
         );
     }
@@ -2949,7 +2580,7 @@ function drawMidiPlayer() {
     if (midiPlayer.leadInStartedAt !== null) {
         const leadInSeconds =
             (midiPlayer.tempoMap[0].microseconds / 1000000) *
-            notation.MIDI_SHEET_LEAD_IN_QUARTERS;
+            MIDI_SHEET_LEAD_IN_QUARTERS;
         const progress = clamp(
             (performance.now() - midiPlayer.leadInStartedAt) /
                 (leadInSeconds * 1000),
@@ -2959,7 +2590,7 @@ function drawMidiPlayer() {
         const position =
             (progress - 1) *
             midiPlayer.unitsPerQuarter *
-            notation.MIDI_SHEET_LEAD_IN_QUARTERS;
+            MIDI_SHEET_LEAD_IN_QUARTERS;
         renderMidiPlayerLeadIn(position);
         if (progress < 1) {
             midiPlayer.frame = requestAnimationFrame(drawMidiPlayer);
@@ -3266,7 +2897,7 @@ const rhythmSheet = {
 const rhythmSheetMicrophoneInput = engine.createMicrophoneInput({
     minimumMidi: music.MINIMUM_SUPPORTED_MIDI,
     maximumMidi: music.MAXIMUM_SUPPORTED_MIDI,
-    sampleIntervalMs: music.RHYTHM_SHEET_ANALYSIS_INTERVAL_MS,
+    sampleIntervalMs: RHYTHM_SHEET_ANALYSIS_INTERVAL_MS,
     processFrame: processRhythmSheetMicrophoneFrame,
     onDeactivate: handleRhythmSheetMicrophoneDeactivation,
     initialState: {
@@ -3285,7 +2916,7 @@ function isRhythmSheetEnabled() {
 }
 
 function rhythmSheetInitialPosition() {
-    return -rhythmSheet.meter.units - music.RHYTHM_SHEET_COUNT_IN_LEAD_UNITS;
+    return -rhythmSheet.meter.units - RHYTHM_SHEET_COUNT_IN_LEAD_UNITS;
 }
 
 function rhythmSheetClef() {
@@ -3350,15 +2981,15 @@ function rhythmBeatPattern(denominator, allowSixteenths) {
         (sixteenthRemainder === 0 ||
             supportedDurations.has(sixteenthRemainder));
     const eighthPatternStart = sixteenthPatternSupported
-        ? music.RHYTHM_SHEET_SIXTEENTH_PATTERN_RATE
+        ? RHYTHM_SHEET_SIXTEENTH_PATTERN_RATE
         : 0;
     const roll = Math.random();
 
     if (
         sixteenthPatternSupported &&
-        roll < music.RHYTHM_SHEET_SIXTEENTH_PATTERN_RATE
+        roll < RHYTHM_SHEET_SIXTEENTH_PATTERN_RATE
     ) {
-        const paired = Math.random() < music.RHYTHM_SHEET_SIXTEENTH_PAIR_RATE;
+        const paired = Math.random() < RHYTHM_SHEET_SIXTEENTH_PAIR_RATE;
         const pattern = [
             { duration: sixteenthDuration, rest: false },
             { duration: sixteenthDuration, rest: paired ? false : true },
@@ -3373,7 +3004,7 @@ function rhythmBeatPattern(denominator, allowSixteenths) {
 
     if (
         roll >= eighthPatternStart &&
-        roll < eighthPatternStart + music.RHYTHM_SHEET_EIGHTH_PATTERN_RATE &&
+        roll < eighthPatternStart + RHYTHM_SHEET_EIGHTH_PATTERN_RATE &&
         supportedDurations.has(eighthDuration) &&
         Number.isInteger(1 / eighthDuration)
     ) {
@@ -3443,7 +3074,7 @@ function rhythmGroupPattern(length, denominator, includeDots, limits) {
 
     if (
         sustainedPatterns.length &&
-        Math.random() < music.RHYTHM_SHEET_SUSTAINED_PATTERN_RATE
+        Math.random() < RHYTHM_SHEET_SUSTAINED_PATTERN_RATE
     ) {
         const pattern = randomRhythmPattern(sustainedPatterns);
         limits.sixteenthGroupUsed ||= pattern.some(
@@ -3479,7 +3110,7 @@ function rhythmGroups(pattern) {
 }
 
 function addRhythmTie() {
-    if (Math.random() >= music.RHYTHM_SHEET_TIE_RATE) {
+    if (Math.random() >= RHYTHM_SHEET_TIE_RATE) {
         return;
     }
 
@@ -3635,13 +3266,12 @@ function processRhythmSheetMicrophoneFrame({
 
     const microphone = rhythmSheetMicrophoneInput;
 
-    const frequency = detectPitchYin(
+    const frequency = engine.audio.detectPitchYin(
         samples,
         sampleRate,
         engine.frequencyFromMidi(rhythmSheetMicrophoneInput.minimumMidi),
         engine.frequencyFromMidi(rhythmSheetMicrophoneInput.maximumMidi),
-        music.TUNER_YIN_THRESHOLD,
-        music.TUNER_ANALYSIS_SAMPLE_STRIDE
+        { sampleStride: TUNER_ANALYSIS_SAMPLE_STRIDE }
     );
     const position = rhythmSheet.active
         ? (engine.audio.currentTime() - rhythmSheet.origin) /
@@ -3671,7 +3301,7 @@ function processRhythmSheetMicrophoneFrame({
         addRollingSample(
             microphone.detectedFrequencies,
             frequency,
-            music.RHYTHM_SHEET_FREQUENCY_SAMPLE_LIMIT
+            RHYTHM_SHEET_FREQUENCY_SAMPLE_LIMIT
         );
         const stableFrequency = median(microphone.detectedFrequencies);
         renderRhythmSheetPitch(
@@ -3900,8 +3530,8 @@ function finishRhythmSheet() {
     const { units } = rhythmSheet.meter;
     positionSheetLane(
         rhythmSheet,
-        music.RHYTHM_SHEET_SCORE_SELECTOR,
-        -units - music.RHYTHM_SHEET_COUNT_IN_LEAD_UNITS
+        RHYTHM_SHEET_SCORE_SELECTOR,
+        -units - RHYTHM_SHEET_COUNT_IN_LEAD_UNITS
     );
     renderRhythmSheetStatus('Complete');
 }
@@ -3947,7 +3577,7 @@ function stopRhythmSheet(preservePosition = false) {
         rhythmSheet.position = rhythmSheetInitialPosition();
         positionSheetLane(
             rhythmSheet,
-            music.RHYTHM_SHEET_SCORE_SELECTOR,
+            RHYTHM_SHEET_SCORE_SELECTOR,
             rhythmSheet.position
         );
         clearRhythmFeedback();
@@ -4060,14 +3690,11 @@ function resetRhythmSheetSoundFont() {
 
     synth.stopAll(true);
     synth.reset();
-    synth.midiChannels[music.RHYTHM_SHEET_MIDI_CHANNEL]?.setSystemParameter(
+    synth.midiChannels[RHYTHM_SHEET_MIDI_CHANNEL]?.setSystemParameter(
         'isMuted',
         false
     );
-    synth.programChange(
-        music.RHYTHM_SHEET_MIDI_CHANNEL,
-        music.RHYTHM_SHEET_MIDI_PROGRAM
-    );
+    synth.programChange(RHYTHM_SHEET_MIDI_CHANNEL, RHYTHM_SHEET_MIDI_PROGRAM);
     rhythmSheet.soundFontNoteOffs = [];
     rhythmSheet.soundFontReady = true;
     return true;
@@ -4106,14 +3733,14 @@ function stopRhythmSheetSoundFont() {
     const synth = soundFontSynthesizer.synth;
     if (rhythmSheet.soundFontReady && synth) {
         synth.stopAll(true);
-        synth.midiChannels[music.RHYTHM_SHEET_MIDI_CHANNEL]?.setSystemParameter(
+        synth.midiChannels[RHYTHM_SHEET_MIDI_CHANNEL]?.setSystemParameter(
             'isMuted',
             true
         );
         rhythmSheet.soundFontMutedUntil =
             performance.now() +
-            music.PLAYBACK_SCHEDULE_AHEAD_SECONDS * 1000 +
-            music.PLAYBACK_LOOKAHEAD_MS;
+            PLAYBACK_SCHEDULE_AHEAD_SECONDS * 1000 +
+            PLAYBACK_LOOKAHEAD_MS;
     }
     rhythmSheet.soundFontReady = false;
 }
@@ -4121,8 +3748,8 @@ function stopRhythmSheetSoundFont() {
 function playRhythmSheetNoteCue(note, startTime, now) {
     const writtenDuration = note.duration * rhythmSheet.interval;
     const releaseGap = Math.min(
-        music.RHYTHM_SHEET_NOTE_RELEASE_GAP_SECONDS,
-        writtenDuration * music.RHYTHM_SHEET_NOTE_RELEASE_GAP_RATIO
+        RHYTHM_SHEET_NOTE_RELEASE_GAP_SECONDS,
+        writtenDuration * RHYTHM_SHEET_NOTE_RELEASE_GAP_RATIO
     );
     const duration = writtenDuration - releaseGap;
     if (rhythmSheet.soundFontReady && soundFontSynthesizer.synth) {
@@ -4130,9 +3757,9 @@ function playRhythmSheetNoteCue(note, startTime, now) {
             soundFontSynthesizer.synth.currentTime +
             Math.max(0, startTime - now);
         soundFontSynthesizer.synth.noteOn(
-            music.RHYTHM_SHEET_MIDI_CHANNEL,
+            RHYTHM_SHEET_MIDI_CHANNEL,
             note.midi,
-            music.RHYTHM_SHEET_NOTE_CUE_VELOCITY,
+            RHYTHM_SHEET_NOTE_CUE_VELOCITY,
             { time: synthStartTime }
         );
         rhythmSheet.soundFontNoteOffs.push({
@@ -4146,7 +3773,7 @@ function playRhythmSheetNoteCue(note, startTime, now) {
         engine.frequencyFromMidi(note.midi),
         'triangle',
         duration,
-        music.RHYTHM_SHEET_NOTE_CUE_VOLUME,
+        RHYTHM_SHEET_NOTE_CUE_VOLUME,
         Math.max(0, startTime - now)
     );
 }
@@ -4158,11 +3785,11 @@ function scheduleRhythmSheetNoteOffs(now) {
 
     while (
         rhythmSheet.soundFontNoteOffs[0]?.time <
-        now + music.PLAYBACK_SCHEDULE_AHEAD_SECONDS
+        now + PLAYBACK_SCHEDULE_AHEAD_SECONDS
     ) {
         const noteOff = rhythmSheet.soundFontNoteOffs.shift();
         soundFontSynthesizer.synth.noteOff(
-            music.RHYTHM_SHEET_MIDI_CHANNEL,
+            RHYTHM_SHEET_MIDI_CHANNEL,
             noteOff.midi,
             {
                 time:
@@ -4182,7 +3809,7 @@ function scheduleRhythmSheetNoteCues(now) {
         const note = rhythmSheet.phrase[rhythmSheet.nextNoteIndex];
         const startTime = rhythmSheet.origin + note.beat * rhythmSheet.interval;
 
-        if (startTime >= now + music.PLAYBACK_SCHEDULE_AHEAD_SECONDS) {
+        if (startTime >= now + PLAYBACK_SCHEDULE_AHEAD_SECONDS) {
             break;
         }
 
@@ -4214,10 +3841,7 @@ function scheduleRhythm() {
 
     scheduleRhythmSheetNoteCues(now);
 
-    while (
-        rhythmPlayer.nextBeatTime <
-        now + music.PLAYBACK_SCHEDULE_AHEAD_SECONDS
-    ) {
+    while (rhythmPlayer.nextBeatTime < now + PLAYBACK_SCHEDULE_AHEAD_SECONDS) {
         if (
             isRhythmSheetEnabled() &&
             rhythmPlayer.nextBeatTime >=
@@ -4229,14 +3853,14 @@ function scheduleRhythm() {
         }
         const accent = pattern[rhythmPlayer.beatIndex];
 
-        const frequency = music.RHYTHM_CLICK_FREQUENCIES[accent];
+        const frequency = RHYTHM_CLICK_FREQUENCIES[accent];
 
         const volume = accent === 2 ? 0.9 : accent === 1 ? 0.75 : 0.6;
 
         engine.audio.playTransient(
             frequency,
             'sine',
-            music.RHYTHM_CLICK_DURATION,
+            RHYTHM_CLICK_DURATION,
             volume,
             Math.max(0, rhythmPlayer.nextBeatTime - now)
         );
@@ -4354,7 +3978,7 @@ async function playRhythm() {
     } else {
         const leadIn = sheetEnabled
             ? rhythmClickInterval(rhythmPlayer.signature, rhythmPlayer.bpm) *
-              music.RHYTHM_SHEET_COUNT_IN_LEAD_UNITS
+              RHYTHM_SHEET_COUNT_IN_LEAD_UNITS
             : 1;
         rhythmPlayer.nextBeatTime = now + leadIn;
     }
@@ -4377,7 +4001,7 @@ async function playRhythm() {
 
     rhythmPlayer.timer = window.setInterval(
         scheduleRhythm,
-        music.PLAYBACK_LOOKAHEAD_MS
+        PLAYBACK_LOOKAHEAD_MS
     );
 }
 

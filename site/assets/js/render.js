@@ -1,9 +1,19 @@
 'use strict';
 
+const MIDI_PIANO_ROLL_MAX_BARLINES = 10000;
+const MIDI_PIANO_ROLL_NOTE_GAP_REM = 0.125;
+const MIDI_PIANO_ROLL_REM_PER_QUARTER = 7.5;
+const MIDI_PIANO_ROLL_ROW_HEIGHT_REM = 1;
+const RHYTHM_SHEET_CORRECT_CENTS = 25;
+const RHYTHM_SHEET_SCORE_SELECTOR = '#rhythm-sheet-score';
+const SHEET_BAR_PADDING_REM = 1.25;
+const TUNER_PLOT_PADDING_SEMITONES = 7;
+
 // Sheet rendering
 
 const sheetScoreViews = new WeakMap();
 const sheetNotationViews = new WeakMap();
+const midiSheetHighlightStates = new WeakMap();
 
 function updateSheetLane(view) {
     if (view.position === null) {
@@ -310,8 +320,8 @@ function renderSheetScore(score, scoreSelector, options = {}) {
             addRenderable(bar * units, bar * units + 0.000001, () => {
                 const glide = document.createElement('span');
                 glide.className = 'sheet-bar-glide';
-                glide.style.left = `${bar * layout.barWidth - notation.SHEET_BAR_PADDING_REM}rem`;
-                glide.style.width = `${notation.SHEET_BAR_PADDING_REM * 2}rem`;
+                glide.style.left = `${bar * layout.barWidth - SHEET_BAR_PADDING_REM}rem`;
+                glide.style.width = `${SHEET_BAR_PADDING_REM * 2}rem`;
                 glide.setAttribute('aria-hidden', 'true');
                 for (let index = 0; index < 5; index += 1) {
                     const chevron = document.createElement('span');
@@ -886,62 +896,6 @@ function answerStateClass(answer, selected, correct) {
     return answer === selected ? 'is-incorrect' : null;
 }
 
-function createAutoAdvance(module, advance) {
-    const elements = getModuleActions(module, 'new');
-    let timer = null;
-    function cancel() {
-        if (timer !== null) {
-            clearTimeout(timer);
-            timer = null;
-        }
-        for (const button of elements) {
-            button.classList.remove('is-counting-down');
-        }
-    }
-    function schedule() {
-        cancel();
-        const refreshButton = [...elements].find(
-            (button) => !button.closest('[hidden]')
-        );
-        if (!refreshButton) {
-            return;
-        }
-        void refreshButton.offsetWidth;
-        refreshButton.classList.add('is-counting-down');
-        timer = window.setTimeout(() => {
-            timer = null;
-            refreshButton.classList.remove('is-counting-down');
-            advance();
-        }, TRIAL_ADVANCE_DELAY);
-    }
-    return { cancel, schedule };
-}
-
-function focusVisibleModuleAction(module, action) {
-    focusElement(
-        [...getModuleActions(module, action)].find(
-            (button) => !button.closest('[hidden]')
-        )
-    );
-}
-
-function syncSharedField(field) {
-    const name = field?.dataset?.setting ?? field?.dataset?.input;
-    if (!name?.startsWith('shared-')) {
-        return;
-    }
-    const peers = field.dataset.setting ? getSettings(name) : getInputs(name);
-    for (const peer of peers) {
-        if (isHtmlInputElement(field) && field.type === 'radio') {
-            peer.checked = peer.value === field.value;
-        } else if (isHtmlInputElement(field) && field.type === 'checkbox') {
-            peer.checked = field.checked;
-        } else {
-            peer.value = field.value;
-        }
-    }
-}
-
 function renderSetting(name, value) {
     for (const element of getSettings(name)) {
         if (
@@ -1238,17 +1192,15 @@ function renderMidiPianoRollSelection(state) {
     }
 }
 
-function initializeMidiLibrary() {
-    const files = globalThis.midiFiles ?? [];
+function renderMidiLibrary(options) {
     for (const select of getInputs('shared-midi-library')) {
         const selected = select.value;
         const placeholder = new Option('Choose MIDI file', '');
         placeholder.disabled = true;
-        const options = files.map((file) => new Option(assetName(file), file));
-        for (const [name] of localMidiFiles) {
-            options.push(new Option(`Custom (${name})`, name));
-        }
-        select.replaceChildren(placeholder, ...options);
+        select.replaceChildren(
+            placeholder,
+            ...options.map(({ label, value }) => new Option(label, value))
+        );
         if ([...select.options].some((option) => option.value === selected)) {
             select.value = selected;
         }
@@ -1528,7 +1480,7 @@ function renderMidiFile(hasSignatureChanges) {
                     barGlide: true,
                     initialPosition:
                         -midiPlayer.unitsPerQuarter *
-                        notation.MIDI_SHEET_LEAD_IN_QUARTERS,
+                        MIDI_SHEET_LEAD_IN_QUARTERS,
                     virtualize: true,
                 });
             }
@@ -1598,6 +1550,61 @@ function updateMidiPlayerTimer() {
         seek.value = String(midiPlayer.elapsed);
         seek.setAttribute('aria-valuetext', `${current} of ${total}`);
     }
+}
+
+function midiSheetHighlightState(score) {
+    const existing = midiSheetHighlightStates.get(score);
+    if (existing) {
+        return existing;
+    }
+
+    const starts = score.phrase
+        .map((note, index) => {
+            const start = note.performanceBeat ?? note.beat;
+            const duration = note.soundingDuration ?? note.duration;
+
+            return { end: start + duration, index, start };
+        })
+        .sort(
+            (left, right) =>
+                left.start - right.start || left.index - right.index
+        );
+    let maximumEnd = -Infinity;
+    const prefixEnds = starts.map(({ end }) => {
+        maximumEnd = Math.max(maximumEnd, end);
+        return maximumEnd;
+    });
+    const ends = [...starts].sort(
+        (left, right) => left.end - right.end || left.index - right.index
+    );
+    const state = {
+        active: new Set(),
+        ends,
+        nextEnd: 0,
+        nextStart: 0,
+        position: -Infinity,
+        prefixEnds,
+        starts,
+    };
+    midiSheetHighlightStates.set(score, state);
+
+    return state;
+}
+
+function midiEventUpperBound(events, position, property) {
+    let low = 0;
+    let high = events.length;
+
+    while (low < high) {
+        const middle = Math.floor((low + high) / 2);
+        if (events[middle][property] <= position) {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+
+    return low;
 }
 
 function setMidiSheetNoteHighlighted(score, state, index, highlighted) {
@@ -1756,7 +1763,7 @@ function renderRhythmSheetReport(
         [
             'Notes in tune',
             pitched.length
-                ? `${pitched.filter((note) => Math.abs(note.pitchError) <= music.RHYTHM_SHEET_CORRECT_CENTS).length} / ${pitched.length}`
+                ? `${pitched.filter((note) => Math.abs(note.pitchError) <= RHYTHM_SHEET_CORRECT_CENTS).length} / ${pitched.length}`
                 : 'Not scored',
         ],
     ]) {
@@ -1844,7 +1851,7 @@ function renderRhythmSheetMessageLoading(loading) {
 
 function renderRhythmSheetActive(active) {
     document
-        .querySelector(music.RHYTHM_SHEET_SCORE_SELECTOR)
+        .querySelector(RHYTHM_SHEET_SCORE_SELECTOR)
         .setAttribute('aria-disabled', String(!active));
     const hold = document.getElementById('rhythm-sheet-hold');
     hold.disabled = !active;
@@ -1862,7 +1869,7 @@ function renderRhythmHold(held) {
 
 function clearRhythmSheetCurrentNotes() {
     for (const element of document.querySelectorAll(
-        `${music.RHYTHM_SHEET_SCORE_SELECTOR} .is-current`
+        `${RHYTHM_SHEET_SCORE_SELECTOR} .is-current`
     )) {
         element.classList.remove('is-current');
     }
@@ -1984,8 +1991,17 @@ function renderAdaptiveStatus(exercise, text) {
 
 function renderAdaptiveProgress(exercise, answerCount, enabled) {
     getOutput(`${exercise}-adaptive-status`).textContent = enabled
-        ? `${answerCount} of ${music.ADAPTIVE_WINDOW_SIZE} answers`
+        ? `${answerCount} of ${ADAPTIVE_WINDOW_SIZE} answers`
         : '';
+}
+
+function formatPitchAndCents(frequency) {
+    const note = music.nearestNoteFromFrequency(
+        frequency,
+        engine.referenceFrequency
+    );
+
+    return `${music.noteNameFromMidi(note.midi, 'sharp')} ${signed(note.cents, 0)}¢`;
 }
 
 function renderPitchMemoryResponsePitch(frequency) {
@@ -2021,10 +2037,10 @@ function showPitchMemoryPitchMarkers(result) {
             ? result.scoredResponseFrequency
             : result.responseFrequency;
     const minimumFrequency = engine.frequencyFromMidi(
-        music.PITCH_MEMORY_MINIMUM_MIDI
+        PITCH_MEMORY_MINIMUM_MIDI
     );
     const maximumFrequency = engine.frequencyFromMidi(
-        music.PITCH_MEMORY_MAXIMUM_MIDI
+        PITCH_MEMORY_MAXIMUM_MIDI
     );
     const position = (frequency) =>
         clamp(
@@ -2036,8 +2052,7 @@ function showPitchMemoryPitchMarkers(result) {
 
     targetMarker.style.left = `${position(result.targetFrequency) * 100}%`;
     responseMarker.style.left = `${position(responseFrequency) * 100}%`;
-    const correct =
-        result.absoluteErrorCents < music.PITCH_MEMORY_CORRECT_CENTS;
+    const correct = result.absoluteErrorCents < PITCH_MEMORY_CORRECT_CENTS;
     responseMarker.classList.toggle('is-correct', correct);
     responseMarker.classList.toggle('is-incorrect', !correct);
     getInput('pitch-memory-pitch').classList.add('has-result');
@@ -2062,8 +2077,8 @@ function setPitchMemoryRefreshEnabled(enabled) {
 function renderPitchMemorySliderInitialized() {
     const slider = getInput('pitch-memory-pitch');
     slider.min = '0';
-    slider.max = String(music.PITCH_MEMORY_RANGE_CENTS);
-    slider.value = String(music.PITCH_MEMORY_RANGE_CENTS / 2);
+    slider.max = String(PITCH_MEMORY_RANGE_CENTS);
+    slider.value = String(PITCH_MEMORY_RANGE_CENTS / 2);
 }
 
 function renderPitchMemoryStoredSettings(type, conditionValue) {
@@ -2164,6 +2179,31 @@ function enableMatchTargetAnswer(index) {
     if (chooseButton) {
         chooseButton.disabled = false;
     }
+}
+
+function getMatchTargetAnswerResult(index) {
+    if (!matchTarget.committed) {
+        return null;
+    }
+
+    const targetIndex = matchTarget.answers.findIndex(
+        (answer) => answer.isTarget
+    );
+    const className = answerStateClass(
+        index,
+        matchTarget.selectedAnswerIndex,
+        targetIndex
+    );
+
+    return {
+        icon:
+            {
+                'is-correct': '✓',
+                'is-incorrect': '✕',
+                'is-target': '◎',
+            }[className] ?? '',
+        className,
+    };
 }
 
 function createMatchTargetAnswerRow(answer, index) {
@@ -2446,7 +2486,7 @@ function renderTunerHistory(time = performance.now()) {
     context.setTransform(scale, 0, 0, scale, 0, 0);
     context.clearRect(0, 0, width, height);
 
-    const cutoff = time - music.TUNER_PLOT_SECONDS * 1000;
+    const cutoff = time - TUNER_PLOT_SECONDS * 1000;
     const visibleMidis = tunerMicrophoneInput.plotSamples.map((sample) =>
         engine.midiFromFrequency(sample.frequency)
     );
@@ -2455,13 +2495,13 @@ function renderTunerHistory(time = performance.now()) {
             visibleMidis.length
                 ? Math.min(...visibleMidis)
                 : tunerMicrophoneInput.plotCenterMidi
-        ) - music.TUNER_PLOT_PADDING_SEMITONES;
+        ) - TUNER_PLOT_PADDING_SEMITONES;
     const maximumMidi =
         Math.ceil(
             visibleMidis.length
                 ? Math.max(...visibleMidis)
                 : tunerMicrophoneInput.plotCenterMidi
-        ) + music.TUNER_PLOT_PADDING_SEMITONES;
+        ) + TUNER_PLOT_PADDING_SEMITONES;
     const midiRange = maximumMidi - minimumMidi;
     const labelWidth = 34;
     const plotWidth = width - labelWidth;
@@ -2515,14 +2555,13 @@ function renderTunerHistory(time = performance.now()) {
         const exactMidi = engine.midiFromFrequency(sample.frequency);
         const x =
             labelWidth +
-            ((sample.time - cutoff) / (music.TUNER_PLOT_SECONDS * 1000)) *
-                plotWidth;
+            ((sample.time - cutoff) / (TUNER_PLOT_SECONDS * 1000)) * plotWidth;
         const y = yForMidi(exactMidi);
         const inRange = exactMidi >= minimumMidi && exactMidi <= maximumMidi;
         if (
             !inRange ||
             !previousInRange ||
-            sample.time - previousTime > music.TUNER_ANALYSIS_INTERVAL_MS * 3
+            sample.time - previousTime > TUNER_ANALYSIS_INTERVAL_MS * 3
         ) {
             context.moveTo(x, y);
         } else {
@@ -2545,7 +2584,7 @@ function renderTunerDetection({ cents, frequency, nearest }) {
     const detectedNote =
         tunerTargetMidi === null
             ? ''
-            : `${nearestNoteFromFrequency(frequency).noteName} · `;
+            : `${music.nearestNoteFromFrequency(frequency, engine.referenceFrequency).noteName} · `;
     getOutput('tuner-tuning-detected').textContent =
         `${detectedNote}${frequency.toFixed(3)} Hz detected`;
 
@@ -2562,27 +2601,241 @@ function renderTunerDetection({ cents, frequency, nearest }) {
 
 // MIDI
 
+function midiTrackLabel(track) {
+    if (track.instrumentOverride) {
+        return track.instrumentOverride.name.localeCompare(
+            track.name,
+            undefined,
+            { sensitivity: 'accent' }
+        ) === 0
+            ? `*${track.name}`
+            : `${track.name} (*${track.instrumentOverride.name})`;
+    }
+    const instruments = [
+        ...new Set(track.patches.map(midiPresetName).filter(Boolean)),
+    ];
+    const distinctInstruments = instruments.filter(
+        (instrument) =>
+            instrument.localeCompare(track.name, undefined, {
+                sensitivity: 'accent',
+            }) !== 0
+    );
+    return distinctInstruments.length
+        ? `${track.name} (${distinctInstruments.join(', ')})`
+        : track.name;
+}
+
+function midiOriginalPresetValue(
+    track,
+    presets = midiInstrumentPresets(track)
+) {
+    for (const patch of track.patches) {
+        const preset = midiPresetForPatch(patch, presets);
+        if (preset) {
+            return midiPresetValue(preset);
+        }
+    }
+    return '';
+}
+
+function midiPianoRollSegments(notes) {
+    const eventsByPitch = new Map();
+    for (const note of notes) {
+        const timing = midiPianoRollNoteTiming(note);
+        const events = eventsByPitch.get(note.midi) ?? [];
+        events.push(
+            {
+                position: timing.start,
+                trackIndex: note.trackIndex,
+                change: 1,
+            },
+            {
+                position: timing.start + timing.duration,
+                trackIndex: note.trackIndex,
+                change: -1,
+            }
+        );
+        eventsByPitch.set(note.midi, events);
+    }
+
+    const segments = [];
+    const lastSegments = new Map();
+    for (const [midi, events] of eventsByPitch) {
+        events.sort((left, right) => left.position - right.position);
+        const activeTracks = new Map();
+        let previousPosition = events[0].position;
+        let previousGapStarts = new Set();
+        let index = 0;
+        while (index < events.length) {
+            const position = events[index].position;
+            let groupEnd = index;
+            const eventTypes = new Map();
+            while (
+                groupEnd < events.length &&
+                notation.compareSheetPositions(
+                    events[groupEnd].position,
+                    position
+                ) === 0
+            ) {
+                const event = events[groupEnd];
+                const types = eventTypes.get(event.trackIndex) ?? {
+                    attack: false,
+                    release: false,
+                };
+                types.attack ||= event.change > 0;
+                types.release ||= event.change < 0;
+                eventTypes.set(event.trackIndex, types);
+                groupEnd += 1;
+            }
+            const separatesNotes =
+                [...eventTypes.values()].some((types) => types.attack) &&
+                [...eventTypes.values()].some((types) => types.release);
+            const gapStarts = new Set(
+                separatesNotes
+                    ? [...eventTypes]
+                          .filter(([, types]) => types.attack)
+                          .map(([trackIndex]) => trackIndex)
+                    : []
+            );
+            const gapEnds = new Set(
+                separatesNotes
+                    ? [...eventTypes]
+                          .filter(([, types]) => types.release)
+                          .map(([trackIndex]) => trackIndex)
+                    : []
+            );
+            const trackIndexes = [...activeTracks.keys()].sort(
+                (left, right) => left - right
+            );
+            if (
+                notation.compareSheetPositions(position, previousPosition) >
+                    0 &&
+                trackIndexes.length
+            ) {
+                for (const [lane, trackIndex] of trackIndexes.entries()) {
+                    const gapStart = previousGapStarts.has(trackIndex);
+                    const gapEnd = gapEnds.has(trackIndex);
+                    const key = `${midi}:${trackIndex}:${lane}:${trackIndexes.length}`;
+                    const lastSegment = lastSegments.get(key);
+                    if (
+                        lastSegment &&
+                        !lastSegment.gapEnd &&
+                        !gapStart &&
+                        notation.compareSheetPositions(
+                            lastSegment.start + lastSegment.duration,
+                            previousPosition
+                        ) === 0
+                    ) {
+                        lastSegment.duration = position - lastSegment.start;
+                        lastSegment.gapEnd = gapEnd;
+                    } else {
+                        const segment = {
+                            midi,
+                            trackIndex,
+                            start: previousPosition,
+                            duration: position - previousPosition,
+                            lane,
+                            count: trackIndexes.length,
+                            gapStart,
+                            gapEnd,
+                        };
+                        segments.push(segment);
+                        lastSegments.set(key, segment);
+                    }
+                }
+            }
+
+            while (index < groupEnd) {
+                const event = events[index];
+                const count =
+                    (activeTracks.get(event.trackIndex) ?? 0) + event.change;
+                if (count > 0) {
+                    activeTracks.set(event.trackIndex, count);
+                } else {
+                    activeTracks.delete(event.trackIndex);
+                }
+                index += 1;
+            }
+            previousPosition = position;
+            previousGapStarts = gapStarts;
+        }
+    }
+    return segments.sort(
+        (left, right) => left.start - right.start || left.midi - right.midi
+    );
+}
+
+function midiPianoRollNoteTiming(note) {
+    return {
+        start: note.performanceBeat ?? note.beat,
+        duration:
+            note.soundingDuration ?? note.performanceDuration ?? note.duration,
+    };
+}
+
+function midiPianoRollSegmentIndexAtOrAfter(position) {
+    let low = 0;
+    let high = midiPlayer.pianoRollSegments.length;
+    while (low < high) {
+        const middle = Math.floor((low + high) / 2);
+        if (midiPlayer.pianoRollSegments[middle].start < position) {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    return low;
+}
+
+function midiPianoRollMarkerIndexAtOrAfter(position) {
+    let low = 0;
+    let high = midiPlayer.pianoRollMarkers.length;
+    while (low < high) {
+        const middle = Math.floor((low + high) / 2);
+        if (midiPlayer.pianoRollMarkers[middle].position < position) {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    return low;
+}
+
+function midiMeasureDurationAtPosition(position) {
+    let signature = midiPlayer.signatureMap[0];
+    for (const candidate of midiPlayer.signatureMap) {
+        if (candidate.position > position) {
+            break;
+        }
+        signature = candidate;
+    }
+    return signature
+        ? (signature.numerator * midiPlayer.unitsPerQuarter * 4) /
+              signature.denominator
+        : midiPlayer.unitsPerQuarter * 4;
+}
+
 function createMidiPianoRollNote(segment) {
     const track = midiPlayer.tracks.find(
         (candidate) => candidate.trackIndex === segment.trackIndex
     );
-    const laneHeight = notation.MIDI_PIANO_ROLL_ROW_HEIGHT_REM / segment.count;
+    const laneHeight = MIDI_PIANO_ROLL_ROW_HEIGHT_REM / segment.count;
     const inset = Math.min(0.06, laneHeight * 0.12);
     const bar = document.createElement('span');
     const rowIndex = midiPlayer.pianoRollMaximumNote - segment.midi;
     const left =
         (segment.start / midiPlayer.unitsPerQuarter) *
-        notation.MIDI_PIANO_ROLL_REM_PER_QUARTER;
+        MIDI_PIANO_ROLL_REM_PER_QUARTER;
     const baseWidth = Math.max(
         0.125,
         (segment.duration / midiPlayer.unitsPerQuarter) *
-            notation.MIDI_PIANO_ROLL_REM_PER_QUARTER
+            MIDI_PIANO_ROLL_REM_PER_QUARTER
     );
     const requestedLeftInset = segment.gapStart
-        ? notation.MIDI_PIANO_ROLL_NOTE_GAP_REM / 2
+        ? MIDI_PIANO_ROLL_NOTE_GAP_REM / 2
         : 0;
     const requestedRightInset = segment.gapEnd
-        ? notation.MIDI_PIANO_ROLL_NOTE_GAP_REM / 2
+        ? MIDI_PIANO_ROLL_NOTE_GAP_REM / 2
         : 0;
     const requestedInset = requestedLeftInset + requestedRightInset;
     const insetScale = requestedInset
@@ -2595,7 +2848,7 @@ function createMidiPianoRollNote(segment) {
     bar.style.setProperty('--midi-track-color', track.color);
     bar.style.left = `${left + leftInset}rem`;
     bar.style.width = `${baseWidth - leftInset - rightInset}rem`;
-    bar.style.top = `${rowIndex * notation.MIDI_PIANO_ROLL_ROW_HEIGHT_REM + segment.lane * laneHeight + inset}rem`;
+    bar.style.top = `${rowIndex * MIDI_PIANO_ROLL_ROW_HEIGHT_REM + segment.lane * laneHeight + inset}rem`;
     bar.style.height = `${laneHeight - inset * 2}rem`;
     const noteLabel = track.channels.every(
         (channel) => channel === music.MIDI_PERCUSSION_CHANNEL
@@ -2690,7 +2943,7 @@ function renderMidiPianoRollNotes(
         if (!midiPlayer.pianoRollMarkerElements.has(index)) {
             const element = document.createElement('span');
             element.className = marker.className;
-            element.style.left = `${(marker.position / midiPlayer.unitsPerQuarter) * notation.MIDI_PIANO_ROLL_REM_PER_QUARTER}rem`;
+            element.style.left = `${(marker.position / midiPlayer.unitsPerQuarter) * MIDI_PIANO_ROLL_REM_PER_QUARTER}rem`;
             element.textContent = marker.textContent;
             element.setAttribute('aria-hidden', 'true');
             midiPlayer.pianoRollMarkerElements.set(index, element);
@@ -2714,7 +2967,7 @@ function updateMidiPianoRoll(
         return;
     }
     const quarterPosition = position / midiPlayer.unitsPerQuarter;
-    timeline.style.transform = `translateX(${-quarterPosition * notation.MIDI_PIANO_ROLL_REM_PER_QUARTER}rem)`;
+    timeline.style.transform = `translateX(${-quarterPosition * MIDI_PIANO_ROLL_REM_PER_QUARTER}rem)`;
     renderMidiPianoRollNotes(position);
 
     const enabledTrackIndexes = new Set(
@@ -2881,7 +3134,7 @@ function createMidiPianoRollMarkers() {
         for (
             let position = signature.position;
             notation.compareSheetPositions(position, end) < 0 &&
-            barlineCount < notation.MIDI_PIANO_ROLL_MAX_BARLINES;
+            barlineCount < MIDI_PIANO_ROLL_MAX_BARLINES;
             position += measureDuration
         ) {
             markers.push({
@@ -2915,7 +3168,7 @@ function createMidiPianoRollKeyboard(minimumNote, maximumNote, height) {
 
     for (let midi = maximumNote; midi >= minimumNote; midi -= 1) {
         const rowIndex = maximumNote - midi;
-        const top = rowIndex * notation.MIDI_PIANO_ROLL_ROW_HEIGHT_REM;
+        const top = rowIndex * MIDI_PIANO_ROLL_ROW_HEIGHT_REM;
         const pitchClass = music.pitchClassFromMidi(midi);
         const isBlack = blackPitchClasses.has(pitchClass);
         const key = document.createElement('button');
@@ -3018,7 +3271,7 @@ function renderMidiPianoRoll() {
     const minimumNote = Math.min(...midiPlayer.notes.map((note) => note.midi));
     const maximumNote = Math.max(...midiPlayer.notes.map((note) => note.midi));
     const pitchCount = maximumNote - minimumNote + 1;
-    const height = pitchCount * notation.MIDI_PIANO_ROLL_ROW_HEIGHT_REM;
+    const height = pitchCount * MIDI_PIANO_ROLL_ROW_HEIGHT_REM;
     const stage = document.createElement('div');
     const viewport = document.createElement('div');
     const timeline = document.createElement('div');
@@ -3049,10 +3302,10 @@ function renderMidiPianoRoll() {
     viewport.style.height = `${height}rem`;
     timeline.className = 'midi-piano-roll-timeline';
     timeline.style.height = `${height}rem`;
-    timeline.style.width = `calc(100% + ${(midiPlayer.total / midiPlayer.unitsPerQuarter) * notation.MIDI_PIANO_ROLL_REM_PER_QUARTER}rem)`;
+    timeline.style.width = `calc(100% + ${(midiPlayer.total / midiPlayer.unitsPerQuarter) * MIDI_PIANO_ROLL_REM_PER_QUARTER}rem)`;
     timeline.style.setProperty(
         '--midi-piano-roll-quarter-width',
-        `${notation.MIDI_PIANO_ROLL_REM_PER_QUARTER}rem`
+        `${MIDI_PIANO_ROLL_REM_PER_QUARTER}rem`
     );
     midiPlayer.pianoRollMarkers = createMidiPianoRollMarkers();
 
@@ -3070,7 +3323,7 @@ function renderMidiPianoRoll() {
             getComputedStyle(document.documentElement).fontSize
         );
         midiPlayer.pianoRollVisibleDuration =
-            (width / remPixels / notation.MIDI_PIANO_ROLL_REM_PER_QUARTER) *
+            (width / remPixels / MIDI_PIANO_ROLL_REM_PER_QUARTER) *
             midiPlayer.unitsPerQuarter;
         renderMidiPianoRollNotes(midiPlayer.position, true);
     };
@@ -3110,9 +3363,7 @@ function renderMidiPlayerLeadIn(position) {
 // Rhythm
 
 function rhythmSheetLane() {
-    return document.querySelector(
-        `${music.RHYTHM_SHEET_SCORE_SELECTOR} .sheet-lane`
-    );
+    return document.querySelector(`${RHYTHM_SHEET_SCORE_SELECTOR} .sheet-lane`);
 }
 
 function clearRhythmFeedback() {
@@ -3129,7 +3380,7 @@ function renderRhythmSheet() {
     clearRhythmSheetResults();
     document.getElementById('rhythm-sheet-stats').replaceChildren();
     document.getElementById('rhythm-sheet-results').replaceChildren();
-    renderSheetScore(rhythmSheet, music.RHYTHM_SHEET_SCORE_SELECTOR, {
+    renderSheetScore(rhythmSheet, RHYTHM_SHEET_SCORE_SELECTOR, {
         countIn: true,
         durationGuide: true,
         initialPosition: rhythmSheetInitialPosition(),
@@ -3139,12 +3390,12 @@ function renderRhythmSheet() {
         notation.describeSheetScore(rhythmSheet);
     rhythmSheet.countMarkerElements = [
         ...document.querySelectorAll(
-            `${music.RHYTHM_SHEET_SCORE_SELECTOR} [data-sheet-count-index]`
+            `${RHYTHM_SHEET_SCORE_SELECTOR} [data-sheet-count-index]`
         ),
     ];
     rhythmSheet.noteElements = rhythmSheet.phrase.map((_, index) => [
         ...document.querySelectorAll(
-            `${music.RHYTHM_SHEET_SCORE_SELECTOR} [data-sheet-note-index="${index}"]`
+            `${RHYTHM_SHEET_SCORE_SELECTOR} [data-sheet-note-index="${index}"]`
         ),
     ]);
     const { units, denominator, compound } = rhythmSheet.meter;
@@ -3157,7 +3408,7 @@ function renderRhythmSheet() {
 
 function renderRhythmSheetPitch(frequency = null) {
     const line = document.querySelector(
-        `${music.RHYTHM_SHEET_SCORE_SELECTOR} .sheet-pitch-line`
+        `${RHYTHM_SHEET_SCORE_SELECTOR} .sheet-pitch-line`
     );
     if (!line) {
         return;
@@ -3222,7 +3473,7 @@ function renderRhythmFeedback(position) {
                     detectedFrequency,
                     engine.frequencyFromMidi(note.midi)
                 )
-            ) > music.RHYTHM_SHEET_CORRECT_CENTS;
+            ) > RHYTHM_SHEET_CORRECT_CENTS;
         let cursor = note.beat;
 
         for (const hold of holds) {
@@ -3254,7 +3505,7 @@ function renderRhythmSheetPosition(position) {
     } else {
         label.textContent = `Play - durations in ${notation.sheetDurationUnit(rhythmSheet.meter)}`;
     }
-    positionSheetLane(rhythmSheet, music.RHYTHM_SHEET_SCORE_SELECTOR, position);
+    positionSheetLane(rhythmSheet, RHYTHM_SHEET_SCORE_SELECTOR, position);
     const activeCount =
         position >= -units && position < 0
             ? Math.floor(position + units)
