@@ -59,7 +59,7 @@ function updateVolume() {
         volumeBeforeMute = volume;
     }
     renderVolume(volume, icon);
-    engine.setVolume(volume);
+    engine.audio.setVolume(volume);
     saveCurrentSettings();
 }
 

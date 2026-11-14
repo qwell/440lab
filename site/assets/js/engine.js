@@ -267,6 +267,7 @@ function removeState(module, name) {
 const audio = (() => {
     let context = null;
     let masterGain = null;
+    let masterVolume = music.DEFAULT_VOLUME;
 
     const continuousVoices = new Set();
     const transientVoices = new Set();
@@ -381,7 +382,7 @@ const audio = (() => {
         };
     }
 
-    function setMasterVolume(volume) {
+    function setVolume(volume) {
         masterVolume = clamp(volume, 0, 1);
 
         if (masterGain) {
@@ -561,7 +562,7 @@ const audio = (() => {
         playTransient,
         stopTransient,
         createAnalyser,
-        setMasterVolume,
+        setVolume,
     };
 })();
 
@@ -915,15 +916,8 @@ function deactivateActiveMicrophoneInput(reason) {
     activeMicrophoneInput?.deactivate(reason);
 }
 
-let masterVolume = music.DEFAULT_VOLUME;
-
-function setVolume(volume) {
-    audio.setMasterVolume(volume);
-}
-
 const engine = Object.freeze({
     audio,
-    setVolume,
 
     frequencyFromMidi,
     midiFromFrequency,
