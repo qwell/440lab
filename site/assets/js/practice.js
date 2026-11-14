@@ -1272,6 +1272,15 @@ function commitMatchTargetAnswer(index) {
 
 const matchIdentification = { trial: null };
 
+function playMatchIdentificationNote(midi) {
+    const configuration = practiceConfiguration().match.identification;
+    engine.audio.playTransient(
+        engine.frequencyFromMidi(midi),
+        configuration.waveform,
+        configuration.duration
+    );
+}
+
 function newMatchIdentificationTrial(playImmediately = false) {
     cancelMatchAdvance();
     stopAllAudio();
@@ -1302,12 +1311,7 @@ function playMatchIdentificationTrial() {
     }
     stopAllAudio();
     const trial = matchIdentification.trial;
-    const configuration = practiceConfiguration().match.identification;
-    engine.audio.playTransient(
-        engine.frequencyFromMidi(trial.midi),
-        configuration.waveform,
-        configuration.duration
-    );
+    playMatchIdentificationNote(trial.midi);
     trial.played = true;
     if (!trial.committed) {
         renderMatchIdentificationAnswers();
@@ -1338,7 +1342,9 @@ function commitMatchIdentification(pitchClass) {
         correct,
         music.noteNameFromMidi(trial.midi)
     );
-    playMatchIdentificationTrial();
+    const selectedMidi =
+        trial.midi - (trial.midi % music.SEMITONES_PER_OCTAVE) + pitchClass;
+    playMatchIdentificationNote(selectedMidi);
     scheduleMatchAdvance();
 }
 
