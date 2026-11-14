@@ -1,5 +1,29 @@
 'use strict';
 
+function readNumber(input, fallback) {
+    const rawValue = input.value.trim();
+
+    if (rawValue === '') {
+        return fallback;
+    }
+
+    const value = Number(rawValue);
+
+    if (!Number.isFinite(value)) {
+        return fallback;
+    }
+
+    const minimum = input.hasAttribute('min')
+        ? Number(input.getAttribute('min'))
+        : -Infinity;
+
+    const maximum = input.hasAttribute('max')
+        ? Number(input.getAttribute('max'))
+        : Infinity;
+
+    return clamp(value, minimum, maximum);
+}
+
 function getSetting(name, root = document) {
     return root.querySelector(`[data-setting="${name}"]`);
 }
@@ -189,7 +213,7 @@ function bindPlaybackTransport(
 }
 
 function readNumberSetting(name, fallback) {
-    return musicEngine.readNumber(getSetting(name), fallback);
+    return readNumber(getSetting(name), fallback);
 }
 
 function readSettingBounds(name) {
@@ -201,7 +225,7 @@ function readSettingBounds(name) {
 }
 
 function normalizeNumberInput(input, fallback) {
-    const value = musicEngine.readNumber(input, fallback);
+    const value = readNumber(input, fallback);
     setNumberIfChanged(input, value);
     return value;
 }
@@ -422,9 +446,9 @@ function initializeNavigation() {
 // Application events
 
 function initializeEvents() {
-    musicEngine.audio.addPlaybackStateListener(updateScreenWakeLock);
-    musicEngine.addMicrophoneStateListener(updateScreenWakeLock);
-    musicEngine.addMicrophoneStateListener(renderMicrophoneState);
+    engine.audio.addPlaybackStateListener(updateScreenWakeLock);
+    engine.addMicrophoneStateListener(updateScreenWakeLock);
+    engine.addMicrophoneStateListener(renderMicrophoneState);
     addPitchMemoryDelayStateListener(updateScreenWakeLock);
 
     const syncSharedFieldEvent = (event) => {
@@ -610,7 +634,7 @@ function initializeEvents() {
     const rhythmHold = document.getElementById('rhythm-sheet-hold');
     getAction('rhythm-sheet-new').addEventListener('click', newTrial);
     const rhythmScore = document.querySelector(
-        musicEngine.RHYTHM_SHEET_SCORE_SELECTOR
+        music.RHYTHM_SHEET_SCORE_SELECTOR
     );
     for (const target of [rhythmHold, rhythmScore]) {
         target.addEventListener('pointerdown', (event) => {
@@ -797,7 +821,7 @@ function initializeEvents() {
     referenceFrequencyInput.addEventListener('change', () => {
         normalizeNumberInput(
             referenceFrequencyInput,
-            musicEngine.DEFAULT_A4_FREQUENCY
+            music.DEFAULT_A4_FREQUENCY
         );
         resetForReferenceChange();
         saveCurrentSettings();
@@ -822,8 +846,8 @@ function initializeEvents() {
     }
 
     getAction('global-settings-reset').addEventListener('click', () => {
-        musicEngine.removeSettings();
-        musicEngine.clearState();
+        engine.removeSettings();
+        engine.clearState();
         window.location.reload();
     });
 
@@ -929,7 +953,7 @@ function initializeEvents() {
         'pitch-memory-distractors',
     ])) {
         control.addEventListener('change', () => {
-            if (musicEngine.state.pitch.memory) {
+            if (engine.state.pitch.memory) {
                 cancelPitchMemoryTrial();
             }
 
@@ -1006,11 +1030,11 @@ function initializeEvents() {
             }
         });
 
-    for (const module of Object.keys(musicEngine.stats)) {
+    for (const module of Object.keys(engine.stats)) {
         for (const button of getModuleActions(module, 'stats-clear')) {
             button.addEventListener('click', () => {
                 const mode = sectionView(module);
-                const modeStats = musicEngine.stats[module][mode];
+                const modeStats = engine.stats[module][mode];
                 const type = !Object.hasOwn(modeStats, 'trials')
                     ? readSettingValue(`${module}-${mode}-type`)
                     : null;
@@ -1029,13 +1053,12 @@ let screenWakeLockUpdateQueued = false;
 
 function isScreenWakeLockNeeded() {
     return (
-        musicEngine.audio.isPlaying() ||
+        engine.audio.isPlaying() ||
         midiPlayer.playing ||
         rhythmPlayer.playing ||
         playbackControlLoadingCount > 0 ||
         isPitchMemoryDelayActive() ||
-        musicEngine.microphoneRequestState ===
-            musicEngine.MICROPHONE_STATES.LISTENING
+        engine.microphoneRequestState === engine.MICROPHONE_STATES.LISTENING
     );
 }
 

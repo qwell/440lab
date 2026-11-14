@@ -5,25 +5,25 @@ function tunerTargetNoteName() {
     const tuning = selectedTunerTuning(instrument);
     const accidental = tuning?.[2] ?? 'sharp';
 
-    return musicEngine.noteNameFromMidi(tunerTargetMidi, accidental);
+    return music.noteNameFromMidi(tunerTargetMidi, accidental);
 }
 
 function selectedNoteFrequency(name) {
-    return musicEngine.frequencyFromMidi(Number(readNoteValue(name)));
+    return engine.frequencyFromMidi(Number(readNoteValue(name)));
 }
 
-let volumeBeforeMute = musicEngine.DEFAULT_VOLUME;
+let volumeBeforeMute = music.DEFAULT_VOLUME;
 
 function currentSettings() {
-    return readSettings(musicEngine.loadSettings());
+    return readSettings(engine.loadSettings());
 }
 
 function saveCurrentSettings() {
-    musicEngine.saveSettings(currentSettings());
+    engine.saveSettings(currentSettings());
 }
 
 function restoreSettings() {
-    renderSettings(musicEngine.loadSettings());
+    renderSettings(engine.loadSettings());
     saveCurrentSettings();
 }
 
@@ -31,7 +31,7 @@ function restoreSetting(name) {
     const separator = name.indexOf('-');
     const group = name.slice(0, separator);
     const setting = name.slice(separator + 1);
-    const settings = musicEngine.loadSettings();
+    const settings = engine.loadSettings();
 
     if (Object.hasOwn(settings[group] ?? {}, setting)) {
         renderSetting(name, settings[group][setting]);
@@ -40,20 +40,13 @@ function restoreSetting(name) {
 }
 
 function updateReferenceFrequency() {
-    musicEngine.setReferenceFrequency(
-        readNumberSetting(
-            'global-reference-a4',
-            musicEngine.DEFAULT_A4_FREQUENCY
-        )
+    engine.setReferenceFrequency(
+        readNumberSetting('global-reference-a4', music.DEFAULT_A4_FREQUENCY)
     );
 }
 
 function updateVolume() {
-    const volume = musicEngine.clamp(
-        Number(readSettingValue('global-volume')),
-        0,
-        1
-    );
+    const volume = clamp(Number(readSettingValue('global-volume')), 0, 1);
     const icon =
         volume === 0
             ? '🔇'
@@ -66,7 +59,7 @@ function updateVolume() {
         volumeBeforeMute = volume;
     }
     renderVolume(volume, icon);
-    musicEngine.setVolume(volume);
+    engine.setVolume(volume);
     saveCurrentSettings();
 }
 
@@ -79,11 +72,8 @@ function toggleVolume() {
 }
 
 function toggleGlobalMicrophone() {
-    if (
-        musicEngine.microphoneRequestState ===
-        musicEngine.MICROPHONE_STATES.LISTENING
-    ) {
-        musicEngine.setMicrophoneState(musicEngine.MICROPHONE_STATES.PAUSED);
+    if (engine.microphoneRequestState === engine.MICROPHONE_STATES.LISTENING) {
+        engine.setMicrophoneState(engine.MICROPHONE_STATES.PAUSED);
         return;
     }
 
@@ -109,7 +99,7 @@ let tunerTargetMidi = null;
 
 function selectedTunerInstrument() {
     const name = readSettingValue('tuner-tuning-instrument');
-    return musicEngine.TUNER_INSTRUMENTS.find(
+    return music.TUNER_INSTRUMENTS.find(
         (instrument) => instrument.name === name
     );
 }
@@ -120,7 +110,7 @@ function selectedTunerTuning(instrument = selectedTunerInstrument()) {
 }
 
 function initializeTunerInstruments() {
-    renderTunerInstruments(musicEngine.TUNER_INSTRUMENTS);
+    renderTunerInstruments(music.TUNER_INSTRUMENTS);
 }
 
 function updateTunerInstrument() {
@@ -139,8 +129,8 @@ function clearTunerTarget() {
     tunerMicrophoneInput.lastValidTime = 0;
     resetTunerDetection(
         tunerMicrophoneInput.isActive()
-            ? musicEngine.MICROPHONE_MESSAGES.LISTENING
-            : musicEngine.MICROPHONE_MESSAGES.PAUSED
+            ? engine.MICROPHONE_MESSAGES.LISTENING
+            : engine.MICROPHONE_MESSAGES.PAUSED
     );
 }
 
@@ -166,8 +156,8 @@ function playTunerString(midi, button) {
     if (wasPlaying) {
         return;
     }
-    tunerVoice = musicEngine.audio.playContinuous(
-        musicEngine.frequencyFromMidi(midi),
+    tunerVoice = engine.audio.playContinuous(
+        engine.frequencyFromMidi(midi),
         readWaveformValue('tuner-tuning')
     );
     renderTunerStringPlaying(button);
@@ -175,8 +165,8 @@ function playTunerString(midi, button) {
     tunerMicrophoneInput.lastValidTime = 0;
     resetTunerDetection(
         tunerMicrophoneInput.isActive()
-            ? musicEngine.MICROPHONE_MESSAGES.LISTENING
-            : musicEngine.MICROPHONE_MESSAGES.PAUSED
+            ? engine.MICROPHONE_MESSAGES.LISTENING
+            : engine.MICROPHONE_MESSAGES.PAUSED
     );
 }
 
@@ -186,7 +176,7 @@ function playTuner() {
     stopAllAudio();
     clearTunerTarget();
 
-    tunerVoice = musicEngine.audio.playContinuous(
+    tunerVoice = engine.audio.playContinuous(
         selectedNoteFrequency('tuner-tuning'),
         readWaveformValue('tuner-tuning')
     );
@@ -205,8 +195,8 @@ function stopTuner() {
     if (tunerTargetMidi !== null) {
         setTunerStatus(
             tunerMicrophoneInput.isActive()
-                ? musicEngine.MICROPHONE_MESSAGES.LISTENING
-                : musicEngine.MICROPHONE_MESSAGES.PAUSED
+                ? engine.MICROPHONE_MESSAGES.LISTENING
+                : engine.MICROPHONE_MESSAGES.PAUSED
         );
     }
 }
@@ -215,7 +205,7 @@ function stopAuxiliaryAudio() {
     stopTuner();
     stopMidiPianoRollVoices();
     stopPitchMemoryResponseTone();
-    musicEngine.audio.stopTransient();
+    engine.audio.stopTransient();
 }
 
 function stopAllAudio() {
@@ -226,7 +216,7 @@ function stopAllAudio() {
 
 function stopAllActivity() {
     stopAllAudio();
-    musicEngine.setMicrophoneState(musicEngine.MICROPHONE_STATES.PAUSED);
+    engine.setMicrophoneState(engine.MICROPHONE_STATES.PAUSED);
     cancelAdvance();
 }
 
@@ -264,9 +254,7 @@ async function activateCurrentPracticeMicrophone() {
     } else if (isPitchMemoryActive(activeSection)) {
         await activatePitchMemoryMicrophone();
     } else {
-        await musicEngine.setMicrophoneState(
-            musicEngine.MICROPHONE_STATES.LISTENING
-        );
+        await engine.setMicrophoneState(engine.MICROPHONE_STATES.LISTENING);
     }
 }
 
@@ -307,9 +295,9 @@ function activateSection(
 
     if (
         !pitchMemoryActive &&
-        musicEngine.state.pitch.memory?.state === 'waiting' &&
-        (musicEngine.state.pitch.memory.type === 'interference' ||
-            Date.now() < musicEngine.state.pitch.memory.encodingEndsAt)
+        engine.state.pitch.memory?.state === 'waiting' &&
+        (engine.state.pitch.memory.type === 'interference' ||
+            Date.now() < engine.state.pitch.memory.encodingEndsAt)
     ) {
         cancelPitchMemoryTrial();
     }
@@ -317,26 +305,23 @@ function activateSection(
     renderActiveSection(button, sectionName);
 
     stopAllAudio();
-    musicEngine.deactivateActiveMicrophoneInput('page-changed');
+    engine.deactivateActiveMicrophoneInput('page-changed');
 
     if (
         pitchMemoryActive &&
-        musicEngine.state.pitch.memory &&
-        musicEngine.microphoneRequestState ===
-            musicEngine.MICROPHONE_STATES.LISTENING
+        engine.state.pitch.memory &&
+        engine.microphoneRequestState === engine.MICROPHONE_STATES.LISTENING
     ) {
         activatePitchMemoryMicrophone();
     } else if (
         sectionName === 'tuner' &&
-        musicEngine.microphoneRequestState ===
-            musicEngine.MICROPHONE_STATES.LISTENING
+        engine.microphoneRequestState === engine.MICROPHONE_STATES.LISTENING
     ) {
         activateTunerMicrophone();
     } else if (
         sectionName === 'rhythm' &&
         isRhythmSheetEnabled() &&
-        musicEngine.microphoneRequestState ===
-            musicEngine.MICROPHONE_STATES.LISTENING
+        engine.microphoneRequestState === engine.MICROPHONE_STATES.LISTENING
     ) {
         activateRhythmSheetMicrophone();
     }
@@ -348,10 +333,10 @@ function activateSection(
 
 // Tuning
 
-const tunerMicrophoneInput = musicEngine.createMicrophoneInput({
-    minimumMidi: musicEngine.MINIMUM_SUPPORTED_MIDI,
-    maximumMidi: musicEngine.MAXIMUM_SUPPORTED_MIDI,
-    sampleIntervalMs: musicEngine.TUNER_ANALYSIS_INTERVAL_MS,
+const tunerMicrophoneInput = engine.createMicrophoneInput({
+    minimumMidi: music.MINIMUM_SUPPORTED_MIDI,
+    maximumMidi: music.MAXIMUM_SUPPORTED_MIDI,
+    sampleIntervalMs: music.TUNER_ANALYSIS_INTERVAL_MS,
     processFrame: processTunerMicrophoneFrame,
     onDeactivate: handleTunerMicrophoneDeactivation,
     initialState: {
@@ -365,7 +350,7 @@ const tunerMicrophoneInput = musicEngine.createMicrophoneInput({
 
         detectedFrequencies: [],
         plotSamples: [],
-        plotCenterMidi: musicEngine.MIDI_NOTES.A4,
+        plotCenterMidi: music.MIDI_NOTES.A4,
     },
 });
 
@@ -381,7 +366,7 @@ function resetTunerTracking(resetPending) {
     }
 }
 
-function resetTunerDetection(status = musicEngine.MICROPHONE_MESSAGES.PAUSED) {
+function resetTunerDetection(status = engine.MICROPHONE_MESSAGES.PAUSED) {
     renderTunerReset(status);
 }
 
@@ -402,7 +387,7 @@ function detectPitchYin(
     sampleRate,
     minimumFrequency,
     maximumFrequency,
-    threshold = musicEngine.TUNER_YIN_THRESHOLD,
+    threshold = music.TUNER_YIN_THRESHOLD,
     sampleStride = 1
 ) {
     let squareTotal = 0;
@@ -416,7 +401,7 @@ function detectPitchYin(
 
     const rms = Math.sqrt(squareTotal / sampleLength);
 
-    if (rms < musicEngine.TUNER_MIN_RMS) {
+    if (rms < music.TUNER_MIN_RMS) {
         return null;
     }
 
@@ -529,20 +514,20 @@ function nearestNoteFromFrequency(frequency) {
      * The user's global A4 reference is
      * respected here.
      */
-    const exactMidi = musicEngine.midiFromFrequency(frequency);
+    const exactMidi = engine.midiFromFrequency(frequency);
 
     const midi = Math.round(exactMidi);
 
-    const targetFrequency = musicEngine.frequencyFromMidi(midi);
+    const targetFrequency = engine.frequencyFromMidi(midi);
 
     return {
         midi,
 
-        noteName: musicEngine.noteNameFromMidi(midi),
+        noteName: music.noteNameFromMidi(midi),
 
         targetFrequency,
 
-        cents: musicEngine.centsBetween(frequency, targetFrequency),
+        cents: music.centsBetween(frequency, targetFrequency),
     };
 }
 
@@ -550,11 +535,11 @@ function updateTunerDetection(frequency) {
     const targetFrequency =
         tunerTargetMidi === null
             ? null
-            : musicEngine.frequencyFromMidi(tunerTargetMidi);
+            : engine.frequencyFromMidi(tunerTargetMidi);
     const scoredFrequency =
         targetFrequency === null
             ? frequency
-            : musicEngine.nearestOctaveFrequency(frequency, targetFrequency);
+            : music.nearestOctaveFrequency(frequency, targetFrequency);
     const nearest =
         targetFrequency === null
             ? nearestNoteFromFrequency(frequency)
@@ -562,10 +547,7 @@ function updateTunerDetection(frequency) {
                   midi: tunerTargetMidi,
                   noteName: tunerTargetNoteName(),
                   targetFrequency,
-                  cents: musicEngine.centsBetween(
-                      scoredFrequency,
-                      targetFrequency
-                  ),
+                  cents: music.centsBetween(scoredFrequency, targetFrequency),
               };
 
     if (tunerMicrophoneInput.smoothedNoteMidi !== nearest.midi) {
@@ -574,7 +556,7 @@ function updateTunerDetection(frequency) {
     } else {
         tunerMicrophoneInput.smoothedCents +=
             (nearest.cents - tunerMicrophoneInput.smoothedCents) *
-            musicEngine.TUNER_CENTS_SMOOTHING;
+            music.TUNER_CENTS_SMOOTHING;
     }
 
     renderTunerDetection({
@@ -585,7 +567,7 @@ function updateTunerDetection(frequency) {
 }
 
 function updateTunerHistory(time = performance.now()) {
-    const cutoff = time - musicEngine.TUNER_PLOT_SECONDS * 1000;
+    const cutoff = time - music.TUNER_PLOT_SECONDS * 1000;
     tunerMicrophoneInput.plotSamples = tunerMicrophoneInput.plotSamples.filter(
         (sample) => sample.time >= cutoff
     );
@@ -602,10 +584,10 @@ function processTunerMicrophoneFrame({
         const frequency = detectPitchYin(
             samples,
             sampleRate,
-            musicEngine.frequencyFromMidi(tunerMicrophoneInput.minimumMidi),
-            musicEngine.frequencyFromMidi(tunerMicrophoneInput.maximumMidi),
-            musicEngine.TUNER_YIN_THRESHOLD,
-            musicEngine.TUNER_ANALYSIS_SAMPLE_STRIDE
+            engine.frequencyFromMidi(tunerMicrophoneInput.minimumMidi),
+            engine.frequencyFromMidi(tunerMicrophoneInput.maximumMidi),
+            music.TUNER_YIN_THRESHOLD,
+            music.TUNER_ANALYSIS_SAMPLE_STRIDE
         );
 
         if (frequency !== null) {
@@ -622,22 +604,20 @@ function processTunerMicrophoneFrame({
             }
 
             if (
-                tunerMicrophoneInput.pendingFrames >=
-                musicEngine.TUNER_STABLE_FRAMES
+                tunerMicrophoneInput.pendingFrames >= music.TUNER_STABLE_FRAMES
             ) {
                 tunerMicrophoneInput.lastValidTime = time;
 
-                musicEngine.addRollingSample(
+                addRollingSample(
                     tunerMicrophoneInput.detectedFrequencies,
                     frequency,
-                    musicEngine.TUNER_FREQUENCY_SAMPLE_LIMIT
+                    music.TUNER_FREQUENCY_SAMPLE_LIMIT
                 );
 
-                const detectedFrequency = musicEngine.median(
+                const detectedFrequency = median(
                     tunerMicrophoneInput.detectedFrequencies
                 );
-                const exactMidi =
-                    musicEngine.midiFromFrequency(detectedFrequency);
+                const exactMidi = engine.midiFromFrequency(detectedFrequency);
                 tunerMicrophoneInput.plotCenterMidi = exactMidi;
                 tunerMicrophoneInput.plotSamples.push({
                     time,
@@ -650,9 +630,7 @@ function processTunerMicrophoneFrame({
         if (time - tunerMicrophoneInput.lastValidTime > 400) {
             resetTunerTracking(frequency === null);
 
-            resetTunerDetection(
-                musicEngine.MICROPHONE_MESSAGES.NO_STABLE_PITCH
-            );
+            resetTunerDetection(engine.MICROPHONE_MESSAGES.NO_STABLE_PITCH);
         }
     }
 
@@ -662,22 +640,19 @@ function processTunerMicrophoneFrame({
 async function activateTunerMicrophone() {
     const active = tunerMicrophoneInput.isActive();
     if (!active) {
-        resetTunerDetection(musicEngine.MICROPHONE_MESSAGES.REQUESTING);
+        resetTunerDetection(engine.MICROPHONE_MESSAGES.REQUESTING);
     }
 
     try {
         if (!(await tunerMicrophoneInput.activate())) {
-            if (
-                musicEngine.microphoneState ===
-                musicEngine.MICROPHONE_STATES.DENIED
-            ) {
-                resetTunerDetection(musicEngine.microphoneFailureMessage);
+            if (engine.microphoneState === engine.MICROPHONE_STATES.DENIED) {
+                resetTunerDetection(engine.microphoneFailureMessage);
             }
             return false;
         }
 
         if (active) {
-            setTunerStatus(musicEngine.MICROPHONE_MESSAGES.LISTENING);
+            setTunerStatus(engine.MICROPHONE_MESSAGES.LISTENING);
             return true;
         }
 
@@ -688,11 +663,11 @@ async function activateTunerMicrophone() {
 
         resetTunerTracking(true);
 
-        setTunerStatus(musicEngine.MICROPHONE_MESSAGES.LISTENING);
+        setTunerStatus(engine.MICROPHONE_MESSAGES.LISTENING);
 
         return true;
     } catch {
-        resetTunerDetection(musicEngine.MICROPHONE_MESSAGES.FAILED);
+        resetTunerDetection(engine.MICROPHONE_MESSAGES.FAILED);
         return false;
     }
 }
@@ -920,11 +895,11 @@ const midiPlayer = {
 const midiSheetHighlightStates = new WeakMap();
 
 function initializeMidiState() {
-    musicEngine.getState('midi');
+    engine.getState('midi');
 }
 
 function restoreMidiPianoRollTracks(tracks, source) {
-    const state = musicEngine.state.midi['piano-roll'];
+    const state = engine.state.midi['piano-roll'];
 
     if (state?.file !== source || !state.tracks) {
         return;
@@ -947,18 +922,14 @@ function restoreMidiPianoRollTracks(tracks, source) {
 }
 
 function restoreMidiPianoRollPosition(source) {
-    const state = musicEngine.state.midi['piano-roll'];
+    const state = engine.state.midi['piano-roll'];
 
     if (state?.file !== source || !Number.isFinite(state.position)) {
         return;
     }
 
-    midiPlayer.elapsed = musicEngine.clamp(
-        state.position,
-        0,
-        midiPlayer.duration
-    );
-    midiPlayer.position = musicEngine.clamp(
+    midiPlayer.elapsed = clamp(state.position, 0, midiPlayer.duration);
+    midiPlayer.position = clamp(
         midiPositionAtTime(midiPlayer.elapsed),
         0,
         midiPlayer.total
@@ -968,11 +939,11 @@ function restoreMidiPianoRollPosition(source) {
 
 function saveMidiPianoRollState(position = midiPlayer.elapsed) {
     if (!midiPlayer.source) {
-        musicEngine.removeState('midi', 'piano-roll');
+        engine.removeState('midi', 'piano-roll');
         return;
     }
 
-    musicEngine.state.midi['piano-roll'] = {
+    engine.state.midi['piano-roll'] = {
         file: midiPlayer.source,
         position,
         tracks: Object.fromEntries(
@@ -987,11 +958,11 @@ function saveMidiPianoRollState(position = midiPlayer.elapsed) {
             ])
         ),
     };
-    musicEngine.saveState();
+    engine.saveState();
 }
 
 async function restoreMidiPianoRollState() {
-    const state = musicEngine.state.midi['piano-roll'];
+    const state = engine.state.midi['piano-roll'];
 
     if (!state || !(globalThis.midiFiles ?? []).includes(state.file)) {
         return;
@@ -1255,7 +1226,7 @@ function setMidiTrackEnabled(selectedTrack, enabled) {
     }
     syncMidiTrackMutes();
     if (midiPlayback.generatedTones) {
-        musicEngine.audio.stopTransient();
+        engine.audio.stopTransient();
         midiPlayback.generatedToneIndex = 0;
     }
     updateMidiPianoRoll();
@@ -1307,7 +1278,7 @@ function midiPianoRollChannel() {
     );
     for (let channel = 15; channel >= 0; channel -= 1) {
         if (
-            channel !== musicEngine.MIDI_PERCUSSION_CHANNEL &&
+            channel !== music.MIDI_PERCUSSION_CHANNEL &&
             !usedChannels.has(channel)
         ) {
             return channel;
@@ -1335,11 +1306,11 @@ function stopMidiPianoRollVoices() {
 function scheduleMidiPianoRollRelease(midi, voice) {
     const heldMilliseconds = voice.releasedAt - voice.pressedAt;
     const delay =
-        heldMilliseconds < musicEngine.MIDI_PIANO_ROLL_QUICK_PRESS_MS
+        heldMilliseconds < music.MIDI_PIANO_ROLL_QUICK_PRESS_MS
             ? Math.max(
                   0,
                   voice.startedAt +
-                      musicEngine.MIDI_PIANO_ROLL_QUICK_DURATION_MS -
+                      music.MIDI_PIANO_ROLL_QUICK_DURATION_MS -
                       performance.now()
               )
             : 0;
@@ -1398,21 +1369,14 @@ async function startMidiPianoRollKey(midi, key) {
             'isMuted',
             false
         );
-        synth.programChange(
-            soundFontChannel,
-            musicEngine.MIDI_PIANO_ROLL_PROGRAM
-        );
-        synth.noteOn(
-            soundFontChannel,
-            midi,
-            musicEngine.MIDI_PIANO_ROLL_VELOCITY
-        );
+        synth.programChange(soundFontChannel, music.MIDI_PIANO_ROLL_PROGRAM);
+        synth.noteOn(soundFontChannel, midi, music.MIDI_PIANO_ROLL_VELOCITY);
         voice.stop = () => synth.noteOff(soundFontChannel, midi);
     } else {
-        const oscillator = musicEngine.audio.playContinuous(
-            musicEngine.frequencyFromMidi(midi),
+        const oscillator = engine.audio.playContinuous(
+            engine.frequencyFromMidi(midi),
             'triangle',
-            musicEngine.MIDI_PIANO_ROLL_VOLUME
+            music.MIDI_PIANO_ROLL_VOLUME
         );
         voice.stop = () => oscillator.stop();
     }
@@ -1462,7 +1426,7 @@ function midiPianoRollSegments(notes) {
             const eventTypes = new Map();
             while (
                 groupEnd < events.length &&
-                musicEngine.compareSheetPositions(
+                notation.compareSheetPositions(
                     events[groupEnd].position,
                     position
                 ) === 0
@@ -1498,7 +1462,7 @@ function midiPianoRollSegments(notes) {
                 (left, right) => left - right
             );
             if (
-                musicEngine.compareSheetPositions(position, previousPosition) >
+                notation.compareSheetPositions(position, previousPosition) >
                     0 &&
                 trackIndexes.length
             ) {
@@ -1511,7 +1475,7 @@ function midiPianoRollSegments(notes) {
                         lastSegment &&
                         !lastSegment.gapEnd &&
                         !gapStart &&
-                        musicEngine.compareSheetPositions(
+                        notation.compareSheetPositions(
                             lastSegment.start + lastSegment.duration,
                             previousPosition
                         ) === 0
@@ -1850,7 +1814,7 @@ function parseMidiFile(arrayBuffer) {
                 midi,
                 patch: {
                     ...patch,
-                    isDrum: channel === musicEngine.MIDI_PERCUSSION_CHANNEL,
+                    isDrum: channel === music.MIDI_PERCUSSION_CHANNEL,
                 },
             });
             activeNotes.set(key, starts);
@@ -1976,9 +1940,9 @@ function parseMidiFile(arrayBuffer) {
 // MIDI: sheet music
 
 function midiDurationCandidates(denominator) {
-    return musicEngine.NOTE_VALUES.flatMap((noteValue) => {
+    return notation.NOTE_VALUES.flatMap((noteValue) => {
         const duration = denominator / noteValue.value;
-        return [duration * musicEngine.SHEET_DOT_MULTIPLIER, duration];
+        return [duration * notation.SHEET_DOT_MULTIPLIER, duration];
     }).sort((left, right) => right - left);
 }
 
@@ -1996,7 +1960,7 @@ function midiNoteSegments(beat, duration, meter) {
         const segmentDuration =
             candidates.find(
                 (candidate) =>
-                    musicEngine.compareSheetPositions(candidate, maximum) <= 0
+                    notation.compareSheetPositions(candidate, maximum) <= 0
             ) ?? minimum;
         segments.push({ beat: cursor, duration: segmentDuration });
         cursor += segmentDuration;
@@ -2007,11 +1971,11 @@ function midiNoteSegments(beat, duration, meter) {
 }
 
 function midiLedgerLines(note, clef) {
-    const bottomLine = musicEngine.diatonicPositionFromMidi(
-        musicEngine.CLEFS[clef].bottomLineMidi
+    const bottomLine = notation.diatonicPositionFromMidi(
+        notation.CLEFS[clef].bottomLineMidi
     );
     const staffStep =
-        musicEngine.diatonicPositionFromMidi(note.writtenMidi ?? note.midi) -
+        notation.diatonicPositionFromMidi(note.writtenMidi ?? note.midi) -
         bottomLine;
     return staffStep < 0
         ? Math.ceil(-staffStep / 2)
@@ -2019,17 +1983,14 @@ function midiLedgerLines(note, clef) {
 }
 
 function midiReadableNote(note, clef) {
-    if (
-        midiLedgerLines(note, clef) <= musicEngine.MIDI_MAX_DISPLAY_LEDGER_LINES
-    ) {
+    if (midiLedgerLines(note, clef) <= notation.MIDI_MAX_DISPLAY_LEDGER_LINES) {
         return note;
     }
 
-    const bottomLine = musicEngine.diatonicPositionFromMidi(
-        musicEngine.CLEFS[clef].bottomLineMidi
+    const bottomLine = notation.diatonicPositionFromMidi(
+        notation.CLEFS[clef].bottomLineMidi
     );
-    const staffStep =
-        musicEngine.diatonicPositionFromMidi(note.midi) - bottomLine;
+    const staffStep = notation.diatonicPositionFromMidi(note.midi) - bottomLine;
     const below = staffStep < 0;
     let writtenMidi = note.midi;
     let octaves = 0;
@@ -2039,7 +2000,7 @@ function midiReadableNote(note, clef) {
         octaves += 1;
     } while (
         midiLedgerLines({ ...note, writtenMidi }, clef) >
-        musicEngine.MIDI_MAX_DISPLAY_LEDGER_LINES
+        notation.MIDI_MAX_DISPLAY_LEDGER_LINES
     );
 
     return {
@@ -2088,8 +2049,8 @@ function midiRestNotes(start, duration, meter) {
         cursor += leadingDuration;
         remaining -= leadingDuration;
     }
-    if (musicEngine.compareSheetPositions(remaining, meter.units) >= 0) {
-        const measures = musicEngine.sheetPositionFloor(remaining, meter.units);
+    if (notation.compareSheetPositions(remaining, meter.units) >= 0) {
+        const measures = notation.sheetPositionFloor(remaining, meter.units);
         const restDuration = measures * meter.units;
         rests.push({
             beat: cursor,
@@ -2101,7 +2062,7 @@ function midiRestNotes(start, duration, meter) {
         cursor += restDuration;
         remaining -= restDuration;
     }
-    if (musicEngine.compareSheetPositions(remaining, 0) > 0) {
+    if (notation.compareSheetPositions(remaining, 0) > 0) {
         rests.push(
             ...midiNoteSegments(cursor, remaining, meter).map((segment) => ({
                 ...segment,
@@ -2141,7 +2102,7 @@ function midiTrackScores(phrase, trackIndex, score) {
     const bestFit = midiTrackClef(phrase);
     const phrases = new Map();
 
-    if (bestFit.maximum <= musicEngine.MIDI_MAX_LEDGER_LINES) {
+    if (bestFit.maximum <= notation.MIDI_MAX_LEDGER_LINES) {
         phrases.set(bestFit.clef, phrase);
     } else {
         for (const note of phrase) {
@@ -2149,7 +2110,7 @@ function midiTrackScores(phrase, trackIndex, score) {
             const bassLines = midiLedgerLines(note, 'bass');
             const clef =
                 trebleLines === bassLines
-                    ? note.midi < musicEngine.MIDI_NOTES.C4
+                    ? note.midi < music.MIDI_NOTES.C4
                         ? 'bass'
                         : 'treble'
                     : trebleLines < bassLines
@@ -2183,7 +2144,7 @@ function midiPercussionScore(phrase, trackIndex, score) {
         ...score,
         phrase: midiPhraseWithRests(
             phrase.map((note) => {
-                const notation = musicEngine.MIDI_PERCUSSION_NOTATION[
+                const percussionNotation = notation.MIDI_PERCUSSION_NOTATION[
                     note.midi
                 ] ?? {
                     name: `Percussion ${note.midi}`,
@@ -2192,10 +2153,11 @@ function midiPercussionScore(phrase, trackIndex, score) {
                 };
                 return {
                     ...note,
-                    percussionName: notation.name,
-                    staffStep: notation.staffStep,
-                    percussionNotehead: notation.notehead,
-                    stemDirection: notation.voice === 'upper' ? 'up' : 'down',
+                    percussionName: percussionNotation.name,
+                    staffStep: percussionNotation.staffStep,
+                    percussionNotehead: percussionNotation.notehead,
+                    stemDirection:
+                        percussionNotation.voice === 'upper' ? 'up' : 'down',
                 };
             }),
             score.total,
@@ -2220,8 +2182,8 @@ function midiWrittenArticulation(notes, meter) {
 
     for (const note of writtenNotes) {
         const percussionVoice =
-            note.channel === musicEngine.MIDI_PERCUSSION_CHANNEL
-                ? musicEngine.MIDI_PERCUSSION_NOTATION[note.midi]?.voice
+            note.channel === music.MIDI_PERCUSSION_CHANNEL
+                ? notation.MIDI_PERCUSSION_NOTATION[note.midi]?.voice
                 : null;
         const key = `${note.trackIndex}:${note.channel}:${percussionVoice ?? ''}`;
         const onsets = voices.get(key) ?? new Map();
@@ -2241,7 +2203,7 @@ function midiWrittenArticulation(notes, meter) {
             if (
                 notesAtOnset.length !== 1 ||
                 notesAtNextOnset.length !== 1 ||
-                musicEngine.compareSheetPositions(
+                notation.compareSheetPositions(
                     onsetDuration,
                     sixteenthDuration
                 ) > 0
@@ -2251,14 +2213,11 @@ function midiWrittenArticulation(notes, meter) {
             const [note] = notesAtOnset;
             const overlap = note.beat + note.duration - beats[index + 1];
             const shortArticulation =
-                musicEngine.compareSheetPositions(
-                    note.duration,
-                    onsetDuration
-                ) < 0;
+                notation.compareSheetPositions(note.duration, onsetDuration) <
+                0;
             const shortOverlap =
-                musicEngine.compareSheetPositions(overlap, 0) > 0 &&
-                musicEngine.compareSheetPositions(overlap, sixteenthDuration) <=
-                    0;
+                notation.compareSheetPositions(overlap, 0) > 0 &&
+                notation.compareSheetPositions(overlap, sixteenthDuration) <= 0;
             if (shortArticulation || shortOverlap) {
                 note.duration = onsetDuration;
                 note.inferredWrittenDuration = true;
@@ -2291,7 +2250,7 @@ function destroyMidiSheetViews() {
 
 function setMidiPlayer(parsed, fileName, source = null) {
     const signature = `${parsed.numerator}/${parsed.denominator}`;
-    const meter = musicEngine.sheetMeter(signature);
+    const meter = notation.sheetMeter(signature);
     const unitsPerQuarter = parsed.denominator / 4;
     const quantum = parsed.denominator / 32;
     const signatureMap = parsed.signatureMap.map((event) => ({
@@ -2356,10 +2315,10 @@ function setMidiPlayer(parsed, fileName, source = null) {
             return [];
         }
         const pitchedPhrase = phrase.filter(
-            (note) => note.channel !== musicEngine.MIDI_PERCUSSION_CHANNEL
+            (note) => note.channel !== music.MIDI_PERCUSSION_CHANNEL
         );
         const percussionPhrase = phrase.filter(
-            (note) => note.channel === musicEngine.MIDI_PERCUSSION_CHANNEL
+            (note) => note.channel === music.MIDI_PERCUSSION_CHANNEL
         );
         const score = {
             signature,
@@ -2369,7 +2328,7 @@ function setMidiPlayer(parsed, fileName, source = null) {
             interval,
             intervalAtPosition: (position) =>
                 midiIntervalAtPosition(parsed, unitsPerQuarter, position),
-            remPerQuarter: musicEngine.MIDI_SHEET_REM_PER_QUARTER,
+            remPerQuarter: notation.MIDI_SHEET_REM_PER_QUARTER,
         };
 
         return [
@@ -2483,12 +2442,12 @@ function seekMidiPlayer(event) {
         return;
     }
 
-    midiPlayer.elapsed = musicEngine.clamp(
+    midiPlayer.elapsed = clamp(
         Number(event.currentTarget.value),
         0,
         midiPlayer.duration
     );
-    midiPlayer.position = musicEngine.clamp(
+    midiPlayer.position = clamp(
         midiPositionAtTime(midiPlayer.elapsed),
         0,
         midiPlayer.total
@@ -2497,7 +2456,7 @@ function seekMidiPlayer(event) {
         midiPlayback.sequencer.currentTime = midiPlayer.elapsed;
     }
     if (midiPlayback.generatedTones) {
-        musicEngine.audio.stopTransient();
+        engine.audio.stopTransient();
         midiPlayback.generatedToneIndex = 0;
     }
     resetMidiPlayerViews(midiPlayer.position);
@@ -2539,13 +2498,13 @@ function midiTimeAtPosition(position) {
     );
 }
 
-function midiSheetHighlightState(notation) {
-    const existing = midiSheetHighlightStates.get(notation);
+function midiSheetHighlightState(score) {
+    const existing = midiSheetHighlightStates.get(score);
     if (existing) {
         return existing;
     }
 
-    const starts = notation.phrase
+    const starts = score.phrase
         .map((note, index) => {
             const start = note.performanceBeat ?? note.beat;
             const duration = note.soundingDuration ?? note.duration;
@@ -2573,7 +2532,7 @@ function midiSheetHighlightState(notation) {
         prefixEnds,
         starts,
     };
-    midiSheetHighlightStates.set(notation, state);
+    midiSheetHighlightStates.set(score, state);
 
     return state;
 }
@@ -2597,8 +2556,7 @@ function midiEventUpperBound(events, position, property) {
 function resetMidiPlayerViews(position = 0) {
     const sheetPosition =
         position === 0 && !midiPlayer.playing
-            ? -midiPlayer.unitsPerQuarter *
-              musicEngine.MIDI_SHEET_LEAD_IN_QUARTERS
+            ? -midiPlayer.unitsPerQuarter * notation.MIDI_SHEET_LEAD_IN_QUARTERS
             : position;
     for (const track of midiPlayer.tracks) {
         for (const score of track.scores) {
@@ -2615,7 +2573,7 @@ async function initializeSoundFontSynthesizer() {
     if (!soundFontSynthesizer.initializePromise) {
         const finishLoading = beginPlaybackControlLoading();
         soundFontSynthesizer.initializePromise = (async () => {
-            const context = musicEngine.audio.getContext();
+            const context = engine.audio.getContext();
             let spessaSynth;
             if (isFileProtocol()) {
                 await loadScript('assets/vendor/spessasynth_lib/js/browser.js');
@@ -2635,7 +2593,7 @@ async function initializeSoundFontSynthesizer() {
             }
             const { Sequencer, WorkletSynthesizer } = spessaSynth;
             const synth = new WorkletSynthesizer(context);
-            synth.connect(musicEngine.audio.getDestination());
+            synth.connect(engine.audio.getDestination());
             await synth.isReady;
             soundFontSynthesizer.synth = synth;
             soundFontSynthesizer.createSequencer = () =>
@@ -2786,7 +2744,7 @@ async function loadSoundFont() {
 }
 
 async function prepareSoundFontPlayback() {
-    const context = musicEngine.audio.getContext();
+    const context = engine.audio.getContext();
     if (context.state === 'suspended') {
         await context.resume();
     }
@@ -2948,7 +2906,7 @@ function scheduleMidiGeneratedTones(elapsed) {
         return;
     }
 
-    const scheduleUntil = elapsed + musicEngine.PLAYBACK_SCHEDULE_AHEAD_SECONDS;
+    const scheduleUntil = elapsed + music.PLAYBACK_SCHEDULE_AHEAD_SECONDS;
     while (
         midiPlayback.generatedToneIndex <
             midiPlayback.generatedToneNotes.length &&
@@ -2973,11 +2931,11 @@ function scheduleMidiGeneratedTones(elapsed) {
                 note.channel === 9 ? 0.08 : Infinity
             )
         );
-        musicEngine.audio.playTransient(
-            musicEngine.frequencyFromMidi(note.midi),
+        engine.audio.playTransient(
+            engine.frequencyFromMidi(note.midi),
             'triangle',
             duration,
-            musicEngine.MIDI_GENERATED_TONE_VOLUME,
+            music.MIDI_GENERATED_TONE_VOLUME,
             delay
         );
     }
@@ -2991,8 +2949,8 @@ function drawMidiPlayer() {
     if (midiPlayer.leadInStartedAt !== null) {
         const leadInSeconds =
             (midiPlayer.tempoMap[0].microseconds / 1000000) *
-            musicEngine.MIDI_SHEET_LEAD_IN_QUARTERS;
-        const progress = musicEngine.clamp(
+            notation.MIDI_SHEET_LEAD_IN_QUARTERS;
+        const progress = clamp(
             (performance.now() - midiPlayer.leadInStartedAt) /
                 (leadInSeconds * 1000),
             0,
@@ -3001,7 +2959,7 @@ function drawMidiPlayer() {
         const position =
             (progress - 1) *
             midiPlayer.unitsPerQuarter *
-            musicEngine.MIDI_SHEET_LEAD_IN_QUARTERS;
+            notation.MIDI_SHEET_LEAD_IN_QUARTERS;
         renderMidiPlayerLeadIn(position);
         if (progress < 1) {
             midiPlayer.frame = requestAnimationFrame(drawMidiPlayer);
@@ -3011,7 +2969,7 @@ function drawMidiPlayer() {
         midiPlayback.sequencer.play();
     }
 
-    midiPlayer.elapsed = musicEngine.clamp(
+    midiPlayer.elapsed = clamp(
         midiPlayback.sequencer.currentHighResolutionTime,
         0,
         midiPlayer.duration
@@ -3091,7 +3049,7 @@ function stopMidi(preservePosition = false) {
     }
     midiPlayback.sequencer?.pause();
     if (preservePosition) {
-        midiPlayer.position = musicEngine.clamp(
+        midiPlayer.position = clamp(
             midiPlayback.sequencer
                 ? midiPositionAtTime(
                       midiPlayback.sequencer.currentHighResolutionTime
@@ -3100,7 +3058,7 @@ function stopMidi(preservePosition = false) {
             0,
             midiPlayer.total
         );
-        midiPlayer.elapsed = musicEngine.clamp(
+        midiPlayer.elapsed = clamp(
             midiPlayback.sequencer?.currentHighResolutionTime ??
                 midiPlayer.elapsed,
             0,
@@ -3120,7 +3078,7 @@ function stopMidi(preservePosition = false) {
         midiPlayback.sequencer.currentTime = 0;
     }
     if (midiPlayback.generatedTones) {
-        musicEngine.audio.stopTransient();
+        engine.audio.stopTransient();
         midiPlayback.generatedToneIndex = 0;
     }
     if (!midiPlayer.notes.length) {
@@ -3305,10 +3263,10 @@ const rhythmSheet = {
     soundFontNoteOffs: [],
 };
 
-const rhythmSheetMicrophoneInput = musicEngine.createMicrophoneInput({
-    minimumMidi: musicEngine.MINIMUM_SUPPORTED_MIDI,
-    maximumMidi: musicEngine.MAXIMUM_SUPPORTED_MIDI,
-    sampleIntervalMs: musicEngine.RHYTHM_SHEET_ANALYSIS_INTERVAL_MS,
+const rhythmSheetMicrophoneInput = engine.createMicrophoneInput({
+    minimumMidi: music.MINIMUM_SUPPORTED_MIDI,
+    maximumMidi: music.MAXIMUM_SUPPORTED_MIDI,
+    sampleIntervalMs: music.RHYTHM_SHEET_ANALYSIS_INTERVAL_MS,
     processFrame: processRhythmSheetMicrophoneFrame,
     onDeactivate: handleRhythmSheetMicrophoneDeactivation,
     initialState: {
@@ -3327,13 +3285,11 @@ function isRhythmSheetEnabled() {
 }
 
 function rhythmSheetInitialPosition() {
-    return (
-        -rhythmSheet.meter.units - musicEngine.RHYTHM_SHEET_COUNT_IN_LEAD_UNITS
-    );
+    return -rhythmSheet.meter.units - music.RHYTHM_SHEET_COUNT_IN_LEAD_UNITS;
 }
 
 function rhythmSheetClef() {
-    return musicEngine.CLEFS[readSettingValue('rhythm-sheet-clef')];
+    return notation.CLEFS[readSettingValue('rhythm-sheet-clef')];
 }
 
 function randomRhythmSheetMidi(previousMidi = null) {
@@ -3344,8 +3300,7 @@ function randomRhythmSheetMidi(previousMidi = null) {
     for (let midi = clef.minimumMidi; midi <= clef.maximumMidi; midi += 1) {
         if (
             chromatic ||
-            musicEngine.PITCH_CLASS_NAMES[musicEngine.pitchClassFromMidi(midi)]
-                .natural
+            music.PITCH_CLASS_NAMES[music.pitchClassFromMidi(midi)].natural
         ) {
             pitches.push(midi);
         }
@@ -3372,8 +3327,8 @@ function rhythmClickInterval(signature, bpm) {
     return (
         60 /
         bpm /
-        (musicEngine.sheetMeter(signature).compound
-            ? musicEngine.SHEET_COMPOUND_SUBDIVISIONS
+        (notation.sheetMeter(signature).compound
+            ? notation.SHEET_COMPOUND_SUBDIVISIONS
             : 1)
     );
 }
@@ -3384,7 +3339,7 @@ function randomRhythmPattern(patterns) {
 
 function rhythmBeatPattern(denominator, allowSixteenths) {
     const supportedDurations = new Set(
-        musicEngine.NOTE_VALUES.map(({ value }) => denominator / value)
+        notation.NOTE_VALUES.map(({ value }) => denominator / value)
     );
     const eighthDuration = denominator / 8;
     const sixteenthDuration = denominator / 16;
@@ -3395,16 +3350,15 @@ function rhythmBeatPattern(denominator, allowSixteenths) {
         (sixteenthRemainder === 0 ||
             supportedDurations.has(sixteenthRemainder));
     const eighthPatternStart = sixteenthPatternSupported
-        ? musicEngine.RHYTHM_SHEET_SIXTEENTH_PATTERN_RATE
+        ? music.RHYTHM_SHEET_SIXTEENTH_PATTERN_RATE
         : 0;
     const roll = Math.random();
 
     if (
         sixteenthPatternSupported &&
-        roll < musicEngine.RHYTHM_SHEET_SIXTEENTH_PATTERN_RATE
+        roll < music.RHYTHM_SHEET_SIXTEENTH_PATTERN_RATE
     ) {
-        const paired =
-            Math.random() < musicEngine.RHYTHM_SHEET_SIXTEENTH_PAIR_RATE;
+        const paired = Math.random() < music.RHYTHM_SHEET_SIXTEENTH_PAIR_RATE;
         const pattern = [
             { duration: sixteenthDuration, rest: false },
             { duration: sixteenthDuration, rest: paired ? false : true },
@@ -3419,8 +3373,7 @@ function rhythmBeatPattern(denominator, allowSixteenths) {
 
     if (
         roll >= eighthPatternStart &&
-        roll <
-            eighthPatternStart + musicEngine.RHYTHM_SHEET_EIGHTH_PATTERN_RATE &&
+        roll < eighthPatternStart + music.RHYTHM_SHEET_EIGHTH_PATTERN_RATE &&
         supportedDurations.has(eighthDuration) &&
         Number.isInteger(1 / eighthDuration)
     ) {
@@ -3435,7 +3388,7 @@ function rhythmBeatPattern(denominator, allowSixteenths) {
 
 function rhythmGroupPattern(length, denominator, includeDots, limits) {
     const sixteenthDuration = denominator / 16;
-    const sustainedPatterns = musicEngine.NOTE_VALUES.flatMap(({ value }) => {
+    const sustainedPatterns = notation.NOTE_VALUES.flatMap(({ value }) => {
         if (value > 4) {
             return [];
         }
@@ -3449,7 +3402,7 @@ function rhythmGroupPattern(length, denominator, includeDots, limits) {
             }
 
             const writtenDuration =
-                duration * (dotted ? musicEngine.SHEET_DOT_MULTIPLIER : 1);
+                duration * (dotted ? notation.SHEET_DOT_MULTIPLIER : 1);
             const count = length / writtenDuration;
 
             if (
@@ -3490,7 +3443,7 @@ function rhythmGroupPattern(length, denominator, includeDots, limits) {
 
     if (
         sustainedPatterns.length &&
-        Math.random() < musicEngine.RHYTHM_SHEET_SUSTAINED_PATTERN_RATE
+        Math.random() < music.RHYTHM_SHEET_SUSTAINED_PATTERN_RATE
     ) {
         const pattern = randomRhythmPattern(sustainedPatterns);
         limits.sixteenthGroupUsed ||= pattern.some(
@@ -3526,7 +3479,7 @@ function rhythmGroups(pattern) {
 }
 
 function addRhythmTie() {
-    if (Math.random() >= musicEngine.RHYTHM_SHEET_TIE_RATE) {
+    if (Math.random() >= music.RHYTHM_SHEET_TIE_RATE) {
         return;
     }
 
@@ -3587,7 +3540,7 @@ function addRhythmTie() {
 function newRhythmPhrase() {
     stopAllAudio();
     rhythmSheet.signature = readSettingValue('shared-rhythm-time-signature');
-    rhythmSheet.meter = musicEngine.sheetMeter(rhythmSheet.signature);
+    rhythmSheet.meter = notation.sheetMeter(rhythmSheet.signature);
     const { units, denominator } = rhythmSheet.meter;
     rhythmSheet.bars = Number(readSettingValue('rhythm-sheet-bars'));
     rhythmSheet.clef = readSettingValue('rhythm-sheet-clef');
@@ -3597,7 +3550,7 @@ function newRhythmPhrase() {
     rhythmSheet.phrase = [];
     const includeDots =
         readSettingValue('rhythm-sheet-note-values') === 'all-dotted';
-    const groups = rhythmGroups(musicEngine.METERS[rhythmSheet.signature]);
+    const groups = rhythmGroups(notation.METERS[rhythmSheet.signature]);
     const limits = { sixteenthGroupUsed: false };
     let previousMidi = null;
     for (let bar = 0; bar < rhythmSheet.bars; bar += 1) {
@@ -3643,7 +3596,7 @@ function newRhythmPhrase() {
 
 function playMetronomeTapSound() {
     // A rounded tone distinct from the metronome, with enough duration to hear.
-    musicEngine.audio.playTransient(520, 'triangle', 0.055, 0.5);
+    engine.audio.playTransient(520, 'triangle', 0.055, 0.5);
 }
 
 function handleRhythmSheetMicrophoneDeactivation({ reason }) {
@@ -3685,13 +3638,13 @@ function processRhythmSheetMicrophoneFrame({
     const frequency = detectPitchYin(
         samples,
         sampleRate,
-        musicEngine.frequencyFromMidi(rhythmSheetMicrophoneInput.minimumMidi),
-        musicEngine.frequencyFromMidi(rhythmSheetMicrophoneInput.maximumMidi),
-        musicEngine.TUNER_YIN_THRESHOLD,
-        musicEngine.TUNER_ANALYSIS_SAMPLE_STRIDE
+        engine.frequencyFromMidi(rhythmSheetMicrophoneInput.minimumMidi),
+        engine.frequencyFromMidi(rhythmSheetMicrophoneInput.maximumMidi),
+        music.TUNER_YIN_THRESHOLD,
+        music.TUNER_ANALYSIS_SAMPLE_STRIDE
     );
     const position = rhythmSheet.active
-        ? (musicEngine.audio.currentTime() - rhythmSheet.origin) /
+        ? (engine.audio.currentTime() - rhythmSheet.origin) /
           rhythmSheet.interval
         : -Infinity;
 
@@ -3700,7 +3653,7 @@ function processRhythmSheetMicrophoneFrame({
         microphone.detectedFrequencies = [];
         microphone.voiceStartedAt = null;
         microphone.silentFrames += 1;
-        microphone.silenceStartedAt ??= musicEngine.audio.currentTime();
+        microphone.silenceStartedAt ??= engine.audio.currentTime();
 
         if (microphone.silentFrames >= 2) {
             renderRhythmSheetPitch();
@@ -3710,19 +3663,17 @@ function processRhythmSheetMicrophoneFrame({
         }
     } else {
         if (microphone.stableFrames === 0) {
-            microphone.voiceStartedAt = musicEngine.audio.currentTime();
+            microphone.voiceStartedAt = engine.audio.currentTime();
         }
         microphone.silentFrames = 0;
         microphone.silenceStartedAt = null;
         microphone.stableFrames += 1;
-        musicEngine.addRollingSample(
+        addRollingSample(
             microphone.detectedFrequencies,
             frequency,
-            musicEngine.RHYTHM_SHEET_FREQUENCY_SAMPLE_LIMIT
+            music.RHYTHM_SHEET_FREQUENCY_SAMPLE_LIMIT
         );
-        const stableFrequency = musicEngine.median(
-            microphone.detectedFrequencies
-        );
+        const stableFrequency = median(microphone.detectedFrequencies);
         renderRhythmSheetPitch(
             microphone.stableFrames >= 2 ? stableFrequency : null
         );
@@ -3753,8 +3704,7 @@ function updateRhythmMode() {
     if (!isRhythmSheetEnabled()) {
         rhythmSheetMicrophoneInput.deactivate('mode-changed');
     } else if (
-        musicEngine.microphoneRequestState ===
-        musicEngine.MICROPHONE_STATES.LISTENING
+        engine.microphoneRequestState === engine.MICROPHONE_STATES.LISTENING
     ) {
         activateRhythmSheetMicrophone();
     }
@@ -3837,7 +3787,7 @@ function beginRhythmHold(position) {
 function pressRhythm(
     input,
     frequency = null,
-    inputTime = musicEngine.audio.currentTime()
+    inputTime = engine.audio.currentTime()
 ) {
     if (!rhythmSheet.active || rhythmSheet.input !== null) {
         return;
@@ -3878,11 +3828,11 @@ function pressRhythm(
     rhythmSheet.held = note;
     addRhythmSheetPitchSample(frequency);
     showRhythmSheetResult(
-        `Attack: ${rhythmOffset(note.attack)} - target ${musicEngine.noteNameFromMidi(note.midi, 'sharp')}.`
+        `Attack: ${rhythmOffset(note.attack)} - target ${music.noteNameFromMidi(note.midi, 'sharp')}.`
     );
 }
 
-function releaseRhythm(input, inputTime = musicEngine.audio.currentTime()) {
+function releaseRhythm(input, inputTime = engine.audio.currentTime()) {
     if (rhythmSheet.input !== input) {
         return;
     }
@@ -3898,16 +3848,16 @@ function releaseRhythm(input, inputTime = musicEngine.audio.currentTime()) {
                 (note.beat + note.duration) * rhythmSheet.interval) *
             1000;
         if (note.pitchSamples.length) {
-            note.pitchFrequency = musicEngine.median(note.pitchSamples);
-            note.pitchError = musicEngine.centsBetween(
+            note.pitchFrequency = median(note.pitchSamples);
+            note.pitchError = music.centsBetween(
                 note.pitchFrequency,
-                musicEngine.frequencyFromMidi(note.midi)
+                engine.frequencyFromMidi(note.midi)
             );
         }
         const pitchResult =
             note.pitchError === null
                 ? ''
-                : ` - Pitch: ${musicEngine.signed(note.pitchError, 0)} cents`;
+                : ` - Pitch: ${signed(note.pitchError, 0)} cents`;
         showRhythmSheetResult(
             `Attack: ${rhythmOffset(note.attack)} - Release: ${rhythmOffset(note.release)}${pitchResult}`
         );
@@ -3950,15 +3900,15 @@ function finishRhythmSheet() {
     const { units } = rhythmSheet.meter;
     positionSheetLane(
         rhythmSheet,
-        musicEngine.RHYTHM_SHEET_SCORE_SELECTOR,
-        -units - musicEngine.RHYTHM_SHEET_COUNT_IN_LEAD_UNITS
+        music.RHYTHM_SHEET_SCORE_SELECTOR,
+        -units - music.RHYTHM_SHEET_COUNT_IN_LEAD_UNITS
     );
     renderRhythmSheetStatus('Complete');
 }
 
 function drawRhythmSheet() {
     const position =
-        (musicEngine.audio.currentTime() - rhythmSheet.origin) /
+        (engine.audio.currentTime() - rhythmSheet.origin) /
         rhythmSheet.interval;
     rhythmSheet.position = position;
     updateRhythmHold(position);
@@ -3975,14 +3925,14 @@ function stopRhythmSheet(preservePosition = false) {
     const wasPaused = rhythmSheet.paused;
     if (rhythmSheet.currentHold) {
         updateRhythmHold(
-            (musicEngine.audio.currentTime() - rhythmSheet.origin) /
+            (engine.audio.currentTime() - rhythmSheet.origin) /
                 rhythmSheet.interval,
             true
         );
     }
     if (wasActive) {
         rhythmSheet.position =
-            (musicEngine.audio.currentTime() - rhythmSheet.origin) /
+            (engine.audio.currentTime() - rhythmSheet.origin) /
             rhythmSheet.interval;
     }
     rhythmSheetMicrophoneInput.deactivate('exercise-stopped');
@@ -3997,7 +3947,7 @@ function stopRhythmSheet(preservePosition = false) {
         rhythmSheet.position = rhythmSheetInitialPosition();
         positionSheetLane(
             rhythmSheet,
-            musicEngine.RHYTHM_SHEET_SCORE_SELECTOR,
+            music.RHYTHM_SHEET_SCORE_SELECTOR,
             rhythmSheet.position
         );
         clearRhythmFeedback();
@@ -4064,7 +4014,7 @@ function recordRhythmMetronomeTap() {
     const absoluteError = Math.abs(error);
     const correct = absoluteError <= 20;
 
-    musicEngine.updateStats(musicEngine.stats.rhythm.metronome, {
+    engine.updateStats(engine.stats.rhythm.metronome, {
         correct,
         error: absoluteError,
     });
@@ -4110,12 +4060,13 @@ function resetRhythmSheetSoundFont() {
 
     synth.stopAll(true);
     synth.reset();
-    synth.midiChannels[
-        musicEngine.RHYTHM_SHEET_MIDI_CHANNEL
-    ]?.setSystemParameter('isMuted', false);
+    synth.midiChannels[music.RHYTHM_SHEET_MIDI_CHANNEL]?.setSystemParameter(
+        'isMuted',
+        false
+    );
     synth.programChange(
-        musicEngine.RHYTHM_SHEET_MIDI_CHANNEL,
-        musicEngine.RHYTHM_SHEET_MIDI_PROGRAM
+        music.RHYTHM_SHEET_MIDI_CHANNEL,
+        music.RHYTHM_SHEET_MIDI_PROGRAM
     );
     rhythmSheet.soundFontNoteOffs = [];
     rhythmSheet.soundFontReady = true;
@@ -4155,13 +4106,14 @@ function stopRhythmSheetSoundFont() {
     const synth = soundFontSynthesizer.synth;
     if (rhythmSheet.soundFontReady && synth) {
         synth.stopAll(true);
-        synth.midiChannels[
-            musicEngine.RHYTHM_SHEET_MIDI_CHANNEL
-        ]?.setSystemParameter('isMuted', true);
+        synth.midiChannels[music.RHYTHM_SHEET_MIDI_CHANNEL]?.setSystemParameter(
+            'isMuted',
+            true
+        );
         rhythmSheet.soundFontMutedUntil =
             performance.now() +
-            musicEngine.PLAYBACK_SCHEDULE_AHEAD_SECONDS * 1000 +
-            musicEngine.PLAYBACK_LOOKAHEAD_MS;
+            music.PLAYBACK_SCHEDULE_AHEAD_SECONDS * 1000 +
+            music.PLAYBACK_LOOKAHEAD_MS;
     }
     rhythmSheet.soundFontReady = false;
 }
@@ -4169,8 +4121,8 @@ function stopRhythmSheetSoundFont() {
 function playRhythmSheetNoteCue(note, startTime, now) {
     const writtenDuration = note.duration * rhythmSheet.interval;
     const releaseGap = Math.min(
-        musicEngine.RHYTHM_SHEET_NOTE_RELEASE_GAP_SECONDS,
-        writtenDuration * musicEngine.RHYTHM_SHEET_NOTE_RELEASE_GAP_RATIO
+        music.RHYTHM_SHEET_NOTE_RELEASE_GAP_SECONDS,
+        writtenDuration * music.RHYTHM_SHEET_NOTE_RELEASE_GAP_RATIO
     );
     const duration = writtenDuration - releaseGap;
     if (rhythmSheet.soundFontReady && soundFontSynthesizer.synth) {
@@ -4178,9 +4130,9 @@ function playRhythmSheetNoteCue(note, startTime, now) {
             soundFontSynthesizer.synth.currentTime +
             Math.max(0, startTime - now);
         soundFontSynthesizer.synth.noteOn(
-            musicEngine.RHYTHM_SHEET_MIDI_CHANNEL,
+            music.RHYTHM_SHEET_MIDI_CHANNEL,
             note.midi,
-            musicEngine.RHYTHM_SHEET_NOTE_CUE_VELOCITY,
+            music.RHYTHM_SHEET_NOTE_CUE_VELOCITY,
             { time: synthStartTime }
         );
         rhythmSheet.soundFontNoteOffs.push({
@@ -4190,11 +4142,11 @@ function playRhythmSheetNoteCue(note, startTime, now) {
         return;
     }
 
-    musicEngine.audio.playTransient(
-        musicEngine.frequencyFromMidi(note.midi),
+    engine.audio.playTransient(
+        engine.frequencyFromMidi(note.midi),
         'triangle',
         duration,
-        musicEngine.RHYTHM_SHEET_NOTE_CUE_VOLUME,
+        music.RHYTHM_SHEET_NOTE_CUE_VOLUME,
         Math.max(0, startTime - now)
     );
 }
@@ -4206,11 +4158,11 @@ function scheduleRhythmSheetNoteOffs(now) {
 
     while (
         rhythmSheet.soundFontNoteOffs[0]?.time <
-        now + musicEngine.PLAYBACK_SCHEDULE_AHEAD_SECONDS
+        now + music.PLAYBACK_SCHEDULE_AHEAD_SECONDS
     ) {
         const noteOff = rhythmSheet.soundFontNoteOffs.shift();
         soundFontSynthesizer.synth.noteOff(
-            musicEngine.RHYTHM_SHEET_MIDI_CHANNEL,
+            music.RHYTHM_SHEET_MIDI_CHANNEL,
             noteOff.midi,
             {
                 time:
@@ -4230,7 +4182,7 @@ function scheduleRhythmSheetNoteCues(now) {
         const note = rhythmSheet.phrase[rhythmSheet.nextNoteIndex];
         const startTime = rhythmSheet.origin + note.beat * rhythmSheet.interval;
 
-        if (startTime >= now + musicEngine.PLAYBACK_SCHEDULE_AHEAD_SECONDS) {
+        if (startTime >= now + music.PLAYBACK_SCHEDULE_AHEAD_SECONDS) {
             break;
         }
 
@@ -4253,18 +4205,18 @@ function scheduleRhythm() {
 
     const signature = rhythmPlayer.signature;
 
-    const pattern = musicEngine.METERS[signature] || musicEngine.METERS['4/4'];
+    const pattern = notation.METERS[signature] || notation.METERS['4/4'];
 
     const secondsPerClick = rhythmClickInterval(signature, bpm);
 
     rhythmPlayer.clickInterval = secondsPerClick;
-    const now = musicEngine.audio.currentTime();
+    const now = engine.audio.currentTime();
 
     scheduleRhythmSheetNoteCues(now);
 
     while (
         rhythmPlayer.nextBeatTime <
-        now + musicEngine.PLAYBACK_SCHEDULE_AHEAD_SECONDS
+        now + music.PLAYBACK_SCHEDULE_AHEAD_SECONDS
     ) {
         if (
             isRhythmSheetEnabled() &&
@@ -4277,14 +4229,14 @@ function scheduleRhythm() {
         }
         const accent = pattern[rhythmPlayer.beatIndex];
 
-        const frequency = musicEngine.RHYTHM_CLICK_FREQUENCIES[accent];
+        const frequency = music.RHYTHM_CLICK_FREQUENCIES[accent];
 
         const volume = accent === 2 ? 0.9 : accent === 1 ? 0.75 : 0.6;
 
-        musicEngine.audio.playTransient(
+        engine.audio.playTransient(
             frequency,
             'sine',
-            musicEngine.RHYTHM_CLICK_DURATION,
+            music.RHYTHM_CLICK_DURATION,
             volume,
             Math.max(0, rhythmPlayer.nextBeatTime - now)
         );
@@ -4330,7 +4282,7 @@ async function playRhythm() {
         clearRhythmSheetResults();
     }
     if (isRhythmSheetEnabled()) {
-        renderRhythmSheetMessage(musicEngine.MICROPHONE_MESSAGES.REQUESTING);
+        renderRhythmSheetMessage(engine.MICROPHONE_MESSAGES.REQUESTING);
         try {
             const started = await activateRhythmSheetMicrophone();
             if (
@@ -4342,19 +4294,16 @@ async function playRhythm() {
                 rhythmSheetMicrophoneInput.deactivate('activation-cancelled');
                 stopRhythmSheetSoundFont();
                 if (
-                    musicEngine.microphoneState ===
-                    musicEngine.MICROPHONE_STATES.DENIED
+                    engine.microphoneState === engine.MICROPHONE_STATES.DENIED
                 ) {
                     renderRhythmSheetMessage(
-                        `${musicEngine.microphoneFailureMessage}.`
+                        `${engine.microphoneFailureMessage}.`
                     );
                 }
                 return;
             }
         } catch {
-            renderRhythmSheetMessage(
-                `${musicEngine.MICROPHONE_MESSAGES.FAILED}.`
-            );
+            renderRhythmSheetMessage(`${engine.MICROPHONE_MESSAGES.FAILED}.`);
         }
     }
 
@@ -4376,7 +4325,7 @@ async function playRhythm() {
     const sheetEnabled = isRhythmSheetEnabled();
     const metronomeEnabled = isRhythmMetronomeEnabled();
 
-    rhythmPlayer.bpm = musicEngine.clamp(
+    rhythmPlayer.bpm = clamp(
         readNumberSetting('shared-rhythm-bpm', 100),
         30,
         240
@@ -4387,7 +4336,7 @@ async function playRhythm() {
     updateScreenWakeLock();
     updateRhythmSheetTransport();
     rhythmPlayer.beatIndex = 0;
-    const now = musicEngine.audio.currentTime();
+    const now = engine.audio.currentTime();
     if (resumePosition !== null) {
         rhythmSheet.interval = rhythmClickInterval(
             rhythmPlayer.signature,
@@ -4398,21 +4347,20 @@ async function playRhythm() {
         rhythmPlayer.nextBeatTime =
             rhythmSheet.origin + nextBeatPosition * rhythmSheet.interval;
         const pattern =
-            musicEngine.METERS[rhythmPlayer.signature] ||
-            musicEngine.METERS['4/4'];
+            notation.METERS[rhythmPlayer.signature] || notation.METERS['4/4'];
         rhythmPlayer.beatIndex =
             ((nextBeatPosition % pattern.length) + pattern.length) %
             pattern.length;
     } else {
         const leadIn = sheetEnabled
             ? rhythmClickInterval(rhythmPlayer.signature, rhythmPlayer.bpm) *
-              musicEngine.RHYTHM_SHEET_COUNT_IN_LEAD_UNITS
+              music.RHYTHM_SHEET_COUNT_IN_LEAD_UNITS
             : 1;
         rhythmPlayer.nextBeatTime = now + leadIn;
     }
     rhythmMetronome.originMs =
         performance.now() +
-        (rhythmPlayer.nextBeatTime - musicEngine.audio.currentTime()) * 1000;
+        (rhythmPlayer.nextBeatTime - engine.audio.currentTime()) * 1000;
     rhythmMetronome.lastBeat = -1;
     rhythmMetronome.errors = [];
     clearRhythmMetronomeMark();
@@ -4429,14 +4377,14 @@ async function playRhythm() {
 
     rhythmPlayer.timer = window.setInterval(
         scheduleRhythm,
-        musicEngine.PLAYBACK_LOOKAHEAD_MS
+        music.PLAYBACK_LOOKAHEAD_MS
     );
 }
 
 function stopRhythm(preserveSheetPosition = false) {
     stopRhythmSheet(preserveSheetPosition);
     stopRhythmSheetSoundFont();
-    musicEngine.audio.stopTransient();
+    engine.audio.stopTransient();
     cancelAnimationFrame(rhythmMetronome.frame);
     rhythmMetronome.frame = null;
     renderRhythmMetronomeStopped();
@@ -4481,7 +4429,7 @@ function tapTempo() {
 
     const bpmBounds = readSettingBounds('shared-rhythm-bpm');
 
-    const bpm = musicEngine.clamp(
+    const bpm = clamp(
         Math.round(60000 / averageInterval),
         bpmBounds.minimum,
         bpmBounds.maximum
@@ -4530,7 +4478,7 @@ function initialize() {
     newChordTrial();
     renderStats();
 
-    musicEngine.setMicrophoneState(musicEngine.MICROPHONE_STATES.PAUSED);
+    engine.setMicrophoneState(engine.MICROPHONE_STATES.PAUSED);
     restorePitchMemoryState();
     renderPitchMemoryResponsePitch(getPitchMemoryResponseFrequency());
 }

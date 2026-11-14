@@ -148,14 +148,14 @@ const sheetScoreResizeObserver = new ResizeObserver((entries) => {
 });
 
 function cacheSheetScoreView(
-    notation,
+    score,
     scoreElement,
     lane,
     noteElements,
     renderables,
     virtualized
 ) {
-    destroySheetScore(notation);
+    destroySheetScore(score);
     const playLinePercentage = Number.parseFloat(
         getComputedStyle(scoreElement).getPropertyValue(
             '--sheet-play-line-position'
@@ -169,9 +169,9 @@ function cacheSheetScoreView(
         element: scoreElement,
         highlighted: new Set(),
         lane,
-        layout: createSheetLayout(notation),
+        layout: notation.createSheetLayout(score),
         noteElements,
-        notation,
+        notation: score,
         playLinePercentage,
         playLinePosition:
             (scoreElement.clientWidth * playLinePercentage) /
@@ -193,20 +193,20 @@ function cacheSheetScoreView(
         windowEnd: -Infinity,
         windowStart: Infinity,
     };
-    sheetNotationViews.set(notation, view);
+    sheetNotationViews.set(score, view);
     sheetScoreViews.set(scoreElement, view);
     sheetScoreResizeObserver.observe(scoreElement);
 }
 
-function destroySheetScore(notation) {
-    const view = sheetNotationViews.get(notation);
+function destroySheetScore(score) {
+    const view = sheetNotationViews.get(score);
     if (!view) {
         return;
     }
 
     sheetScoreResizeObserver.unobserve(view.element);
     sheetScoreViews.delete(view.element);
-    sheetNotationViews.delete(notation);
+    sheetNotationViews.delete(score);
 }
 
 function positionSheetLane(score, scoreSelector, position) {
@@ -219,12 +219,12 @@ function positionSheetLane(score, scoreSelector, position) {
     updateSheetLane(view);
 }
 
-function renderSheetScore(notation, scoreSelector, options = {}) {
+function renderSheetScore(score, scoreSelector, options = {}) {
     const {
         barGlide = false,
         countIn = false,
         durationGuide = false,
-        initialPosition = countIn ? -notation.meter.units : 0,
+        initialPosition = countIn ? -score.meter.units : 0,
         pitchGuide = false,
         virtualize = false,
     } = options;
@@ -250,9 +250,9 @@ function renderSheetScore(notation, scoreSelector, options = {}) {
             },
         ])
     );
-    const { units } = notation.meter;
-    const clefDefinition = musicEngine.CLEFS[notation.clef];
-    const layout = createSheetLayout(notation);
+    const { units } = score.meter;
+    const clefDefinition = notation.CLEFS[score.clef];
+    const layout = notation.createSheetLayout(score);
     const staff = document.createElement('span');
     staff.className = 'sheet-staff';
     staff.setAttribute('aria-hidden', 'true');
@@ -262,7 +262,7 @@ function renderSheetScore(notation, scoreSelector, options = {}) {
     const lane = document.createElement('div');
     lane.className = 'sheet-lane';
     const noteElements = Array.from(
-        { length: notation.phrase.length },
+        { length: score.phrase.length },
         () => new Set()
     );
     const renderables = [];
@@ -297,21 +297,21 @@ function renderSheetScore(notation, scoreSelector, options = {}) {
             });
         }
     }
-    for (let bar = 0; bar <= notation.bars; bar += 1) {
+    for (let bar = 0; bar <= score.bars; bar += 1) {
         addRenderable(bar * units, bar * units + 0.000001, () => {
             const line = document.createElement('span');
             line.className = 'sheet-barline';
             line.style.left = `${bar * layout.barWidth}rem`;
-            line.textContent = bar === notation.bars ? '𝄂' : '𝄀';
+            line.textContent = bar === score.bars ? '𝄂' : '𝄀';
             return line;
         });
 
-        if ((barGlide || durationGuide) && bar > 0 && bar < notation.bars) {
+        if ((barGlide || durationGuide) && bar > 0 && bar < score.bars) {
             addRenderable(bar * units, bar * units + 0.000001, () => {
                 const glide = document.createElement('span');
                 glide.className = 'sheet-bar-glide';
-                glide.style.left = `${bar * layout.barWidth - musicEngine.SHEET_BAR_PADDING_REM}rem`;
-                glide.style.width = `${musicEngine.SHEET_BAR_PADDING_REM * 2}rem`;
+                glide.style.left = `${bar * layout.barWidth - notation.SHEET_BAR_PADDING_REM}rem`;
+                glide.style.width = `${notation.SHEET_BAR_PADDING_REM * 2}rem`;
                 glide.setAttribute('aria-hidden', 'true');
                 for (let index = 0; index < 5; index += 1) {
                     const chevron = document.createElement('span');
@@ -327,23 +327,22 @@ function renderSheetScore(notation, scoreSelector, options = {}) {
         heading.className = 'sheet-score-heading';
         heading.style.left = `${layout.writtenPosition(0)}rem`;
         const clef = document.createElement('span');
-        clef.className = `sheet-clef sheet-clef-${notation.clef}`;
+        clef.className = `sheet-clef sheet-clef-${score.clef}`;
         clef.textContent = clefDefinition.symbol;
-        clef.title = `${notation.clef[0].toUpperCase()}${notation.clef.slice(1)} clef`;
+        clef.title = `${score.clef[0].toUpperCase()}${score.clef.slice(1)} clef`;
         const signature = document.createElement('span');
         signature.className = 'sheet-signature';
         signature.title =
-            notation.signature === '4/4'
+            score.signature === '4/4'
                 ? 'Common time (4/4)'
-                : notation.signature === '2/2'
+                : score.signature === '2/2'
                   ? 'Cut time (2/2)'
-                  : `${notation.signature} time`;
-        if (musicEngine.SIGNATURE_SYMBOLS[notation.signature]) {
-            signature.textContent =
-                musicEngine.SIGNATURE_SYMBOLS[notation.signature];
+                  : `${score.signature} time`;
+        if (notation.SIGNATURE_SYMBOLS[score.signature]) {
+            signature.textContent = notation.SIGNATURE_SYMBOLS[score.signature];
         } else {
             signature.classList.add('is-numeric');
-            const [top, bottom] = notation.signature.split('/');
+            const [top, bottom] = score.signature.split('/');
             for (const number of [top, bottom]) {
                 const row = document.createElement('span');
                 row.textContent = number;
@@ -354,9 +353,9 @@ function renderSheetScore(notation, scoreSelector, options = {}) {
         return heading;
     });
 
-    const writtenNotes = notation.phrase
+    const writtenNotes = score.phrase
         .flatMap((note, noteIndex) =>
-            sheetNoteSegments(note).map((segment, segmentIndex) => ({
+            notation.sheetNoteSegments(note).map((segment, segmentIndex) => ({
                 note,
                 noteIndex,
                 segment,
@@ -364,11 +363,13 @@ function renderSheetScore(notation, scoreSelector, options = {}) {
                 staffStep: note.rest
                     ? null
                     : (note.staffStep ??
-                      diatonicPositionFromMidi(note.writtenMidi ?? note.midi) -
-                          diatonicPositionFromMidi(
+                      notation.diatonicPositionFromMidi(
+                          note.writtenMidi ?? note.midi
+                      ) -
+                          notation.diatonicPositionFromMidi(
                               clefDefinition.bottomLineMidi
                           )),
-                value: sheetNoteValue(segment, notation.meter),
+                value: notation.sheetNoteValue(segment, score.meter),
             }))
         )
         .sort(
@@ -410,18 +411,17 @@ function renderSheetScore(notation, scoreSelector, options = {}) {
             continue;
         }
 
-        const bar = musicEngine.sheetPositionFloor(
+        const bar = notation.sheetPositionFloor(
             writtenNote.segment.beat,
             units
         );
         const writtenMidi =
             writtenNote.note.writtenMidi ?? writtenNote.note.midi;
-        const staffPosition = diatonicPositionFromMidi(writtenMidi);
+        const staffPosition = notation.diatonicPositionFromMidi(writtenMidi);
         const accidentalKey = `${bar}:${staffPosition}`;
         const sharpened =
-            !musicEngine.PITCH_CLASS_NAMES[
-                musicEngine.pitchClassFromMidi(writtenMidi)
-            ].natural;
+            !music.PITCH_CLASS_NAMES[music.pitchClassFromMidi(writtenMidi)]
+                .natural;
         const activeAccidental = activeAccidentals.get(accidentalKey) ?? false;
 
         if (sharpened !== activeAccidental) {
@@ -430,7 +430,10 @@ function renderSheetScore(notation, scoreSelector, options = {}) {
         }
     }
     const beamMembership = new Map();
-    const candidateBeamGroups = sheetBeamGroups(writtenNotes, notation.meter);
+    const candidateBeamGroups = notation.sheetBeamGroups(
+        writtenNotes,
+        score.meter
+    );
     const beamGroups = [];
     const beamLayouts = new Map();
 
@@ -479,11 +482,7 @@ function renderSheetScore(notation, scoreSelector, options = {}) {
         const maximumSlopeRise = group.length === 2 ? 0.75 : 0.375;
         let yEnd =
             yStart +
-            musicEngine.clamp(
-                lastNoteY - firstNoteY,
-                -maximumSlopeRise,
-                maximumSlopeRise
-            );
+            clamp(lastNoteY - firstNoteY, -maximumSlopeRise, maximumSlopeRise);
         yStart += geometry.layoutY;
         yEnd += geometry.layoutY;
         const slope = (yEnd - yStart) / (xEnd - xStart);
@@ -539,7 +538,7 @@ function renderSheetScore(notation, scoreSelector, options = {}) {
               );
         const stemOffset =
             minimumOffset <= maximumOffset
-                ? musicEngine.clamp(0, minimumOffset, maximumOffset)
+                ? clamp(0, minimumOffset, maximumOffset)
                 : stemDown
                   ? Math.max(0, minimumOffset)
                   : Math.min(0, maximumOffset);
@@ -601,9 +600,10 @@ function renderSheetScore(notation, scoreSelector, options = {}) {
                 element.style.width = `${width}rem`;
                 const pitchName = note.rest
                     ? ''
-                    : `${note.percussionName ?? musicEngine.noteNameFromMidi(note.midi, 'sharp')} `;
-                const tied = sheetNoteSegments(note).length > 1 ? ' tied' : '';
-                element.title = `${pitchName}${sheetNoteName(segment, notation.meter)} ${note.rest ? 'rest' : `note${tied}`} - ${sheetDurationLabel(segment.duration)} ${sheetDurationUnit(notation.meter)}`;
+                    : `${note.percussionName ?? music.noteNameFromMidi(note.midi, 'sharp')} `;
+                const tied =
+                    notation.sheetNoteSegments(note).length > 1 ? ' tied' : '';
+                element.title = `${pitchName}${notation.sheetNoteName(segment, score.meter)} ${note.rest ? 'rest' : `note${tied}`} - ${notation.sheetDurationLabel(segment.duration)} ${notation.sheetDurationUnit(score.meter)}`;
                 const symbol = document.createElement('span');
                 symbol.className = 'sheet-note-symbol';
                 symbol.setAttribute('aria-hidden', 'true');
@@ -809,13 +809,15 @@ function renderSheetScore(notation, scoreSelector, options = {}) {
         );
     }
 
-    notation.phrase.forEach((note, noteIndex) => {
-        const segments = sheetNoteSegments(note);
+    score.phrase.forEach((note, noteIndex) => {
+        const segments = notation.sheetNoteSegments(note);
         const staffStep = note.rest
             ? null
             : (note.staffStep ??
-              diatonicPositionFromMidi(note.writtenMidi ?? note.midi) -
-                  diatonicPositionFromMidi(clefDefinition.bottomLineMidi));
+              notation.diatonicPositionFromMidi(note.writtenMidi ?? note.midi) -
+                  notation.diatonicPositionFromMidi(
+                      clefDefinition.bottomLineMidi
+                  ));
 
         for (
             let segmentIndex = 0;
@@ -861,16 +863,28 @@ function renderSheetScore(notation, scoreSelector, options = {}) {
     }
     scoreElement.replaceChildren(...scoreElements);
     cacheSheetScoreView(
-        notation,
+        score,
         scoreElement,
         lane,
         noteElements,
         renderables,
         virtualize
     );
-    positionSheetLane(notation, scoreSelector, initialPosition);
+    positionSheetLane(score, scoreSelector, initialPosition);
 }
 // Practice
+
+function answerStateClass(answer, selected, correct) {
+    if (selected === null) {
+        return null;
+    }
+
+    if (answer === correct) {
+        return answer === selected ? 'is-correct' : 'is-target';
+    }
+
+    return answer === selected ? 'is-incorrect' : null;
+}
 
 function createAutoAdvance(module, advance) {
     const elements = getModuleActions(module, 'new');
@@ -984,25 +998,25 @@ function renderPlayedNotes(outputName, text) {
 
 function setAnswerOptionState(button, answer, selected, correct) {
     button.classList.remove('is-correct', 'is-incorrect', 'is-target');
-    const stateClass = musicEngine.answerStateClass(answer, selected, correct);
+    const stateClass = answerStateClass(answer, selected, correct);
     if (stateClass) {
         button.classList.add(stateClass);
     }
 }
 
 function renderMicrophoneState() {
-    const state = musicEngine.microphoneState;
+    const state = engine.microphoneState;
     const label = {
-        [musicEngine.MICROPHONE_STATES.UNPROMPTED]: 'Enable microphone',
-        [musicEngine.MICROPHONE_STATES.DENIED]: 'Retry microphone access',
-        [musicEngine.MICROPHONE_STATES.LISTENING]: 'Pause microphone',
-        [musicEngine.MICROPHONE_STATES.PAUSED]: 'Start microphone',
+        [engine.MICROPHONE_STATES.UNPROMPTED]: 'Enable microphone',
+        [engine.MICROPHONE_STATES.DENIED]: 'Retry microphone access',
+        [engine.MICROPHONE_STATES.LISTENING]: 'Pause microphone',
+        [engine.MICROPHONE_STATES.PAUSED]: 'Start microphone',
     }[state];
     for (const button of getActions('global-microphone-toggle')) {
         button.dataset.microphoneState = state;
         button.setAttribute(
             'aria-pressed',
-            String(state === musicEngine.MICROPHONE_STATES.LISTENING)
+            String(state === engine.MICROPHONE_STATES.LISTENING)
         );
         button.setAttribute('aria-label', label);
         button.title = label;
@@ -1067,21 +1081,21 @@ function setNumberIfChanged(input, value) {
 function createNoteOption(midi) {
     const option = document.createElement('option');
     option.value = String(midi);
-    option.textContent = musicEngine.noteNameFromMidi(midi);
+    option.textContent = music.noteNameFromMidi(midi);
     return option;
 }
 
 function populateNoteSelector(select) {
     const options = [];
     for (
-        let midi = musicEngine.MIDI_NOTES.C2;
-        midi <= musicEngine.MIDI_NOTES.C6;
+        let midi = music.MIDI_NOTES.C2;
+        midi <= music.MIDI_NOTES.C6;
         midi += 1
     ) {
         options.push(createNoteOption(midi));
     }
     select.replaceChildren(...options);
-    select.value = String(musicEngine.MIDI_NOTES.A4);
+    select.value = String(music.MIDI_NOTES.A4);
 }
 
 function initializeNotes() {
@@ -1175,7 +1189,7 @@ function initializeTooltips() {
         const center = tipBounds.left + tipBounds.width / 2;
         const centeredLeft = center - tooltipWidth / 2;
         const viewportWidth = document.documentElement.clientWidth;
-        const boundedLeft = musicEngine.clamp(
+        const boundedLeft = clamp(
             centeredLeft,
             12,
             Math.max(12, viewportWidth - tooltipWidth - 12)
@@ -1514,7 +1528,7 @@ function renderMidiFile(hasSignatureChanges) {
                     barGlide: true,
                     initialPosition:
                         -midiPlayer.unitsPerQuarter *
-                        musicEngine.MIDI_SHEET_LEAD_IN_QUARTERS,
+                        notation.MIDI_SHEET_LEAD_IN_QUARTERS,
                     virtualize: true,
                 });
             }
@@ -1586,7 +1600,7 @@ function updateMidiPlayerTimer() {
     }
 }
 
-function setMidiSheetNoteHighlighted(notation, state, index, highlighted) {
+function setMidiSheetNoteHighlighted(score, state, index, highlighted) {
     if (state.active.has(index) === highlighted) {
         return;
     }
@@ -1595,7 +1609,7 @@ function setMidiSheetNoteHighlighted(notation, state, index, highlighted) {
     } else {
         state.active.delete(index);
     }
-    const view = sheetNotationViews.get(notation);
+    const view = sheetNotationViews.get(score);
     if (highlighted) {
         view?.highlighted.add(index);
     } else {
@@ -1606,21 +1620,21 @@ function setMidiSheetNoteHighlighted(notation, state, index, highlighted) {
     }
 }
 
-function resetMidiSheetHighlights(notation) {
-    const state = midiSheetHighlightState(notation);
+function resetMidiSheetHighlights(score) {
+    const state = midiSheetHighlightState(score);
     for (const index of [...state.active]) {
-        setMidiSheetNoteHighlighted(notation, state, index, false);
+        setMidiSheetNoteHighlighted(score, state, index, false);
     }
     state.nextEnd = 0;
     state.nextStart = 0;
     state.position = -Infinity;
 }
 
-function updateMidiSheetHighlights(notation, position) {
-    const state = midiSheetHighlightState(notation);
+function updateMidiSheetHighlights(score, position) {
+    const state = midiSheetHighlightState(score);
     if (position < state.position) {
         for (const index of [...state.active]) {
-            setMidiSheetNoteHighlighted(notation, state, index, false);
+            setMidiSheetNoteHighlighted(score, state, index, false);
         }
         state.nextStart = midiEventUpperBound(state.starts, position, 'start');
         state.nextEnd = midiEventUpperBound(state.ends, position, 'end');
@@ -1631,7 +1645,7 @@ function updateMidiSheetHighlights(notation, position) {
         ) {
             const event = state.starts[index];
             if (event.end > position) {
-                setMidiSheetNoteHighlighted(notation, state, event.index, true);
+                setMidiSheetNoteHighlighted(score, state, event.index, true);
             }
         }
         state.position = position;
@@ -1642,7 +1656,7 @@ function updateMidiSheetHighlights(notation, position) {
         state.ends[state.nextEnd].end <= position
     ) {
         setMidiSheetNoteHighlighted(
-            notation,
+            score,
             state,
             state.ends[state.nextEnd].index,
             false
@@ -1655,7 +1669,7 @@ function updateMidiSheetHighlights(notation, position) {
     ) {
         const event = state.starts[state.nextStart];
         if (event.end > position) {
-            setMidiSheetNoteHighlighted(notation, state, event.index, true);
+            setMidiSheetNoteHighlighted(score, state, event.index, true);
         }
         state.nextStart += 1;
     }
@@ -1742,7 +1756,7 @@ function renderRhythmSheetReport(
         [
             'Notes in tune',
             pitched.length
-                ? `${pitched.filter((note) => Math.abs(note.pitchError) <= musicEngine.RHYTHM_SHEET_CORRECT_CENTS).length} / ${pitched.length}`
+                ? `${pitched.filter((note) => Math.abs(note.pitchError) <= music.RHYTHM_SHEET_CORRECT_CENTS).length} / ${pitched.length}`
                 : 'Not scored',
         ],
     ]) {
@@ -1769,10 +1783,7 @@ function renderRhythmSheetReport(
             continue;
         }
         const item = document.createElement('li');
-        item.textContent = musicEngine.sheetNotePosition(
-            note,
-            rhythmSheet.meter
-        );
+        item.textContent = notation.sheetNotePosition(note, rhythmSheet.meter);
         const holds = document.createElement('ul');
         if (note.rest) {
             const rest = document.createElement('li');
@@ -1793,8 +1804,8 @@ function renderRhythmSheetReport(
             const pitch =
                 note.pitchError === null
                     ? ''
-                    : `, ${musicEngine.signed(note.pitchError, 0)} cents`;
-            detail.textContent = `${musicEngine.noteNameFromMidi(note.midi, 'sharp')} - ${timing}${pitch}`;
+                    : `, ${signed(note.pitchError, 0)} cents`;
+            detail.textContent = `${music.noteNameFromMidi(note.midi, 'sharp')} - ${timing}${pitch}`;
             holds.append(detail);
         }
         for (const hold of spurious) {
@@ -1816,7 +1827,7 @@ function renderRhythmSheetReport(
 
 function renderRhythmSheetStatus(status) {
     document.getElementById('rhythm-sheet-count-label').textContent =
-        `${status} - durations in ${musicEngine.sheetDurationUnit(rhythmSheet.meter)}`;
+        `${status} - durations in ${notation.sheetDurationUnit(rhythmSheet.meter)}`;
 }
 
 function renderRhythmSheetMessage(message, loading = false) {
@@ -1833,7 +1844,7 @@ function renderRhythmSheetMessageLoading(loading) {
 
 function renderRhythmSheetActive(active) {
     document
-        .querySelector(musicEngine.RHYTHM_SHEET_SCORE_SELECTOR)
+        .querySelector(music.RHYTHM_SHEET_SCORE_SELECTOR)
         .setAttribute('aria-disabled', String(!active));
     const hold = document.getElementById('rhythm-sheet-hold');
     hold.disabled = !active;
@@ -1851,7 +1862,7 @@ function renderRhythmHold(held) {
 
 function clearRhythmSheetCurrentNotes() {
     for (const element of document.querySelectorAll(
-        `${musicEngine.RHYTHM_SHEET_SCORE_SELECTOR} .is-current`
+        `${music.RHYTHM_SHEET_SCORE_SELECTOR} .is-current`
     )) {
         element.classList.remove('is-current');
     }
@@ -1973,7 +1984,7 @@ function renderAdaptiveStatus(exercise, text) {
 
 function renderAdaptiveProgress(exercise, answerCount, enabled) {
     getOutput(`${exercise}-adaptive-status`).textContent = enabled
-        ? `${answerCount} of ${musicEngine.ADAPTIVE_WINDOW_SIZE} answers`
+        ? `${answerCount} of ${music.ADAPTIVE_WINDOW_SIZE} answers`
         : '';
 }
 
@@ -1984,7 +1995,7 @@ function renderPitchMemoryResponsePitch(frequency) {
 
 function hidePitchMemoryResponses() {
     document.getElementById('pitch-memory-pitch-response').hidden =
-        !musicEngine.state.pitch.memory;
+        !engine.state.pitch.memory;
     const response = document.getElementById('pitch-memory-response-actions');
     response.hidden = true;
     getAction('pitch-memory-submit', response).disabled = true;
@@ -2009,14 +2020,14 @@ function showPitchMemoryPitchMarkers(result) {
         result.method === 'microphone'
             ? result.scoredResponseFrequency
             : result.responseFrequency;
-    const minimumFrequency = musicEngine.frequencyFromMidi(
-        musicEngine.PITCH_MEMORY_MINIMUM_MIDI
+    const minimumFrequency = engine.frequencyFromMidi(
+        music.PITCH_MEMORY_MINIMUM_MIDI
     );
-    const maximumFrequency = musicEngine.frequencyFromMidi(
-        musicEngine.PITCH_MEMORY_MAXIMUM_MIDI
+    const maximumFrequency = engine.frequencyFromMidi(
+        music.PITCH_MEMORY_MAXIMUM_MIDI
     );
     const position = (frequency) =>
-        musicEngine.clamp(
+        clamp(
             Math.log2(frequency / minimumFrequency) /
                 Math.log2(maximumFrequency / minimumFrequency),
             0,
@@ -2026,7 +2037,7 @@ function showPitchMemoryPitchMarkers(result) {
     targetMarker.style.left = `${position(result.targetFrequency) * 100}%`;
     responseMarker.style.left = `${position(responseFrequency) * 100}%`;
     const correct =
-        result.absoluteErrorCents < musicEngine.PITCH_MEMORY_CORRECT_CENTS;
+        result.absoluteErrorCents < music.PITCH_MEMORY_CORRECT_CENTS;
     responseMarker.classList.toggle('is-correct', correct);
     responseMarker.classList.toggle('is-incorrect', !correct);
     getInput('pitch-memory-pitch').classList.add('has-result');
@@ -2051,8 +2062,8 @@ function setPitchMemoryRefreshEnabled(enabled) {
 function renderPitchMemorySliderInitialized() {
     const slider = getInput('pitch-memory-pitch');
     slider.min = '0';
-    slider.max = String(musicEngine.PITCH_MEMORY_RANGE_CENTS);
-    slider.value = String(musicEngine.PITCH_MEMORY_RANGE_CENTS / 2);
+    slider.max = String(music.PITCH_MEMORY_RANGE_CENTS);
+    slider.value = String(music.PITCH_MEMORY_RANGE_CENTS / 2);
 }
 
 function renderPitchMemoryStoredSettings(type, conditionValue) {
@@ -2076,7 +2087,7 @@ function renderPitchMemoryDetectedFrequency(frequency) {
 
 function renderPitchMemoryNoStablePitch() {
     getOutput('pitch-memory-response-pitch').textContent =
-        musicEngine.MICROPHONE_MESSAGES.NO_STABLE_PITCH;
+        engine.MICROPHONE_MESSAGES.NO_STABLE_PITCH;
 }
 
 function renderPitchMemoryResponse(sliderValue, frequency) {
@@ -2127,8 +2138,8 @@ function isPitchMemoryResponseVisible() {
 function renderPitchMemoryResult(result) {
     getOutput('pitch-memory-result').textContent =
         result.method === 'microphone'
-            ? `Target ${formatPitchAndCents(result.targetFrequency)}; response ${formatPitchAndCents(result.responseFrequency)}; octave-adjusted ${formatPitchAndCents(result.scoredResponseFrequency)}; error ${musicEngine.signed(result.errorCents, 1)} cents.`
-            : `Target ${formatPitchAndCents(result.targetFrequency)}; response ${formatPitchAndCents(result.responseFrequency)}; error ${musicEngine.signed(result.errorCents, 1)} cents.`;
+            ? `Target ${formatPitchAndCents(result.targetFrequency)}; response ${formatPitchAndCents(result.responseFrequency)}; octave-adjusted ${formatPitchAndCents(result.scoredResponseFrequency)}; error ${signed(result.errorCents, 1)} cents.`
+            : `Target ${formatPitchAndCents(result.targetFrequency)}; response ${formatPitchAndCents(result.responseFrequency)}; error ${signed(result.errorCents, 1)} cents.`;
     showPitchMemoryPitchMarkers(result);
     getInput('pitch-memory-pitch').disabled = true;
     getAction('pitch-memory-response-play').disabled = true;
@@ -2199,7 +2210,7 @@ function createMatchTargetAnswerRow(answer, index) {
     details.append(
         document.createTextNode(
             `${answer.frequency.toFixed(3)} Hz, ` +
-                `${musicEngine.signed(answer.cents, 2)} cents`
+                `${signed(answer.cents, 2)} cents`
         )
     );
     row.append(details);
@@ -2216,18 +2227,18 @@ function renderMatchTargetAnswers() {
 
 function renderMatchIdentificationAnswers(selected = null) {
     const trial = matchIdentification.trial;
-    const buttons = musicEngine.PITCH_CLASS_NAMES.map((_, pitchClass) => {
+    const buttons = music.PITCH_CLASS_NAMES.map((_, pitchClass) => {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'answer-option';
         button.dataset.matchIdentificationAnswer = String(pitchClass);
-        button.textContent = musicEngine.pitchClassName(pitchClass);
+        button.textContent = music.pitchClassName(pitchClass);
         button.disabled = !trial?.played || trial.committed;
         setAnswerOptionState(
             button,
             pitchClass,
             selected,
-            trial?.midi % musicEngine.SEMITONES_PER_OCTAVE
+            trial?.midi % music.SEMITONES_PER_OCTAVE
         );
         return button;
     });
@@ -2239,7 +2250,7 @@ function renderMatchIdentificationAnswers(selected = null) {
 function renderIntervalAnswers(selected = null, enabled = false) {
     const answerSemitones = interval.trial?.answerSemitones || [];
     const buttons = answerSemitones.map((semitones) => {
-        const answer = musicEngine.INTERVALS.find(
+        const answer = music.INTERVALS.find(
             (candidate) => candidate.semitones === semitones
         );
         const button = document.createElement('button');
@@ -2248,7 +2259,7 @@ function renderIntervalAnswers(selected = null, enabled = false) {
         button.dataset.intervalAnswer = String(answer.semitones);
         button.textContent =
             interval.trial.mode === 'construction'
-                ? musicEngine.noteNameFromMidi(
+                ? music.noteNameFromMidi(
                       interval.trial.rootMidi +
                           interval.trial.direction * answer.semitones
                   )
@@ -2271,7 +2282,7 @@ function renderIntervalAnswers(selected = null, enabled = false) {
 
     if (interval.trial?.mode === 'construction') {
         const prompt = getOutput('interval-construction-prompt');
-        const intervalName = musicEngine.INTERVALS.find(
+        const intervalName = music.INTERVALS.find(
             ({ semitones }) => semitones === interval.trial.semitones
         ).name;
         const direction =
@@ -2280,7 +2291,7 @@ function renderIntervalAnswers(selected = null, enabled = false) {
                 : ` ${interval.trial.direction > 0 ? 'ascending' : 'descending'}`;
         prompt.replaceChildren(
             document.createTextNode(
-                `Start: ${musicEngine.noteNameFromMidi(interval.trial.rootMidi)}.`
+                `Start: ${music.noteNameFromMidi(interval.trial.rootMidi)}.`
             ),
             document.createElement('br'),
             document.createTextNode(`Build: ${intervalName}${direction}.`)
@@ -2292,7 +2303,7 @@ function renderIntervalAnswers(selected = null, enabled = false) {
 }
 
 function renderChordAnswers(selected = null, answersEnabled = false) {
-    const buttons = Object.keys(musicEngine.CHORD_QUALITIES).map((quality) => {
+    const buttons = Object.keys(music.CHORD_QUALITIES).map((quality) => {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'answer-option';
@@ -2353,7 +2364,7 @@ function renderTunerStrings(notes = null, accidental = 'sharp', play) {
     }
     notes.forEach((midi, index) => {
         const button = document.createElement('button');
-        const noteName = musicEngine.noteNameFromMidi(midi, accidental);
+        const noteName = music.noteNameFromMidi(midi, accidental);
         button.type = 'button';
         button.textContent = noteName;
         button.setAttribute(
@@ -2406,7 +2417,7 @@ function renderTunerTarget(noteName, frequency) {
 function renderTunerString() {
     renderTunerTarget(
         tunerTargetNoteName(),
-        musicEngine.frequencyFromMidi(tunerTargetMidi)
+        engine.frequencyFromMidi(tunerTargetMidi)
     );
 }
 
@@ -2435,22 +2446,22 @@ function renderTunerHistory(time = performance.now()) {
     context.setTransform(scale, 0, 0, scale, 0, 0);
     context.clearRect(0, 0, width, height);
 
-    const cutoff = time - musicEngine.TUNER_PLOT_SECONDS * 1000;
+    const cutoff = time - music.TUNER_PLOT_SECONDS * 1000;
     const visibleMidis = tunerMicrophoneInput.plotSamples.map((sample) =>
-        musicEngine.midiFromFrequency(sample.frequency)
+        engine.midiFromFrequency(sample.frequency)
     );
     const minimumMidi =
         Math.floor(
             visibleMidis.length
                 ? Math.min(...visibleMidis)
                 : tunerMicrophoneInput.plotCenterMidi
-        ) - musicEngine.TUNER_PLOT_PADDING_SEMITONES;
+        ) - music.TUNER_PLOT_PADDING_SEMITONES;
     const maximumMidi =
         Math.ceil(
             visibleMidis.length
                 ? Math.max(...visibleMidis)
                 : tunerMicrophoneInput.plotCenterMidi
-        ) + musicEngine.TUNER_PLOT_PADDING_SEMITONES;
+        ) + music.TUNER_PLOT_PADDING_SEMITONES;
     const midiRange = maximumMidi - minimumMidi;
     const labelWidth = 34;
     const plotWidth = width - labelWidth;
@@ -2473,17 +2484,12 @@ function renderTunerHistory(time = performance.now()) {
     ) {
         const y = yForMidi(midi);
         const octaveBoundary =
-            ((midi % musicEngine.SEMITONES_PER_OCTAVE) +
-                musicEngine.SEMITONES_PER_OCTAVE) %
-                musicEngine.SEMITONES_PER_OCTAVE ===
+            ((midi % music.SEMITONES_PER_OCTAVE) + music.SEMITONES_PER_OCTAVE) %
+                music.SEMITONES_PER_OCTAVE ===
             0;
         if (octaveBoundary) {
             context.fillStyle = mutedColor;
-            context.fillText(
-                musicEngine.noteNameFromMidi(midi),
-                labelWidth - 6,
-                y
-            );
+            context.fillText(music.noteNameFromMidi(midi), labelWidth - 6, y);
         }
         context.globalAlpha = octaveBoundary ? 1 : 0.3;
         context.strokeStyle = gridColor;
@@ -2506,18 +2512,17 @@ function renderTunerHistory(time = performance.now()) {
     let previousTime = null;
     let previousInRange = false;
     for (const sample of tunerMicrophoneInput.plotSamples) {
-        const exactMidi = musicEngine.midiFromFrequency(sample.frequency);
+        const exactMidi = engine.midiFromFrequency(sample.frequency);
         const x =
             labelWidth +
-            ((sample.time - cutoff) / (musicEngine.TUNER_PLOT_SECONDS * 1000)) *
+            ((sample.time - cutoff) / (music.TUNER_PLOT_SECONDS * 1000)) *
                 plotWidth;
         const y = yForMidi(exactMidi);
         const inRange = exactMidi >= minimumMidi && exactMidi <= maximumMidi;
         if (
             !inRange ||
             !previousInRange ||
-            sample.time - previousTime >
-                musicEngine.TUNER_ANALYSIS_INTERVAL_MS * 3
+            sample.time - previousTime > music.TUNER_ANALYSIS_INTERVAL_MS * 3
         ) {
             context.moveTo(x, y);
         } else {
@@ -2531,7 +2536,7 @@ function renderTunerHistory(time = performance.now()) {
 }
 
 function renderTunerDetection({ cents, frequency, nearest }) {
-    const limitedCents = musicEngine.clamp(cents, -50, 50);
+    const limitedCents = clamp(cents, -50, 50);
 
     const percent = limitedCents + 50;
 
@@ -2544,8 +2549,7 @@ function renderTunerDetection({ cents, frequency, nearest }) {
     getOutput('tuner-tuning-detected').textContent =
         `${detectedNote}${frequency.toFixed(3)} Hz detected`;
 
-    getOutput('tuner-tuning-cents').textContent =
-        `${musicEngine.signed(cents, 1)} cents`;
+    getOutput('tuner-tuning-cents').textContent = `${signed(cents, 1)} cents`;
 
     const inTune = Math.abs(cents) <= 3;
 
@@ -2553,7 +2557,7 @@ function renderTunerDetection({ cents, frequency, nearest }) {
     needle.style.left = `${percent}%`;
     needle.classList.add('is-visible');
     needle.classList.toggle('is-in-tune', inTune);
-    setTunerStatus(musicEngine.MICROPHONE_MESSAGES.LISTENING);
+    setTunerStatus(engine.MICROPHONE_MESSAGES.LISTENING);
 }
 
 // MIDI
@@ -2562,24 +2566,23 @@ function createMidiPianoRollNote(segment) {
     const track = midiPlayer.tracks.find(
         (candidate) => candidate.trackIndex === segment.trackIndex
     );
-    const laneHeight =
-        musicEngine.MIDI_PIANO_ROLL_ROW_HEIGHT_REM / segment.count;
+    const laneHeight = notation.MIDI_PIANO_ROLL_ROW_HEIGHT_REM / segment.count;
     const inset = Math.min(0.06, laneHeight * 0.12);
     const bar = document.createElement('span');
     const rowIndex = midiPlayer.pianoRollMaximumNote - segment.midi;
     const left =
         (segment.start / midiPlayer.unitsPerQuarter) *
-        musicEngine.MIDI_PIANO_ROLL_REM_PER_QUARTER;
+        notation.MIDI_PIANO_ROLL_REM_PER_QUARTER;
     const baseWidth = Math.max(
         0.125,
         (segment.duration / midiPlayer.unitsPerQuarter) *
-            musicEngine.MIDI_PIANO_ROLL_REM_PER_QUARTER
+            notation.MIDI_PIANO_ROLL_REM_PER_QUARTER
     );
     const requestedLeftInset = segment.gapStart
-        ? musicEngine.MIDI_PIANO_ROLL_NOTE_GAP_REM / 2
+        ? notation.MIDI_PIANO_ROLL_NOTE_GAP_REM / 2
         : 0;
     const requestedRightInset = segment.gapEnd
-        ? musicEngine.MIDI_PIANO_ROLL_NOTE_GAP_REM / 2
+        ? notation.MIDI_PIANO_ROLL_NOTE_GAP_REM / 2
         : 0;
     const requestedInset = requestedLeftInset + requestedRightInset;
     const insetScale = requestedInset
@@ -2592,14 +2595,14 @@ function createMidiPianoRollNote(segment) {
     bar.style.setProperty('--midi-track-color', track.color);
     bar.style.left = `${left + leftInset}rem`;
     bar.style.width = `${baseWidth - leftInset - rightInset}rem`;
-    bar.style.top = `${rowIndex * musicEngine.MIDI_PIANO_ROLL_ROW_HEIGHT_REM + segment.lane * laneHeight + inset}rem`;
+    bar.style.top = `${rowIndex * notation.MIDI_PIANO_ROLL_ROW_HEIGHT_REM + segment.lane * laneHeight + inset}rem`;
     bar.style.height = `${laneHeight - inset * 2}rem`;
     const noteLabel = track.channels.every(
-        (channel) => channel === musicEngine.MIDI_PERCUSSION_CHANNEL
+        (channel) => channel === music.MIDI_PERCUSSION_CHANNEL
     )
-        ? (musicEngine.MIDI_PERCUSSION_NOTATION[segment.midi]?.name ??
+        ? (notation.MIDI_PERCUSSION_NOTATION[segment.midi]?.name ??
           'Percussion')
-        : musicEngine.noteNameFromMidi(segment.midi, 'sharp');
+        : music.noteNameFromMidi(segment.midi, 'sharp');
     bar.title = `${midiTrackLabel(track)}: ${noteLabel}`;
     return bar;
 }
@@ -2687,7 +2690,7 @@ function renderMidiPianoRollNotes(
         if (!midiPlayer.pianoRollMarkerElements.has(index)) {
             const element = document.createElement('span');
             element.className = marker.className;
-            element.style.left = `${(marker.position / midiPlayer.unitsPerQuarter) * musicEngine.MIDI_PIANO_ROLL_REM_PER_QUARTER}rem`;
+            element.style.left = `${(marker.position / midiPlayer.unitsPerQuarter) * notation.MIDI_PIANO_ROLL_REM_PER_QUARTER}rem`;
             element.textContent = marker.textContent;
             element.setAttribute('aria-hidden', 'true');
             midiPlayer.pianoRollMarkerElements.set(index, element);
@@ -2711,7 +2714,7 @@ function updateMidiPianoRoll(
         return;
     }
     const quarterPosition = position / midiPlayer.unitsPerQuarter;
-    timeline.style.transform = `translateX(${-quarterPosition * musicEngine.MIDI_PIANO_ROLL_REM_PER_QUARTER}rem)`;
+    timeline.style.transform = `translateX(${-quarterPosition * notation.MIDI_PIANO_ROLL_REM_PER_QUARTER}rem)`;
     renderMidiPianoRollNotes(position);
 
     const enabledTrackIndexes = new Set(
@@ -2742,11 +2745,11 @@ function updateMidiPianoRoll(
         }
         if (
             flashAttacks &&
-            musicEngine.compareSheetPositions(
+            notation.compareSheetPositions(
                 segment.start,
                 midiPlayer.pianoRollPosition
             ) > 0 &&
-            musicEngine.compareSheetPositions(segment.start, position) <= 0
+            notation.compareSheetPositions(segment.start, position) <= 0
         ) {
             attackedPitches.add(segment.midi);
         }
@@ -2877,8 +2880,8 @@ function createMidiPianoRollMarkers() {
             signature.denominator;
         for (
             let position = signature.position;
-            musicEngine.compareSheetPositions(position, end) < 0 &&
-            barlineCount < musicEngine.MIDI_PIANO_ROLL_MAX_BARLINES;
+            notation.compareSheetPositions(position, end) < 0 &&
+            barlineCount < notation.MIDI_PIANO_ROLL_MAX_BARLINES;
             position += measureDuration
         ) {
             markers.push({
@@ -2912,8 +2915,8 @@ function createMidiPianoRollKeyboard(minimumNote, maximumNote, height) {
 
     for (let midi = maximumNote; midi >= minimumNote; midi -= 1) {
         const rowIndex = maximumNote - midi;
-        const top = rowIndex * musicEngine.MIDI_PIANO_ROLL_ROW_HEIGHT_REM;
-        const pitchClass = musicEngine.pitchClassFromMidi(midi);
+        const top = rowIndex * notation.MIDI_PIANO_ROLL_ROW_HEIGHT_REM;
+        const pitchClass = music.pitchClassFromMidi(midi);
         const isBlack = blackPitchClasses.has(pitchClass);
         const key = document.createElement('button');
         const row = document.createElement('span');
@@ -2922,7 +2925,7 @@ function createMidiPianoRollKeyboard(minimumNote, maximumNote, height) {
         key.dataset.midiPianoRollKey = String(midi);
         midiPlayer.pianoRollKeyElements.set(midi, key);
         key.style.top = `${top}rem`;
-        key.title = musicEngine.noteNameFromMidi(midi, 'sharp');
+        key.title = music.noteNameFromMidi(midi, 'sharp');
         key.setAttribute('aria-label', `Play ${key.title}`);
         key.addEventListener('keydown', (event) => {
             if (!event.repeat && ['Enter', ' '].includes(event.key)) {
@@ -2943,7 +2946,7 @@ function createMidiPianoRollKeyboard(minimumNote, maximumNote, height) {
             key.classList.remove('is-struck');
         });
         if (pitchClass === 0) {
-            key.textContent = musicEngine.noteNameFromMidi(midi);
+            key.textContent = music.noteNameFromMidi(midi);
         }
         row.className = `midi-piano-roll-row${isBlack ? ' is-black' : ''}`;
         row.style.top = `${top}rem`;
@@ -3015,7 +3018,7 @@ function renderMidiPianoRoll() {
     const minimumNote = Math.min(...midiPlayer.notes.map((note) => note.midi));
     const maximumNote = Math.max(...midiPlayer.notes.map((note) => note.midi));
     const pitchCount = maximumNote - minimumNote + 1;
-    const height = pitchCount * musicEngine.MIDI_PIANO_ROLL_ROW_HEIGHT_REM;
+    const height = pitchCount * notation.MIDI_PIANO_ROLL_ROW_HEIGHT_REM;
     const stage = document.createElement('div');
     const viewport = document.createElement('div');
     const timeline = document.createElement('div');
@@ -3046,10 +3049,10 @@ function renderMidiPianoRoll() {
     viewport.style.height = `${height}rem`;
     timeline.className = 'midi-piano-roll-timeline';
     timeline.style.height = `${height}rem`;
-    timeline.style.width = `calc(100% + ${(midiPlayer.total / midiPlayer.unitsPerQuarter) * musicEngine.MIDI_PIANO_ROLL_REM_PER_QUARTER}rem)`;
+    timeline.style.width = `calc(100% + ${(midiPlayer.total / midiPlayer.unitsPerQuarter) * notation.MIDI_PIANO_ROLL_REM_PER_QUARTER}rem)`;
     timeline.style.setProperty(
         '--midi-piano-roll-quarter-width',
-        `${musicEngine.MIDI_PIANO_ROLL_REM_PER_QUARTER}rem`
+        `${notation.MIDI_PIANO_ROLL_REM_PER_QUARTER}rem`
     );
     midiPlayer.pianoRollMarkers = createMidiPianoRollMarkers();
 
@@ -3067,7 +3070,7 @@ function renderMidiPianoRoll() {
             getComputedStyle(document.documentElement).fontSize
         );
         midiPlayer.pianoRollVisibleDuration =
-            (width / remPixels / musicEngine.MIDI_PIANO_ROLL_REM_PER_QUARTER) *
+            (width / remPixels / notation.MIDI_PIANO_ROLL_REM_PER_QUARTER) *
             midiPlayer.unitsPerQuarter;
         renderMidiPianoRollNotes(midiPlayer.position, true);
     };
@@ -3108,7 +3111,7 @@ function renderMidiPlayerLeadIn(position) {
 
 function rhythmSheetLane() {
     return document.querySelector(
-        `${musicEngine.RHYTHM_SHEET_SCORE_SELECTOR} .sheet-lane`
+        `${music.RHYTHM_SHEET_SCORE_SELECTOR} .sheet-lane`
     );
 }
 
@@ -3126,22 +3129,22 @@ function renderRhythmSheet() {
     clearRhythmSheetResults();
     document.getElementById('rhythm-sheet-stats').replaceChildren();
     document.getElementById('rhythm-sheet-results').replaceChildren();
-    renderSheetScore(rhythmSheet, musicEngine.RHYTHM_SHEET_SCORE_SELECTOR, {
+    renderSheetScore(rhythmSheet, music.RHYTHM_SHEET_SCORE_SELECTOR, {
         countIn: true,
         durationGuide: true,
         initialPosition: rhythmSheetInitialPosition(),
         pitchGuide: true,
     });
     document.getElementById('rhythm-sheet-description').textContent =
-        musicEngine.describeSheetScore(rhythmSheet);
+        notation.describeSheetScore(rhythmSheet);
     rhythmSheet.countMarkerElements = [
         ...document.querySelectorAll(
-            `${musicEngine.RHYTHM_SHEET_SCORE_SELECTOR} [data-sheet-count-index]`
+            `${music.RHYTHM_SHEET_SCORE_SELECTOR} [data-sheet-count-index]`
         ),
     ];
     rhythmSheet.noteElements = rhythmSheet.phrase.map((_, index) => [
         ...document.querySelectorAll(
-            `${musicEngine.RHYTHM_SHEET_SCORE_SELECTOR} [data-sheet-note-index="${index}"]`
+            `${music.RHYTHM_SHEET_SCORE_SELECTOR} [data-sheet-note-index="${index}"]`
         ),
     ]);
     const { units, denominator, compound } = rhythmSheet.meter;
@@ -3149,38 +3152,38 @@ function renderRhythmSheet() {
         ? `${rhythmSheet.signature}: BPM counts dotted-quarter beats; each beat has three eighth-note subdivisions (1 & a). A dotted quarter lasts three subdivisions, a quarter two, and an eighth one.`
         : `${rhythmSheet.signature}: BPM counts ${denominator === 2 ? 'half' : denominator === 8 ? 'eighth' : 'quarter'} notes, with ${units} beats per bar.`;
     document.getElementById('rhythm-sheet-count-label').textContent =
-        `Ready - durations in ${musicEngine.sheetDurationUnit(rhythmSheet.meter)}`;
+        `Ready - durations in ${notation.sheetDurationUnit(rhythmSheet.meter)}`;
 }
 
 function renderRhythmSheetPitch(frequency = null) {
     const line = document.querySelector(
-        `${musicEngine.RHYTHM_SHEET_SCORE_SELECTOR} .sheet-pitch-line`
+        `${music.RHYTHM_SHEET_SCORE_SELECTOR} .sheet-pitch-line`
     );
     if (!line) {
         return;
     }
 
     const midi = Number.isFinite(frequency)
-        ? musicEngine.midiFromFrequency(frequency)
+        ? engine.midiFromFrequency(frequency)
         : null;
-    const clef = musicEngine.CLEFS[rhythmSheet.clef];
+    const clef = notation.CLEFS[rhythmSheet.clef];
     const visible = midi !== null;
     line.hidden = !visible;
 
     if (visible) {
-        const visibleFrequency = musicEngine.frequencyFromMidi(
-            musicEngine.clamp(midi, clef.minimumMidi, clef.maximumMidi)
+        const visibleFrequency = engine.frequencyFromMidi(
+            clamp(midi, clef.minimumMidi, clef.maximumMidi)
         );
         const staffStep =
-            musicEngine.diatonicPositionFromFrequency(visibleFrequency) -
-            musicEngine.diatonicPositionFromMidi(clef.bottomLineMidi);
+            notation.diatonicPositionFromFrequency(visibleFrequency) -
+            notation.diatonicPositionFromMidi(clef.bottomLineMidi);
         line.style.setProperty('--staff-step', String(staffStep));
     }
 }
 
 function renderRhythmFeedback(position) {
     const lane = rhythmSheetLane();
-    const layout = musicEngine.createSheetLayout(rhythmSheet);
+    const layout = notation.createSheetLayout(rhythmSheet);
     clearRhythmFeedback();
 
     const appendSection = (start, end, state, endsNote) => {
@@ -3210,25 +3213,21 @@ function renderRhythmFeedback(position) {
             .filter((hold) => hold.note === note)
             .sort((left, right) => left.start - right.start);
         const detectedFrequency = note.pitchSamples.length
-            ? musicEngine.median(note.pitchSamples)
+            ? median(note.pitchSamples)
             : note.pitchFrequency;
         const pitchMissed =
             Number.isFinite(detectedFrequency) &&
             Math.abs(
-                musicEngine.centsBetween(
+                music.centsBetween(
                     detectedFrequency,
-                    musicEngine.frequencyFromMidi(note.midi)
+                    engine.frequencyFromMidi(note.midi)
                 )
-            ) > musicEngine.RHYTHM_SHEET_CORRECT_CENTS;
+            ) > music.RHYTHM_SHEET_CORRECT_CENTS;
         let cursor = note.beat;
 
         for (const hold of holds) {
-            const holdStart = musicEngine.clamp(
-                hold.start,
-                note.beat,
-                elapsedEnd
-            );
-            const holdEnd = musicEngine.clamp(hold.end, note.beat, elapsedEnd);
+            const holdStart = clamp(hold.start, note.beat, elapsedEnd);
+            const holdEnd = clamp(hold.end, note.beat, elapsedEnd);
 
             appendSection(cursor, holdStart, 'missed', false);
             appendSection(
@@ -3250,20 +3249,12 @@ function renderRhythmSheetPosition(position) {
     if (position < -units) {
         label.textContent = 'Get ready';
     } else if (position < 0) {
-        const click = musicEngine.clamp(
-            units + 1 + Math.floor(position),
-            1,
-            units
-        );
+        const click = clamp(units + 1 + Math.floor(position), 1, units);
         label.textContent = `Count-in ${click} / ${units}`;
     } else {
-        label.textContent = `Play - durations in ${musicEngine.sheetDurationUnit(rhythmSheet.meter)}`;
+        label.textContent = `Play - durations in ${notation.sheetDurationUnit(rhythmSheet.meter)}`;
     }
-    positionSheetLane(
-        rhythmSheet,
-        musicEngine.RHYTHM_SHEET_SCORE_SELECTOR,
-        position
-    );
+    positionSheetLane(rhythmSheet, music.RHYTHM_SHEET_SCORE_SELECTOR, position);
     const activeCount =
         position >= -units && position < 0
             ? Math.floor(position + units)

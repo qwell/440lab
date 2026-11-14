@@ -2,35 +2,266 @@
 
 // Sheet music
 
+const SHEET_DOT_MULTIPLIER = 1.5;
+const SHEET_COMPOUND_SUBDIVISIONS = 3;
+const SHEET_REM_PER_QUARTER = 5.5;
+const SHEET_BAR_PADDING_REM = 1.25;
+const SHEET_BAR_GLIDE_SECONDS = 0.15;
+const MIDI_MAX_LEDGER_LINES = 2;
+const MIDI_MAX_DISPLAY_LEDGER_LINES = 3;
+const MIDI_SHEET_LEAD_IN_QUARTERS = 1;
+const MIDI_SHEET_REM_PER_QUARTER = 7.5;
+const MIDI_PIANO_ROLL_REM_PER_QUARTER = 7.5;
+const MIDI_PIANO_ROLL_NOTE_GAP_REM = 0.125;
+const MIDI_PIANO_ROLL_ROW_HEIGHT_REM = 1;
+const MIDI_PIANO_ROLL_MAX_BARLINES = 10000;
+const MIDI_PIANO_ROLL_RENDER_VIEWPORTS = 2;
+
+const MIDI_PERCUSSION_NOTATION = Object.freeze({
+    35: { name: 'Acoustic bass drum', staffStep: 1, voice: 'lower' },
+    36: { name: 'Bass drum', staffStep: 1, voice: 'lower' },
+    37: { name: 'Side stick', staffStep: 5, notehead: '𝅃', voice: 'lower' },
+    38: { name: 'Acoustic snare', staffStep: 5, voice: 'lower' },
+    39: { name: 'Hand clap', staffStep: 5, notehead: '𝅃', voice: 'lower' },
+    40: { name: 'Electric snare', staffStep: 5, voice: 'lower' },
+    41: { name: 'Low floor tom', staffStep: 0, voice: 'lower' },
+    42: {
+        name: 'Closed hi-hat',
+        staffStep: 9,
+        notehead: '𝅃',
+        voice: 'upper',
+    },
+    43: { name: 'High floor tom', staffStep: 2, voice: 'lower' },
+    44: {
+        name: 'Pedal hi-hat',
+        staffStep: -1,
+        notehead: '𝅃',
+        voice: 'lower',
+    },
+    45: { name: 'Low tom', staffStep: 3, voice: 'lower' },
+    46: {
+        name: 'Open hi-hat',
+        staffStep: 9,
+        notehead: '𝅅',
+        voice: 'upper',
+    },
+    47: { name: 'Low-mid tom', staffStep: 4, voice: 'lower' },
+    48: { name: 'High-mid tom', staffStep: 6, voice: 'lower' },
+    49: {
+        name: 'Crash cymbal 1',
+        staffStep: 10,
+        notehead: '𝅃',
+        voice: 'upper',
+    },
+    50: { name: 'High tom', staffStep: 7, voice: 'lower' },
+    51: {
+        name: 'Ride cymbal 1',
+        staffStep: 8,
+        notehead: '𝅃',
+        voice: 'upper',
+    },
+    52: {
+        name: 'Chinese cymbal',
+        staffStep: 10,
+        notehead: '𝅃',
+        voice: 'upper',
+    },
+    53: { name: 'Ride bell', staffStep: 8, voice: 'upper' },
+    54: { name: 'Tambourine', staffStep: 9, notehead: '𝅃', voice: 'upper' },
+    55: {
+        name: 'Splash cymbal',
+        staffStep: 10,
+        notehead: '𝅃',
+        voice: 'upper',
+    },
+    56: { name: 'Cowbell', staffStep: 7, notehead: '𝅃', voice: 'upper' },
+    57: {
+        name: 'Crash cymbal 2',
+        staffStep: 10,
+        notehead: '𝅃',
+        voice: 'upper',
+    },
+    58: { name: 'Vibraslap', staffStep: 7, notehead: '𝅃', voice: 'upper' },
+    59: {
+        name: 'Ride cymbal 2',
+        staffStep: 8,
+        notehead: '𝅃',
+        voice: 'upper',
+    },
+    60: { name: 'High bongo', staffStep: 7, voice: 'lower' },
+    61: { name: 'Low bongo', staffStep: 5, voice: 'lower' },
+    62: {
+        name: 'Muted high conga',
+        staffStep: 7,
+        notehead: '𝅃',
+        voice: 'lower',
+    },
+    63: { name: 'Open high conga', staffStep: 5, voice: 'lower' },
+    64: { name: 'Low conga', staffStep: 3, voice: 'lower' },
+    65: { name: 'High timbale', staffStep: 7, voice: 'lower' },
+    66: { name: 'Low timbale', staffStep: 5, voice: 'lower' },
+    67: { name: 'High agogo', staffStep: 7, voice: 'upper' },
+    68: { name: 'Low agogo', staffStep: 5, voice: 'upper' },
+    69: { name: 'Cabasa', staffStep: 9, notehead: '𝅃', voice: 'upper' },
+    70: { name: 'Maracas', staffStep: 9, notehead: '𝅃', voice: 'upper' },
+    71: {
+        name: 'Short whistle',
+        staffStep: 9,
+        notehead: '𝅃',
+        voice: 'upper',
+    },
+    72: {
+        name: 'Long whistle',
+        staffStep: 9,
+        notehead: '𝅅',
+        voice: 'upper',
+    },
+    73: {
+        name: 'Short guiro',
+        staffStep: 7,
+        notehead: '𝅃',
+        voice: 'upper',
+    },
+    74: { name: 'Long guiro', staffStep: 7, notehead: '𝅅', voice: 'upper' },
+    75: { name: 'Claves', staffStep: 5, notehead: '𝅃', voice: 'upper' },
+    76: {
+        name: 'High wood block',
+        staffStep: 7,
+        notehead: '𝅃',
+        voice: 'upper',
+    },
+    77: {
+        name: 'Low wood block',
+        staffStep: 5,
+        notehead: '𝅃',
+        voice: 'upper',
+    },
+    78: {
+        name: 'Muted cuica',
+        staffStep: 7,
+        notehead: '𝅃',
+        voice: 'upper',
+    },
+    79: { name: 'Open cuica', staffStep: 7, notehead: '𝅅', voice: 'upper' },
+    80: {
+        name: 'Muted triangle',
+        staffStep: 10,
+        notehead: '𝅃',
+        voice: 'upper',
+    },
+    81: {
+        name: 'Open triangle',
+        staffStep: 10,
+        notehead: '𝅅',
+        voice: 'upper',
+    },
+});
+const NOTE_VALUES = [
+    { value: 1, name: 'whole', symbol: '𝅝', rest: '𝄻' },
+    { value: 2, name: 'half', symbol: '𝅗𝅥', rest: '𝄼' },
+    { value: 4, name: 'quarter', symbol: '𝅘𝅥', rest: '𝄽' },
+    { value: 8, name: 'eighth', symbol: '𝅘𝅥𝅮', rest: '𝄾' },
+    { value: 16, name: 'sixteenth', symbol: '𝅘𝅥𝅯', rest: '𝄿' },
+    { value: 32, name: 'thirty-second', symbol: '𝅘𝅥𝅰', rest: '𝅀' },
+    { value: 64, name: 'sixty-fourth', symbol: '𝅘𝅥𝅱', rest: '𝅁' },
+    { value: 128, name: 'hundred twenty-eighth', symbol: '𝅘𝅥𝅲', rest: '𝅂' },
+];
+
+const METERS = {
+    '2/4': [2, 0],
+    '3/4': [2, 0, 0],
+    '4/4': [2, 0, 0, 0],
+
+    '2/2': [2, 0],
+    '3/8': [2, 0, 0],
+
+    '6/8': [2, 0, 0, 1, 0, 0],
+    '9/8': [2, 0, 0, 1, 0, 0, 1, 0, 0],
+    '12/8': [2, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0],
+
+    '5/4': [2, 0, 0, 1, 0],
+    '7/8': [2, 0, 1, 0, 1, 0, 0],
+};
+const SIGNATURE_SYMBOLS = {
+    '4/4': '𝄴',
+    '2/2': '𝄵',
+};
+
+const CLEFS = {
+    treble: {
+        symbol: '𝄞',
+        minimumMidi: music.MIDI_NOTES.C4,
+        maximumMidi: music.MIDI_NOTES.A5,
+        bottomLineMidi: music.MIDI_NOTES.E4,
+    },
+    bass: {
+        symbol: '𝄢',
+        minimumMidi: music.MIDI_NOTES.C2,
+        maximumMidi: music.MIDI_NOTES.A3,
+        bottomLineMidi: music.MIDI_NOTES.G2,
+    },
+    alto: {
+        symbol: '𝄡',
+        minimumMidi: music.MIDI_NOTES.C3,
+        maximumMidi: music.MIDI_NOTES.A4,
+        bottomLineMidi: music.MIDI_NOTES.F3,
+    },
+    tenor: {
+        symbol: '𝄡',
+        minimumMidi: music.MIDI_NOTES.G2,
+        maximumMidi: music.MIDI_NOTES.E4,
+        bottomLineMidi: music.MIDI_NOTES.D3,
+    },
+    percussion: {
+        symbol: '𝄥',
+        bottomLineMidi: music.MIDI_NOTES.C4,
+    },
+};
+
+function isSameSheetPosition(left, right) {
+    const magnitude = Math.max(1, Math.abs(left), Math.abs(right));
+    return Math.abs(left - right) <= Number.EPSILON * magnitude;
+}
+
+function compareSheetPositions(left, right) {
+    if (isSameSheetPosition(left, right)) {
+        return 0;
+    }
+    return left < right ? -1 : 1;
+}
+
+function sheetPositionFloor(position, unit = 1) {
+    const quotient = position / unit;
+    const nearest = Math.round(quotient);
+    return isSameSheetPosition(quotient, nearest)
+        ? nearest
+        : Math.floor(quotient);
+}
+
 function diatonicPositionFromMidi(midi) {
     const roundedMidi = Math.round(midi);
-    const pitchClass = musicEngine.pitchClassFromMidi(roundedMidi);
+    const pitchClass = music.pitchClassFromMidi(roundedMidi);
     const naturalIndex =
-        musicEngine.PITCH_CLASS_NAMES.slice(0, pitchClass + 1).filter(
+        music.PITCH_CLASS_NAMES.slice(0, pitchClass + 1).filter(
             ({ natural }) => natural
         ).length - 1;
-    const octave =
-        Math.floor(roundedMidi / musicEngine.SEMITONES_PER_OCTAVE) - 1;
+    const octave = Math.floor(roundedMidi / music.SEMITONES_PER_OCTAVE) - 1;
 
     return octave * 7 + naturalIndex;
 }
 
 function diatonicPositionFromFrequency(frequency) {
-    const midi = musicEngine.midiFromFrequency(frequency);
+    const midi = engine.midiFromFrequency(frequency);
     let lowerMidi = Math.floor(midi);
     let upperMidi = Math.ceil(midi);
 
     while (
-        !musicEngine.PITCH_CLASS_NAMES[
-            musicEngine.pitchClassFromMidi(lowerMidi)
-        ].natural
+        !music.PITCH_CLASS_NAMES[music.pitchClassFromMidi(lowerMidi)].natural
     ) {
         lowerMidi -= 1;
     }
     while (
-        !musicEngine.PITCH_CLASS_NAMES[
-            musicEngine.pitchClassFromMidi(upperMidi)
-        ].natural
+        !music.PITCH_CLASS_NAMES[music.pitchClassFromMidi(upperMidi)].natural
     ) {
         upperMidi += 1;
     }
@@ -56,7 +287,7 @@ function sheetMeter(signature) {
         compound:
             denominator === 8 &&
             units >= 6 &&
-            units % musicEngine.SHEET_COMPOUND_SUBDIVISIONS === 0,
+            units % SHEET_COMPOUND_SUBDIVISIONS === 0,
     };
 }
 
@@ -72,25 +303,22 @@ function sheetNoteValue(note, meter) {
     }
     if (note.wholeMeasureRest) {
         return {
-            ...musicEngine.NOTE_VALUES[0],
+            ...NOTE_VALUES[0],
             dotted: false,
         };
     }
     const { denominator } = meter;
-    for (const noteValue of musicEngine.NOTE_VALUES) {
+    for (const noteValue of NOTE_VALUES) {
         const { value } = noteValue;
         const duration = denominator / value;
-        if (musicEngine.isSameSheetPosition(note.duration, duration)) {
+        if (isSameSheetPosition(note.duration, duration)) {
             return {
                 ...noteValue,
                 dotted: false,
             };
         }
         if (
-            musicEngine.isSameSheetPosition(
-                note.duration,
-                duration * musicEngine.SHEET_DOT_MULTIPLIER
-            )
+            isSameSheetPosition(note.duration, duration * SHEET_DOT_MULTIPLIER)
         ) {
             return {
                 ...noteValue,
@@ -108,7 +336,7 @@ function sheetNoteName(note, meter) {
 
 function sheetNotePosition(note, meter) {
     const { units, compound } = meter;
-    return `Bar ${musicEngine.sheetPositionFloor(note.beat, units) + 1}, ${compound ? 'subdivision' : 'beat'} ${(note.beat % units) + 1}`;
+    return `Bar ${sheetPositionFloor(note.beat, units) + 1}, ${compound ? 'subdivision' : 'beat'} ${(note.beat % units) + 1}`;
 }
 
 function sheetNoteSegments(note) {
@@ -150,31 +378,26 @@ function sheetDurationUnit(meter) {
 function createSheetLayout(score) {
     const { units, denominator } = score.meter;
     const spacing =
-        ((score.remPerQuarter ?? musicEngine.SHEET_REM_PER_QUARTER) * 4) /
-        denominator;
-    const barWidth = units * spacing + musicEngine.SHEET_BAR_PADDING_REM * 2;
+        ((score.remPerQuarter ?? SHEET_REM_PER_QUARTER) * 4) / denominator;
+    const barWidth = units * spacing + SHEET_BAR_PADDING_REM * 2;
 
     function writtenPosition(position, boundarySide = 'start') {
         if (position < 0) {
-            return musicEngine.SHEET_BAR_PADDING_REM + position * spacing;
+            return SHEET_BAR_PADDING_REM + position * spacing;
         }
 
-        const bar = musicEngine.sheetPositionFloor(position, units);
+        const bar = sheetPositionFloor(position, units);
         const withinBar = position - bar * units;
 
         if (
             position > 0 &&
-            musicEngine.isSameSheetPosition(withinBar, 0) &&
+            isSameSheetPosition(withinBar, 0) &&
             boundarySide === 'end'
         ) {
-            return bar * barWidth - musicEngine.SHEET_BAR_PADDING_REM;
+            return bar * barWidth - SHEET_BAR_PADDING_REM;
         }
 
-        return (
-            bar * barWidth +
-            musicEngine.SHEET_BAR_PADDING_REM +
-            withinBar * spacing
-        );
+        return bar * barWidth + SHEET_BAR_PADDING_REM + withinBar * spacing;
     }
 
     function playbackPosition(position) {
@@ -188,13 +411,10 @@ function createSheetLayout(score) {
             );
         }
 
-        const bar = musicEngine.sheetPositionFloor(position, units);
+        const bar = sheetPositionFloor(position, units);
         const withinBar = position - bar * units;
         const interval = score.intervalAtPosition?.(position) ?? score.interval;
-        const glideBeats = Math.min(
-            0.5,
-            musicEngine.SHEET_BAR_GLIDE_SECONDS / interval
-        );
+        const glideBeats = Math.min(0.5, SHEET_BAR_GLIDE_SECONDS / interval);
         const glideStart = units - glideBeats;
         const positionWithoutGlide = writtenPosition(position);
 
@@ -205,10 +425,7 @@ function createSheetLayout(score) {
         const progress = (withinBar - glideStart) / glideBeats;
         const easedProgress = progress * progress * (3 - 2 * progress);
 
-        return (
-            positionWithoutGlide +
-            musicEngine.SHEET_BAR_PADDING_REM * 2 * easedProgress
-        );
+        return positionWithoutGlide + SHEET_BAR_PADDING_REM * 2 * easedProgress;
     }
 
     return { barWidth, playbackPosition, writtenPosition };
@@ -233,17 +450,14 @@ function sheetBeamGroups(writtenNotes, meter, separateVoices = true) {
     }
 
     const { units, compound } = meter;
-    const beatLength = compound ? musicEngine.SHEET_COMPOUND_SUBDIVISIONS : 1;
+    const beatLength = compound ? SHEET_COMPOUND_SUBDIVISIONS : 1;
     const events = [];
 
     for (const writtenNote of writtenNotes) {
         let event = events.at(-1);
         if (
             !event ||
-            !musicEngine.isSameSheetPosition(
-                event.segment.beat,
-                writtenNote.segment.beat
-            )
+            !isSameSheetPosition(event.segment.beat, writtenNote.segment.beat)
         ) {
             event = {
                 writtenNotes: [],
@@ -282,13 +496,13 @@ function sheetBeamGroups(writtenNotes, meter, separateVoices = true) {
 
     for (const event of events) {
         const { segment, value } = event;
-        const bar = musicEngine.sheetPositionFloor(segment.beat, units);
+        const bar = sheetPositionFloor(segment.beat, units);
         const withinBar = segment.beat - bar * units;
-        const beat = musicEngine.sheetPositionFloor(withinBar, beatLength);
+        const beat = sheetPositionFloor(withinBar, beatLength);
         const previous = group.at(-1);
         const followsPrevious =
             previous &&
-            musicEngine.isSameSheetPosition(
+            isSameSheetPosition(
                 previous.segment.beat + previous.segment.duration,
                 segment.beat
             );
@@ -309,27 +523,52 @@ function sheetBeamGroups(writtenNotes, meter, separateVoices = true) {
     return groups;
 }
 
-function describeSheetScore(notation) {
-    return notation.phrase
+function describeSheetScore(score) {
+    return score.phrase
         .map(
             (note) =>
-                `${sheetNotePosition(note, notation.meter)}: ${note.rest ? '' : `${musicEngine.noteNameFromMidi(note.midi, 'sharp')} `}${sheetWrittenName(note, notation.meter)} ${note.rest ? 'rest' : 'note'}, ${sheetDurationLabel(note.duration)} ${sheetDurationUnit(notation.meter)}.`
+                `${sheetNotePosition(note, score.meter)}: ${note.rest ? '' : `${music.noteNameFromMidi(note.midi, 'sharp')} `}${sheetWrittenName(note, score.meter)} ${note.rest ? 'rest' : 'note'}, ${sheetDurationLabel(note.duration)} ${sheetDurationUnit(score.meter)}.`
         )
         .join(' ');
 }
 
-const musicNotation = Object.freeze({
-    diatonicPositionFromMidi,
+const notation = Object.freeze({
+    compareSheetPositions,
+    isSameSheetPosition,
+    sheetPositionFloor,
+
     diatonicPositionFromFrequency,
+    diatonicPositionFromMidi,
+
+    createSheetLayout,
+    describeSheetScore,
+    sheetBeamGroups,
+    sheetDurationLabel,
+    sheetDurationUnit,
     sheetMeter,
-    sheetNoteValue,
     sheetNoteName,
     sheetNotePosition,
     sheetNoteSegments,
-    sheetWrittenName,
-    sheetDurationLabel,
-    sheetDurationUnit,
-    createSheetLayout,
-    sheetBeamGroups,
-    describeSheetScore,
+    sheetNoteValue,
+
+    CLEFS,
+    METERS,
+    NOTE_VALUES,
+    SHEET_BAR_GLIDE_SECONDS,
+    SHEET_BAR_PADDING_REM,
+    SHEET_COMPOUND_SUBDIVISIONS,
+    SHEET_DOT_MULTIPLIER,
+    SHEET_REM_PER_QUARTER,
+    SIGNATURE_SYMBOLS,
+
+    MIDI_MAX_DISPLAY_LEDGER_LINES,
+    MIDI_MAX_LEDGER_LINES,
+    MIDI_PERCUSSION_NOTATION,
+    MIDI_PIANO_ROLL_MAX_BARLINES,
+    MIDI_PIANO_ROLL_NOTE_GAP_REM,
+    MIDI_PIANO_ROLL_REM_PER_QUARTER,
+    MIDI_PIANO_ROLL_RENDER_VIEWPORTS,
+    MIDI_PIANO_ROLL_ROW_HEIGHT_REM,
+    MIDI_SHEET_LEAD_IN_QUARTERS,
+    MIDI_SHEET_REM_PER_QUARTER,
 });

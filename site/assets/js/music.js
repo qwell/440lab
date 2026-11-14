@@ -399,230 +399,15 @@ const RHYTHM_SHEET_SIXTEENTH_PAIR_RATE = 0.7;
 const RHYTHM_SHEET_SUSTAINED_PATTERN_RATE = 0.6;
 const RHYTHM_SHEET_TIE_RATE = 0.35;
 
-const SHEET_DOT_MULTIPLIER = 1.5;
-const SHEET_COMPOUND_SUBDIVISIONS = 3;
 const RHYTHM_SHEET_COUNT_IN_LEAD_UNITS = 0.125;
 
-const SHEET_REM_PER_QUARTER = 5.5;
-const SHEET_BAR_PADDING_REM = 1.25;
-const SHEET_BAR_GLIDE_SECONDS = 0.15;
-const MIDI_MAX_LEDGER_LINES = 2;
-const MIDI_MAX_DISPLAY_LEDGER_LINES = 3;
-const MIDI_SHEET_LEAD_IN_QUARTERS = 1;
-const MIDI_SHEET_REM_PER_QUARTER = 7.5;
-const MIDI_PIANO_ROLL_REM_PER_QUARTER = 7.5;
-const MIDI_PIANO_ROLL_NOTE_GAP_REM = 0.125;
-const MIDI_PIANO_ROLL_ROW_HEIGHT_REM = 1;
-const MIDI_PIANO_ROLL_MAX_BARLINES = 10000;
-const MIDI_PIANO_ROLL_RENDER_VIEWPORTS = 2;
 const MIDI_PIANO_ROLL_PROGRAM = 0;
 const MIDI_PIANO_ROLL_VELOCITY = 127;
 const MIDI_PIANO_ROLL_QUICK_PRESS_MS = 250;
 const MIDI_PIANO_ROLL_QUICK_DURATION_MS = 750;
 const MIDI_PIANO_ROLL_VOLUME = 1;
 const MIDI_PERCUSSION_CHANNEL = 9;
-const MIDI_PERCUSSION_NOTATION = Object.freeze({
-    35: { name: 'Acoustic bass drum', staffStep: 1, voice: 'lower' },
-    36: { name: 'Bass drum', staffStep: 1, voice: 'lower' },
-    37: { name: 'Side stick', staffStep: 5, notehead: '𝅃', voice: 'lower' },
-    38: { name: 'Acoustic snare', staffStep: 5, voice: 'lower' },
-    39: { name: 'Hand clap', staffStep: 5, notehead: '𝅃', voice: 'lower' },
-    40: { name: 'Electric snare', staffStep: 5, voice: 'lower' },
-    41: { name: 'Low floor tom', staffStep: 0, voice: 'lower' },
-    42: {
-        name: 'Closed hi-hat',
-        staffStep: 9,
-        notehead: '𝅃',
-        voice: 'upper',
-    },
-    43: { name: 'High floor tom', staffStep: 2, voice: 'lower' },
-    44: {
-        name: 'Pedal hi-hat',
-        staffStep: -1,
-        notehead: '𝅃',
-        voice: 'lower',
-    },
-    45: { name: 'Low tom', staffStep: 3, voice: 'lower' },
-    46: {
-        name: 'Open hi-hat',
-        staffStep: 9,
-        notehead: '𝅅',
-        voice: 'upper',
-    },
-    47: { name: 'Low-mid tom', staffStep: 4, voice: 'lower' },
-    48: { name: 'High-mid tom', staffStep: 6, voice: 'lower' },
-    49: {
-        name: 'Crash cymbal 1',
-        staffStep: 10,
-        notehead: '𝅃',
-        voice: 'upper',
-    },
-    50: { name: 'High tom', staffStep: 7, voice: 'lower' },
-    51: {
-        name: 'Ride cymbal 1',
-        staffStep: 8,
-        notehead: '𝅃',
-        voice: 'upper',
-    },
-    52: {
-        name: 'Chinese cymbal',
-        staffStep: 10,
-        notehead: '𝅃',
-        voice: 'upper',
-    },
-    53: { name: 'Ride bell', staffStep: 8, voice: 'upper' },
-    54: { name: 'Tambourine', staffStep: 9, notehead: '𝅃', voice: 'upper' },
-    55: {
-        name: 'Splash cymbal',
-        staffStep: 10,
-        notehead: '𝅃',
-        voice: 'upper',
-    },
-    56: { name: 'Cowbell', staffStep: 7, notehead: '𝅃', voice: 'upper' },
-    57: {
-        name: 'Crash cymbal 2',
-        staffStep: 10,
-        notehead: '𝅃',
-        voice: 'upper',
-    },
-    58: { name: 'Vibraslap', staffStep: 7, notehead: '𝅃', voice: 'upper' },
-    59: {
-        name: 'Ride cymbal 2',
-        staffStep: 8,
-        notehead: '𝅃',
-        voice: 'upper',
-    },
-    60: { name: 'High bongo', staffStep: 7, voice: 'lower' },
-    61: { name: 'Low bongo', staffStep: 5, voice: 'lower' },
-    62: {
-        name: 'Muted high conga',
-        staffStep: 7,
-        notehead: '𝅃',
-        voice: 'lower',
-    },
-    63: { name: 'Open high conga', staffStep: 5, voice: 'lower' },
-    64: { name: 'Low conga', staffStep: 3, voice: 'lower' },
-    65: { name: 'High timbale', staffStep: 7, voice: 'lower' },
-    66: { name: 'Low timbale', staffStep: 5, voice: 'lower' },
-    67: { name: 'High agogo', staffStep: 7, voice: 'upper' },
-    68: { name: 'Low agogo', staffStep: 5, voice: 'upper' },
-    69: { name: 'Cabasa', staffStep: 9, notehead: '𝅃', voice: 'upper' },
-    70: { name: 'Maracas', staffStep: 9, notehead: '𝅃', voice: 'upper' },
-    71: {
-        name: 'Short whistle',
-        staffStep: 9,
-        notehead: '𝅃',
-        voice: 'upper',
-    },
-    72: {
-        name: 'Long whistle',
-        staffStep: 9,
-        notehead: '𝅅',
-        voice: 'upper',
-    },
-    73: {
-        name: 'Short guiro',
-        staffStep: 7,
-        notehead: '𝅃',
-        voice: 'upper',
-    },
-    74: { name: 'Long guiro', staffStep: 7, notehead: '𝅅', voice: 'upper' },
-    75: { name: 'Claves', staffStep: 5, notehead: '𝅃', voice: 'upper' },
-    76: {
-        name: 'High wood block',
-        staffStep: 7,
-        notehead: '𝅃',
-        voice: 'upper',
-    },
-    77: {
-        name: 'Low wood block',
-        staffStep: 5,
-        notehead: '𝅃',
-        voice: 'upper',
-    },
-    78: {
-        name: 'Muted cuica',
-        staffStep: 7,
-        notehead: '𝅃',
-        voice: 'upper',
-    },
-    79: { name: 'Open cuica', staffStep: 7, notehead: '𝅅', voice: 'upper' },
-    80: {
-        name: 'Muted triangle',
-        staffStep: 10,
-        notehead: '𝅃',
-        voice: 'upper',
-    },
-    81: {
-        name: 'Open triangle',
-        staffStep: 10,
-        notehead: '𝅅',
-        voice: 'upper',
-    },
-});
 const RHYTHM_SHEET_SCORE_SELECTOR = '#rhythm-sheet-score';
-
-const NOTE_VALUES = [
-    { value: 1, name: 'whole', symbol: '𝅝', rest: '𝄻' },
-    { value: 2, name: 'half', symbol: '𝅗𝅥', rest: '𝄼' },
-    { value: 4, name: 'quarter', symbol: '𝅘𝅥', rest: '𝄽' },
-    { value: 8, name: 'eighth', symbol: '𝅘𝅥𝅮', rest: '𝄾' },
-    { value: 16, name: 'sixteenth', symbol: '𝅘𝅥𝅯', rest: '𝄿' },
-    { value: 32, name: 'thirty-second', symbol: '𝅘𝅥𝅰', rest: '𝅀' },
-    { value: 64, name: 'sixty-fourth', symbol: '𝅘𝅥𝅱', rest: '𝅁' },
-    { value: 128, name: 'hundred twenty-eighth', symbol: '𝅘𝅥𝅲', rest: '𝅂' },
-];
-
-const METERS = {
-    '2/4': [2, 0],
-    '3/4': [2, 0, 0],
-    '4/4': [2, 0, 0, 0],
-
-    '2/2': [2, 0],
-    '3/8': [2, 0, 0],
-
-    '6/8': [2, 0, 0, 1, 0, 0],
-    '9/8': [2, 0, 0, 1, 0, 0, 1, 0, 0],
-    '12/8': [2, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0],
-
-    '5/4': [2, 0, 0, 1, 0],
-    '7/8': [2, 0, 1, 0, 1, 0, 0],
-};
-const SIGNATURE_SYMBOLS = {
-    '4/4': '𝄴',
-    '2/2': '𝄵',
-};
-
-const CLEFS = {
-    treble: {
-        symbol: '𝄞',
-        minimumMidi: MIDI_NOTES.C4,
-        maximumMidi: MIDI_NOTES.A5,
-        bottomLineMidi: MIDI_NOTES.E4,
-    },
-    bass: {
-        symbol: '𝄢',
-        minimumMidi: MIDI_NOTES.C2,
-        maximumMidi: MIDI_NOTES.A3,
-        bottomLineMidi: MIDI_NOTES.G2,
-    },
-    alto: {
-        symbol: '𝄡',
-        minimumMidi: MIDI_NOTES.C3,
-        maximumMidi: MIDI_NOTES.A4,
-        bottomLineMidi: MIDI_NOTES.F3,
-    },
-    tenor: {
-        symbol: '𝄡',
-        minimumMidi: MIDI_NOTES.G2,
-        maximumMidi: MIDI_NOTES.E4,
-        bottomLineMidi: MIDI_NOTES.D3,
-    },
-    percussion: {
-        symbol: '𝄥',
-        bottomLineMidi: MIDI_NOTES.C4,
-    },
-};
 
 const RHYTHM_SHEET_CORRECT_CENTS = 25;
 const RHYTHM_SHEET_ANALYSIS_INTERVAL_MS = 50;
@@ -643,85 +428,28 @@ const PITCH_MEMORY_RANGE_CENTS =
     (PITCH_MEMORY_MAXIMUM_MIDI - PITCH_MEMORY_MINIMUM_MIDI) *
     CENTS_PER_SEMITONE;
 
-function clamp(value, minimum, maximum) {
-    return Math.min(maximum, Math.max(minimum, value));
+function pitchClassFromMidi(midi) {
+    return (
+        ((Math.round(midi) % SEMITONES_PER_OCTAVE) + SEMITONES_PER_OCTAVE) %
+        SEMITONES_PER_OCTAVE
+    );
 }
 
-function isSameSheetPosition(left, right) {
-    const magnitude = Math.max(1, Math.abs(left), Math.abs(right));
-    return Math.abs(left - right) <= Number.EPSILON * magnitude;
+function pitchClassName(pitchClass, accidental = null) {
+    const names = PITCH_CLASS_NAMES[pitchClass];
+
+    return (
+        names.natural ?? names[accidental] ?? `${names.sharp} / ${names.flat}`
+    );
 }
 
-function compareSheetPositions(left, right) {
-    if (isSameSheetPosition(left, right)) {
-        return 0;
-    }
-    return left < right ? -1 : 1;
-}
+function noteNameFromMidi(midi, accidental = null) {
+    const roundedMidi = Math.round(midi);
+    const pitchClass = pitchClassFromMidi(roundedMidi);
+    const octave = Math.floor(roundedMidi / SEMITONES_PER_OCTAVE) - 1;
+    const noteName = pitchClassName(pitchClass, accidental);
 
-function sheetPositionFloor(position, unit = 1) {
-    const quotient = position / unit;
-    const nearest = Math.round(quotient);
-    return isSameSheetPosition(quotient, nearest)
-        ? nearest
-        : Math.floor(quotient);
-}
-
-function readNumber(input, fallback) {
-    const rawValue = input.value.trim();
-
-    if (rawValue === '') {
-        return fallback;
-    }
-
-    const value = Number(rawValue);
-
-    if (!Number.isFinite(value)) {
-        return fallback;
-    }
-
-    const minimum = input.hasAttribute('min')
-        ? Number(input.getAttribute('min'))
-        : -Infinity;
-
-    const maximum = input.hasAttribute('max')
-        ? Number(input.getAttribute('max'))
-        : Infinity;
-
-    return clamp(value, minimum, maximum);
-}
-
-function signed(value, decimalPlaces = 1) {
-    return `${value >= 0 ? '+' : ''}${value.toFixed(decimalPlaces)}`;
-}
-
-function median(values) {
-    const sorted = [...values].sort((left, right) => left - right);
-    const middle = Math.floor(sorted.length / 2);
-
-    return sorted.length % 2 === 1
-        ? sorted[middle]
-        : (sorted[middle - 1] + sorted[middle]) / 2;
-}
-
-function addRollingSample(samples, sample, limit) {
-    samples.push(sample);
-
-    if (samples.length > limit) {
-        samples.splice(0, samples.length - limit);
-    }
-}
-
-function shuffle(items) {
-    const result = [...items];
-
-    for (let index = result.length - 1; index > 0; index -= 1) {
-        const swapIndex = Math.floor(Math.random() * (index + 1));
-
-        [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
-    }
-
-    return result;
+    return `${noteName}${octave}`;
 }
 
 function frequencyFromCents(referenceFrequency, cents) {
@@ -739,94 +467,75 @@ function nearestOctaveFrequency(frequency, referenceFrequency) {
 }
 
 const music = Object.freeze({
-    ADAPTIVE_WINDOW_SIZE,
-    ADAPTIVE_NARROW_FACTOR,
-    ADAPTIVE_WIDEN_FACTOR,
-    SEMITONES_PER_OCTAVE,
-    CENTS_PER_SEMITONE,
+    centsBetween,
+    frequencyFromCents,
+    nearestOctaveFrequency,
+    noteNameFromMidi,
+    pitchClassFromMidi,
+    pitchClassName,
+
     CENTS_PER_OCTAVE,
-    PITCH_CLASS_NAMES,
-    MIDI_NOTES,
+    CENTS_PER_SEMITONE,
     DEFAULT_A4_FREQUENCY,
-    MINIMUM_SUPPORTED_MIDI,
     MAXIMUM_SUPPORTED_MIDI,
+    MIDI_NOTES,
+    MINIMUM_SUPPORTED_MIDI,
+    PITCH_CLASS_NAMES,
+    SEMITONES_PER_OCTAVE,
+
     DEFAULT_VOLUME,
-    VOICE_GAIN,
-    INTERVAL_LEVELS,
-    INTERVALS,
-    CHORD_QUALITIES,
-    TUNER_ANALYSIS_INTERVAL_MS,
-    TUNER_CENTS_SMOOTHING,
-    TUNER_MIN_RMS,
-    TUNER_STABLE_FRAMES,
-    TUNER_YIN_THRESHOLD,
-    TUNER_FREQUENCY_SAMPLE_LIMIT,
-    TUNER_ANALYSIS_SAMPLE_STRIDE,
-    TUNER_PLOT_SECONDS,
-    TUNER_PLOT_PADDING_SEMITONES,
-    TUNER_INSTRUMENTS,
     PLAYBACK_LOOKAHEAD_MS,
     PLAYBACK_SCHEDULE_AHEAD_SECONDS,
-    MIDI_GENERATED_TONE_VOLUME,
+    VOICE_GAIN,
+
+    TUNER_ANALYSIS_INTERVAL_MS,
+    TUNER_ANALYSIS_SAMPLE_STRIDE,
+    TUNER_CENTS_SMOOTHING,
+    TUNER_FREQUENCY_SAMPLE_LIMIT,
+    TUNER_INSTRUMENTS,
+    TUNER_MIN_RMS,
+    TUNER_PLOT_PADDING_SEMITONES,
+    TUNER_PLOT_SECONDS,
+    TUNER_STABLE_FRAMES,
+    TUNER_YIN_THRESHOLD,
+
+    ADAPTIVE_NARROW_FACTOR,
+    ADAPTIVE_WIDEN_FACTOR,
+    ADAPTIVE_WINDOW_SIZE,
+    CHORD_QUALITIES,
+    INTERVAL_LEVELS,
+    INTERVALS,
+    PITCH_MEMORY_CORRECT_CENTS,
+    PITCH_MEMORY_FREQUENCY_SAMPLE_LIMIT,
+    PITCH_MEMORY_MAXIMUM_MIDI,
+    PITCH_MEMORY_MICROPHONE_ADJUSTMENT_CENTS,
+    PITCH_MEMORY_MINIMUM_MIDI,
+    PITCH_MEMORY_RANGE_CENTS,
+
     RHYTHM_CLICK_DURATION,
     RHYTHM_CLICK_FREQUENCIES,
-    RHYTHM_SHEET_EIGHTH_PATTERN_RATE,
-    RHYTHM_SHEET_SIXTEENTH_PATTERN_RATE,
-    RHYTHM_SHEET_SIXTEENTH_PAIR_RATE,
-    RHYTHM_SHEET_SUSTAINED_PATTERN_RATE,
-    RHYTHM_SHEET_TIE_RATE,
-    SHEET_DOT_MULTIPLIER,
-    SHEET_COMPOUND_SUBDIVISIONS,
-    RHYTHM_SHEET_COUNT_IN_LEAD_UNITS,
-    SHEET_REM_PER_QUARTER,
-    SHEET_BAR_PADDING_REM,
-    SHEET_BAR_GLIDE_SECONDS,
-    MIDI_MAX_LEDGER_LINES,
-    MIDI_MAX_DISPLAY_LEDGER_LINES,
-    MIDI_SHEET_LEAD_IN_QUARTERS,
-    MIDI_SHEET_REM_PER_QUARTER,
-    MIDI_PIANO_ROLL_REM_PER_QUARTER,
-    MIDI_PIANO_ROLL_NOTE_GAP_REM,
-    MIDI_PIANO_ROLL_ROW_HEIGHT_REM,
-    MIDI_PIANO_ROLL_MAX_BARLINES,
-    MIDI_PIANO_ROLL_RENDER_VIEWPORTS,
-    MIDI_PIANO_ROLL_PROGRAM,
-    MIDI_PIANO_ROLL_VELOCITY,
-    MIDI_PIANO_ROLL_QUICK_PRESS_MS,
-    MIDI_PIANO_ROLL_QUICK_DURATION_MS,
-    MIDI_PIANO_ROLL_VOLUME,
-    MIDI_PERCUSSION_CHANNEL,
-    MIDI_PERCUSSION_NOTATION,
-    RHYTHM_SHEET_SCORE_SELECTOR,
-    NOTE_VALUES,
-    METERS,
-    SIGNATURE_SYMBOLS,
-    CLEFS,
-    RHYTHM_SHEET_CORRECT_CENTS,
     RHYTHM_SHEET_ANALYSIS_INTERVAL_MS,
+    RHYTHM_SHEET_CORRECT_CENTS,
+    RHYTHM_SHEET_COUNT_IN_LEAD_UNITS,
+    RHYTHM_SHEET_EIGHTH_PATTERN_RATE,
     RHYTHM_SHEET_FREQUENCY_SAMPLE_LIMIT,
-    RHYTHM_SHEET_NOTE_RELEASE_GAP_SECONDS,
-    RHYTHM_SHEET_NOTE_RELEASE_GAP_RATIO,
-    RHYTHM_SHEET_NOTE_CUE_VOLUME,
-    RHYTHM_SHEET_NOTE_CUE_VELOCITY,
     RHYTHM_SHEET_MIDI_CHANNEL,
     RHYTHM_SHEET_MIDI_PROGRAM,
-    PITCH_MEMORY_CORRECT_CENTS,
-    PITCH_MEMORY_MICROPHONE_ADJUSTMENT_CENTS,
-    PITCH_MEMORY_FREQUENCY_SAMPLE_LIMIT,
-    PITCH_MEMORY_MINIMUM_MIDI,
-    PITCH_MEMORY_MAXIMUM_MIDI,
-    PITCH_MEMORY_RANGE_CENTS,
-    clamp,
-    isSameSheetPosition,
-    compareSheetPositions,
-    sheetPositionFloor,
-    readNumber,
-    signed,
-    median,
-    addRollingSample,
-    shuffle,
-    frequencyFromCents,
-    centsBetween,
-    nearestOctaveFrequency,
+    RHYTHM_SHEET_NOTE_CUE_VELOCITY,
+    RHYTHM_SHEET_NOTE_CUE_VOLUME,
+    RHYTHM_SHEET_NOTE_RELEASE_GAP_RATIO,
+    RHYTHM_SHEET_NOTE_RELEASE_GAP_SECONDS,
+    RHYTHM_SHEET_SCORE_SELECTOR,
+    RHYTHM_SHEET_SIXTEENTH_PAIR_RATE,
+    RHYTHM_SHEET_SIXTEENTH_PATTERN_RATE,
+    RHYTHM_SHEET_SUSTAINED_PATTERN_RATE,
+    RHYTHM_SHEET_TIE_RATE,
+
+    MIDI_GENERATED_TONE_VOLUME,
+    MIDI_PERCUSSION_CHANNEL,
+    MIDI_PIANO_ROLL_PROGRAM,
+    MIDI_PIANO_ROLL_QUICK_DURATION_MS,
+    MIDI_PIANO_ROLL_QUICK_PRESS_MS,
+    MIDI_PIANO_ROLL_VELOCITY,
+    MIDI_PIANO_ROLL_VOLUME,
 });

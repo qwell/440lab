@@ -4,7 +4,7 @@ const STATS_KEY = '440Lab.stats.v1';
 const STATE_KEY = '440Lab.state.v1';
 
 const TRIAL_ADVANCE_DELAY = 3000;
-let referenceFrequency = DEFAULT_A4_FREQUENCY;
+let referenceFrequency = music.DEFAULT_A4_FREQUENCY;
 
 function getReferenceFrequency() {
     return referenceFrequency;
@@ -13,45 +13,22 @@ function getReferenceFrequency() {
 function setReferenceFrequency(frequency) {
     referenceFrequency = Number.isFinite(frequency)
         ? frequency
-        : DEFAULT_A4_FREQUENCY;
+        : music.DEFAULT_A4_FREQUENCY;
 }
 
 function frequencyFromMidi(midi) {
     return (
         getReferenceFrequency() *
-        2 ** ((midi - MIDI_NOTES.A4) / SEMITONES_PER_OCTAVE)
+        2 ** ((midi - music.MIDI_NOTES.A4) / music.SEMITONES_PER_OCTAVE)
     );
 }
 
 function midiFromFrequency(frequency) {
     return (
-        MIDI_NOTES.A4 +
-        SEMITONES_PER_OCTAVE * Math.log2(frequency / getReferenceFrequency())
+        music.MIDI_NOTES.A4 +
+        music.SEMITONES_PER_OCTAVE *
+            Math.log2(frequency / getReferenceFrequency())
     );
-}
-
-function pitchClassFromMidi(midi) {
-    return (
-        ((Math.round(midi) % SEMITONES_PER_OCTAVE) + SEMITONES_PER_OCTAVE) %
-        SEMITONES_PER_OCTAVE
-    );
-}
-
-function pitchClassName(pitchClass, accidental = null) {
-    const names = PITCH_CLASS_NAMES[pitchClass];
-
-    return (
-        names.natural ?? names[accidental] ?? `${names.sharp} / ${names.flat}`
-    );
-}
-
-function noteNameFromMidi(midi, accidental = null) {
-    const roundedMidi = Math.round(midi);
-    const pitchClass = pitchClassFromMidi(roundedMidi);
-    const octave = Math.floor(roundedMidi / SEMITONES_PER_OCTAVE) - 1;
-    const noteName = pitchClassName(pitchClass, accidental);
-
-    return `${noteName}${octave}`;
 }
 
 const storage = {
@@ -285,18 +262,6 @@ function removeState(module, name) {
     }
 }
 
-function answerStateClass(answer, selected, correct) {
-    if (selected === null) {
-        return null;
-    }
-
-    if (answer === correct) {
-        return answer === selected ? 'is-correct' : 'is-target';
-    }
-
-    return answer === selected ? 'is-incorrect' : null;
-}
-
 // Audio
 
 const audio = (() => {
@@ -438,7 +403,7 @@ const audio = (() => {
 
         oscillator.start();
 
-        fadeTo(gain.gain, VOICE_GAIN * clamp(volume, 0, 1));
+        fadeTo(gain.gain, music.VOICE_GAIN * clamp(volume, 0, 1));
 
         let stopped = false;
 
@@ -507,7 +472,7 @@ const audio = (() => {
 
         const releaseTime = startTime + durationSeconds;
 
-        const targetGain = VOICE_GAIN * clamp(volume, 0, 1);
+        const targetGain = music.VOICE_GAIN * clamp(volume, 0, 1);
 
         oscillator.frequency.setValueAtTime(frequency, startTime);
 
@@ -950,41 +915,41 @@ function deactivateActiveMicrophoneInput(reason) {
     activeMicrophoneInput?.deactivate(reason);
 }
 
-let masterVolume = DEFAULT_VOLUME;
+let masterVolume = music.DEFAULT_VOLUME;
 
 function setVolume(volume) {
     audio.setMasterVolume(volume);
 }
 
-const musicEngine = Object.freeze({
-    ...music,
-    ...musicNotation,
-    MICROPHONE_MESSAGES,
-    MICROPHONE_STATES,
-    answerStateClass,
+const engine = Object.freeze({
     audio,
-    addMicrophoneStateListener,
-    clearState,
-    createMicrophoneInput,
-    deactivateActiveMicrophoneInput,
-    frequencyFromMidi,
-    getState,
-    loadSettings,
-    midiFromFrequency,
-    noteNameFromMidi,
-    pitchClassFromMidi,
-    pitchClassName,
-    removeSettings,
-    removeState,
-    resetStats,
-    saveSettings,
-    saveState,
-    setReferenceFrequency,
-    setMicrophoneState,
     setVolume,
-    state,
+
+    frequencyFromMidi,
+    midiFromFrequency,
+    setReferenceFrequency,
+
+    loadSettings,
+    removeSettings,
+    saveSettings,
+
+    resetStats,
     stats,
     updateStats,
+
+    clearState,
+    getState,
+    removeState,
+    saveState,
+    state,
+
+    addMicrophoneStateListener,
+    createMicrophoneInput,
+    deactivateActiveMicrophoneInput,
+
+    MICROPHONE_MESSAGES,
+    MICROPHONE_STATES,
+
     get microphoneFailureMessage() {
         return microphoneFailureMessage;
     },
@@ -994,4 +959,5 @@ const musicEngine = Object.freeze({
     get microphoneState() {
         return microphoneState;
     },
+    setMicrophoneState,
 });
